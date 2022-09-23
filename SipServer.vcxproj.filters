@@ -1,0 +1,560 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ConfigFile">
+      <UniqueIdentifier>{627b4282-a60b-4f34-b7c9-bef348ff1b43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SipServer">
+      <UniqueIdentifier>{d208c6af-cb9b-4782-b1f3-531ad2c6c90f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="device">
+      <UniqueIdentifier>{8df2516c-56f1-4baf-b05d-a607c3a9c97c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools">
+      <UniqueIdentifier>{bfe51a7f-46e6-4eed-b560-652b8b02b0be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mySipServer">
+      <UniqueIdentifier>{6ec43b8d-1583-45ca-b751-34623a343b94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="localMediaServer">
+      <UniqueIdentifier>{621ba35e-c7e8-4603-9479-c284f08c209c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{3d94e7e9-729f-4b90-bc47-328180a67de8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="session">
+      <UniqueIdentifier>{bb8fae40-8e62-4a0d-8ee2-6b97a940c54b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SqlDbManager">
+      <UniqueIdentifier>{ec10a54a-26ac-4fed-a4d5-b3f69dc81249}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\Registrar.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\UserAuthGrabber.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\AbstractDb.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\AclStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\Store.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ConfigStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\FilterStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\RouteStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\SiloStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\SqlDb.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\StaticRegStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\TlsPeerIdentityStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\UserStore.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\Processor.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="MySqlDb.cxx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgContentXml.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UaClientCall.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UaMessageMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UserAgentMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XmlMsgAnalysis.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="http.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SqliteDb.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ReproAuthenticatorFactory.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ReproServerAuthManager.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ReproRADIUSServerAuthManager.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ReproTlsPeerAuthManager.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\CertificateAuthenticator.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\DigestAuthenticator.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\RADIUSAuthenticator.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ProxyConfig.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\BasicWsConnectionValidator.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\IsTrustedNode.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\RequestContext.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ResponseContext.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\Proxy.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\ProcessorChain.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\Target.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\RRDecorator.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\AccountingCollector.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServer\PersistentMessageQueue.cxx">
+      <Filter>SipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="mongoose.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistServer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SipServerConfig.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\m_Time.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="device\DeviceChannel.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="device\DeviceInfo.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="device\DeviceManager.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="device\DeviceDbManager.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="device\DeviceCacheServerImpl.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\genuuid.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\iThreadPool.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="MyB2BSvMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\any.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\CodeConvert.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="mySipServer\MyClientRegistHandler.cpp">
+      <Filter>mySipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="mySipServer\SipServerAuthManager.cpp">
+      <Filter>mySipServer</Filter>
+    </ClCompile>
+    <ClCompile Include="Ualink.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="localMediaServer\localMediaServerInterface.cpp">
+      <Filter>localMediaServer</Filter>
+    </ClCompile>
+    <ClCompile Include="localMediaServer\MediaServerItem.cpp">
+      <Filter>localMediaServer</Filter>
+    </ClCompile>
+    <ClCompile Include="localMediaServer\IMediaServerService.cpp">
+      <Filter>localMediaServer</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\ownString.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="localMediaServer\MediaDbManager.cpp">
+      <Filter>localMediaServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RtpPortManager.cpp">
+      <Filter>localMediaServer</Filter>
+    </ClCompile>
+    <ClCompile Include="device\ParentPlatformDbManager.cpp">
+      <Filter>device</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SipServer\Registrar.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AuthenticatorFactory.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\UserAuthGrabber.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AbstractDb.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AclStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\Store.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ConfigStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\FilterStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\RouteStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\SiloStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\SqlDb.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\StaticRegStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\TlsPeerIdentityStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\UserStore.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\UserInfoMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ProcessorMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\Processor.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\TlsPeerIdentityInfo.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="MySqlDb.hxx">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MsgContentXml.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UaClientCall.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="uainfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UaMessageMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UserAgentMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XmlMsgAnalysis.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="http.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SqliteDb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ReproAuthenticatorFactory.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ReproServerAuthManager.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ReproRADIUSServerAuthManager.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ReproTlsPeerAuthManager.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\CertificateAuthenticator.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\DigestAuthenticator.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\RADIUSAuthenticator.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ProxyConfig.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\BasicWsConnectionValidator.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\IsTrustedNode.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\RequestContext.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ResponseContext.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\Proxy.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ProcessorChain.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\Target.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\Ack200DoneMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\RRDecorator.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\TimerCMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ForkControlMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AccountingCollector.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\PersistentMessageQueue.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="mongoose.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistServer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServerConfig.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SipExtensionInfo.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\m_Time.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceChannel.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="device\CatalogData.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceInfo.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceManager.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceDbManager.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceCacheServerImpl.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\genuuid.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\iThreadPool.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="MyB2BSvMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GBTask.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\any.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\CTask.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\CodeConvert.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AsyncProcessor.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AsyncProcessorMessage.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="mySipServer\MyClientRegistHandler.h">
+      <Filter>mySipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="mySipServer\SipServerAuthManager.h">
+      <Filter>mySipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\AsyncProcessorWorker.hxx">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="Ualink.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\localMediaServerInterface.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\MediaServerItem.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\IMediaServerService.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\ownString.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\ZLMServerConfig.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\SSRCInfo.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\SsrcConfig.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\zlmHttpInterface.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="conf\UserSetting.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="sesssion\VideoStreamSessionManager.h">
+      <Filter>session</Filter>
+    </ClInclude>
+    <ClInclude Include="sesssion\SsrcTransaction.h">
+      <Filter>session</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\ZLMRTPServerFactory.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="sesssion\SendRtpItem.h">
+      <Filter>session</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\MediaDbManager.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="device\DeviceInterface.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\MediaConfig.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\ConversationManager.h">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\BridgeMixer.h">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\HandleTypes.h">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\MediaEvent.h">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="SipServer\MediaResourceCache.h">
+      <Filter>SipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RtpPortManager.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="device\ParentPlatformDbManager.h">
+      <Filter>device</Filter>
+    </ClInclude>
+    <ClInclude Include="localMediaServer\StreamInfo.h">
+      <Filter>localMediaServer</Filter>
+    </ClInclude>
+    <ClInclude Include="mySipServer\B2BCallManager.h">
+      <Filter>mySipServer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="repro.config">
+      <Filter>ConfigFile</Filter>
+    </None>
+  </ItemGroup>
+</Project>

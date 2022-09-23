@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{282d027d-3def-4a39-9bbf-6aef20dbd089}</ProjectGuid>
+    <RootNamespace>SipServer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>../../rapidjson/include/rapidjson;../../resip/contrib/cajun/include;../../sipcode/libcurl_install/include;../../resip/contrib/MySQLConnectorC/include;../../resip/contrib/db/build_windows;../../resip/contrib/pcre;../../resip;$(IncludePath)</IncludePath>
+    <LibraryPath>../../sipcode/libcurl_install/lib;../../resip/contrib/MySQLConnectorC/lib/opt;../../resip/Win32/Debug;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;DISABLE_BERKELEYDB_USE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>winmm.lib;ws2_32.lib;dum.lib;pcre.lib;rutil.lib;resiprocate.lib;ares.lib;libmysql.lib;fmt.lib;libcurld.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="device\DeviceChannel.cpp" />
+    <ClCompile Include="device\DeviceInfo.cpp" />
+    <ClCompile Include="device\DeviceManager.cpp" />
+    <ClCompile Include="device\DeviceDbManager.cpp" />
+    <ClCompile Include="device\DeviceCacheServerImpl.cpp" />
+    <ClCompile Include="device\ParentPlatformDbManager.cpp" />
+    <ClCompile Include="http.cpp" />
+    <ClCompile Include="localMediaServer\IMediaServerService.cpp" />
+    <ClCompile Include="localMediaServer\localMediaServerInterface.cpp" />
+    <ClCompile Include="localMediaServer\MediaDbManager.cpp" />
+    <ClCompile Include="localMediaServer\MediaServerItem.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="mongoose.c" />
+    <ClCompile Include="MsgContentXml.cpp" />
+    <ClCompile Include="MyB2BSvMgr.cpp" />
+    <ClCompile Include="mySipServer\MyClientRegistHandler.cpp" />
+    <ClCompile Include="mySipServer\SipServerAuthManager.cpp" />
+    <ClCompile Include="MySqlDb.cxx" />
+    <ClCompile Include="RegistServer.cpp" />
+    <ClCompile Include="RtpPortManager.cpp" />
+    <ClCompile Include="SipServer.cpp" />
+    <ClCompile Include="SipServerConfig.cpp" />
+    <ClCompile Include="SipServer\AbstractDb.cxx" />
+    <ClCompile Include="SipServer\AccountingCollector.cxx" />
+    <ClCompile Include="SipServer\AclStore.cxx" />
+    <ClCompile Include="SipServer\BasicWsConnectionValidator.cxx" />
+    <ClCompile Include="SipServer\CertificateAuthenticator.cxx" />
+    <ClCompile Include="SipServer\ConfigStore.cxx" />
+    <ClCompile Include="SipServer\DigestAuthenticator.cxx" />
+    <ClCompile Include="SipServer\FilterStore.cxx" />
+    <ClCompile Include="SipServer\IsTrustedNode.cxx" />
+    <ClCompile Include="SipServer\PersistentMessageQueue.cxx" />
+    <ClCompile Include="SipServer\Processor.cxx" />
+    <ClCompile Include="SipServer\ProcessorChain.cxx" />
+    <ClCompile Include="SipServer\Proxy.cxx" />
+    <ClCompile Include="SipServer\ProxyConfig.cxx" />
+    <ClCompile Include="SipServer\RADIUSAuthenticator.cxx" />
+    <ClCompile Include="SipServer\ReproAuthenticatorFactory.cxx" />
+    <ClCompile Include="SipServer\ReproRADIUSServerAuthManager.cxx" />
+    <ClCompile Include="SipServer\ReproServerAuthManager.cxx" />
+    <ClCompile Include="SipServer\ReproTlsPeerAuthManager.cxx" />
+    <ClCompile Include="SipServer\RequestContext.cxx" />
+    <ClCompile Include="SipServer\ResponseContext.cxx" />
+    <ClCompile Include="SipServer\RouteStore.cxx" />
+    <ClCompile Include="SipServer\Registrar.cxx" />
+    <ClCompile Include="SipServer\RRDecorator.cxx" />
+    <ClCompile Include="SipServer\SiloStore.cxx" />
+    <ClCompile Include="SipServer\SqlDb.cxx" />
+    <ClCompile Include="SipServer\StaticRegStore.cxx" />
+    <ClCompile Include="SipServer\Store.cxx" />
+    <ClCompile Include="SipServer\Target.cxx" />
+    <ClCompile Include="SipServer\TlsPeerIdentityStore.cxx" />
+    <ClCompile Include="SipServer\UserAuthGrabber.cxx" />
+    <ClCompile Include="SipServer\UserStore.cxx" />
+    <ClCompile Include="sqlite3.c" />
+    <ClCompile Include="SqliteDb.cpp" />
+    <ClCompile Include="tinyxml2.cpp" />
+    <ClCompile Include="tools\any.cpp" />
+    <ClCompile Include="tools\CodeConvert.cpp" />
+    <ClCompile Include="tools\genuuid.cpp" />
+    <ClCompile Include="tools\iThreadPool.cpp" />
+    <ClCompile Include="tools\m_Time.cpp" />
+    <ClCompile Include="tools\ownString.cpp" />
+    <ClCompile Include="UaClientCall.cpp" />
+    <ClCompile Include="Ualink.cpp" />
+    <ClCompile Include="UaMessageMgr.cpp" />
+    <ClCompile Include="UserAgentMgr.cpp" />
+    <ClCompile Include="XmlMsgAnalysis.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="conf\UserSetting.h" />
+    <ClInclude Include="device\CatalogData.h" />
+    <ClInclude Include="device\DeviceChannel.h" />
+    <ClInclude Include="device\DeviceInfo.h" />
+    <ClInclude Include="device\DeviceInterface.h" />
+    <ClInclude Include="device\DeviceManager.h" />
+    <ClInclude Include="device\DeviceDbManager.h" />
+    <ClInclude Include="device\DeviceCacheServerImpl.h" />
+    <ClInclude Include="device\ParentPlatformDbManager.h" />
+    <ClInclude Include="GBTask.h" />
+    <ClInclude Include="http.h" />
+    <ClInclude Include="localMediaServer\IMediaServerService.h" />
+    <ClInclude Include="localMediaServer\localMediaServerInterface.h" />
+    <ClInclude Include="localMediaServer\MediaConfig.h" />
+    <ClInclude Include="localMediaServer\MediaDbManager.h" />
+    <ClInclude Include="localMediaServer\MediaServerItem.h" />
+    <ClInclude Include="localMediaServer\SsrcConfig.h" />
+    <ClInclude Include="localMediaServer\SSRCInfo.h" />
+    <ClInclude Include="localMediaServer\StreamInfo.h" />
+    <ClInclude Include="localMediaServer\zlmHttpInterface.h" />
+    <ClInclude Include="localMediaServer\ZLMServerConfig.h" />
+    <ClInclude Include="localMediaServer\ZLMRTPServerFactory.h" />
+    <ClInclude Include="mongoose.h" />
+    <ClInclude Include="MsgContentXml.h" />
+    <ClInclude Include="MyB2BSvMgr.h" />
+    <ClInclude Include="mySipServer\B2BCallManager.h" />
+    <ClInclude Include="mySipServer\MyClientRegistHandler.h" />
+    <ClInclude Include="mySipServer\SipServerAuthManager.h" />
+    <ClInclude Include="MySqlDb.hxx" />
+    <ClInclude Include="RegistServer.h" />
+    <ClInclude Include="RtpPortManager.h" />
+    <ClInclude Include="sesssion\SendRtpItem.h" />
+    <ClInclude Include="sesssion\SsrcTransaction.h" />
+    <ClInclude Include="sesssion\VideoStreamSessionManager.h" />
+    <ClInclude Include="SipExtensionInfo.h" />
+    <ClInclude Include="SipServer.h" />
+    <ClInclude Include="SipServerConfig.h" />
+    <ClInclude Include="SipServer\AbstractDb.hxx" />
+    <ClInclude Include="SipServer\AccountingCollector.hxx" />
+    <ClInclude Include="SipServer\Ack200DoneMessage.hxx" />
+    <ClInclude Include="SipServer\AclStore.hxx" />
+    <ClInclude Include="SipServer\AsyncProcessor.hxx" />
+    <ClInclude Include="SipServer\AsyncProcessorMessage.hxx" />
+    <ClInclude Include="SipServer\AsyncProcessorWorker.hxx" />
+    <ClInclude Include="SipServer\AuthenticatorFactory.hxx" />
+    <ClInclude Include="SipServer\BasicWsConnectionValidator.hxx" />
+    <ClInclude Include="SipServer\BridgeMixer.h" />
+    <ClInclude Include="SipServer\CertificateAuthenticator.hxx" />
+    <ClInclude Include="SipServer\ConfigStore.hxx" />
+    <ClInclude Include="SipServer\ConversationManager.h" />
+    <ClInclude Include="SipServer\DigestAuthenticator.hxx" />
+    <ClInclude Include="SipServer\FilterStore.hxx" />
+    <ClInclude Include="SipServer\ForkControlMessage.hxx" />
+    <ClInclude Include="SipServer\HandleTypes.h" />
+    <ClInclude Include="SipServer\IsTrustedNode.hxx" />
+    <ClInclude Include="SipServer\MediaEvent.h" />
+    <ClInclude Include="SipServer\MediaResourceCache.h" />
+    <ClInclude Include="SipServer\PersistentMessageQueue.hxx" />
+    <ClInclude Include="SipServer\Processor.hxx" />
+    <ClInclude Include="SipServer\ProcessorChain.hxx" />
+    <ClInclude Include="SipServer\ProcessorMessage.hxx" />
+    <ClInclude Include="SipServer\Proxy.hxx" />
+    <ClInclude Include="SipServer\ProxyConfig.hxx" />
+    <ClInclude Include="SipServer\RADIUSAuthenticator.hxx" />
+    <ClInclude Include="SipServer\ReproAuthenticatorFactory.hxx" />
+    <ClInclude Include="SipServer\ReproRADIUSServerAuthManager.hxx" />
+    <ClInclude Include="SipServer\ReproServerAuthManager.hxx" />
+    <ClInclude Include="SipServer\ReproTlsPeerAuthManager.hxx" />
+    <ClInclude Include="SipServer\RequestContext.hxx" />
+    <ClInclude Include="SipServer\ResponseContext.hxx" />
+    <ClInclude Include="SipServer\RouteStore.hxx" />
+    <ClInclude Include="SipServer\Registrar.hxx" />
+    <ClInclude Include="SipServer\RRDecorator.hxx" />
+    <ClInclude Include="SipServer\SiloStore.hxx" />
+    <ClInclude Include="SipServer\SqlDb.hxx" />
+    <ClInclude Include="SipServer\StaticRegStore.hxx" />
+    <ClInclude Include="SipServer\Store.hxx" />
+    <ClInclude Include="SipServer\Target.hxx" />
+    <ClInclude Include="SipServer\TimerCMessage.hxx" />
+    <ClInclude Include="SipServer\TlsPeerIdentityInfo.hxx" />
+    <ClInclude Include="SipServer\TlsPeerIdentityStore.hxx" />
+    <ClInclude Include="SipServer\UserAuthGrabber.hxx" />
+    <ClInclude Include="SipServer\UserInfoMessage.hxx" />
+    <ClInclude Include="SipServer\UserStore.hxx" />
+    <ClInclude Include="sqlite3.h" />
+    <ClInclude Include="sqlite3ext.h" />
+    <ClInclude Include="SqliteDb.h" />
+    <ClInclude Include="tinyxml2.h" />
+    <ClInclude Include="tools\any.h" />
+    <ClInclude Include="tools\CodeConvert.h" />
+    <ClInclude Include="tools\CTask.h" />
+    <ClInclude Include="tools\genuuid.h" />
+    <ClInclude Include="tools\iThreadPool.h" />
+    <ClInclude Include="tools\m_Time.h" />
+    <ClInclude Include="tools\ownString.h" />
+    <ClInclude Include="UaClientCall.h" />
+    <ClInclude Include="uainfo.h" />
+    <ClInclude Include="Ualink.h" />
+    <ClInclude Include="UaMessageMgr.h" />
+    <ClInclude Include="UserAgentMgr.h" />
+    <ClInclude Include="XmlMsgAnalysis.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="repro.config" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

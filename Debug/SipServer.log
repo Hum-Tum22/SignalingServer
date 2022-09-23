@@ -1,0 +1,77 @@
+﻿  MsgContentXml.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+F:\sip\sipcode\SipServer\MsgContentXml.cpp(70,21): warning C4018: “<”: 有符号/无符号不匹配
+  RegistServer.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  SipServer.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  SipServerConfig.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  AccountingCollector.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  CertificateAuthenticator.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  DigestAuthenticator.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  IsTrustedNode.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  ProcessorChain.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  Proxy.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  RADIUSAuthenticator.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  RRDecorator.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  Registrar.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  RequestContext.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  ResponseContext.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  Target.cxx
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  SqliteDb.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  UaClientCall.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+F:\sip\sipcode\SipServer\UaClientCall.h(117): warning C4091: “typedef ”: 没有声明变量时忽略“resip::UaClientCall::UacInviteVideoInfo::_requeststate”的左侧
+F:\sip\rapidjson\include\rapidjson\myjsondef.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  UaMessageMgr.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  UserAgentMgr.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+F:\sip\sipcode\SipServer\UaClientCall.h(117): warning C4091: “typedef ”: 没有声明变量时忽略“resip::UaClientCall::UacInviteVideoInfo::_requeststate”的左侧
+  正在生成代码...
+  正在编译...
+  XmlMsgAnalysis.cpp
+  DeviceDbManager.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  DeviceInfo.cpp
+  DeviceManager.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  ParentPlatformDbManager.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  http.cpp
+F:\sip\rapidjson\include\rapidjson\myjsondef.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  IMediaServerService.cpp
+F:\sip\sipcode\SipServer\localMediaServer\SsrcConfig.h(55,20): warning C4834: 放弃具有 "nodiscard" 属性的函数的返回值
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  MediaDbManager.cpp
+F:\sip\sipcode\SipServer\localMediaServer\SsrcConfig.h(55,20): warning C4834: 放弃具有 "nodiscard" 属性的函数的返回值
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  localMediaServerInterface.cpp
+F:\sip\sipcode\SipServer\localMediaServer\SsrcConfig.h(55,20): warning C4834: 放弃具有 "nodiscard" 属性的函数的返回值
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  main.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  SipServerAuthManager.cpp
+F:\sip\resip\rutil\ResipAssert.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  CodeConvert.cpp
+  iThreadPool.cpp
+  m_Time.cpp
+  ownString.cpp
+  正在生成代码...
+    正在创建库 F:\sip\B2BServer\Debug\SipServer.lib 和对象 F:\sip\B2BServer\Debug\SipServer.exp
+  SipServer.vcxproj -> F:\sip\B2BServer\Debug\SipServer.exe
