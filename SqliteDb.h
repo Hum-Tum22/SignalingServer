@@ -7,8 +7,8 @@
 #include "SipServer/AbstractDb.hxx"
 #include "SipServer/SqlDb.hxx"
 #include <list>
-#include "Device/DeviceInfo.h"
-#include "Device/DeviceChannel.h"
+#include "device/DeviceInfo.h"
+#include "device/DeviceChannel.h"
 
 namespace resip
 {

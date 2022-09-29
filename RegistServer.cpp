@@ -25,13 +25,13 @@
 #endif
 
 #include "SqliteDb.h"
-#include "Device/DeviceInfo.h"
+#include "device/DeviceInfo.h"
 #include "SipServer/AsyncProcessorMessage.hxx"
 #include "SipServer/RequestContext.hxx"
 #include "SipServer/AsyncProcessorWorker.hxx"
 #include "SipExtensionInfo.h"
 #include "SipServerConfig.h"
-#include "Device/DeviceManager.h"
+#include "device/DeviceManager.h"
 
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
