@@ -83,6 +83,7 @@ SipServerDeviceInfo::SipServerDeviceInfo(const SipServerDeviceInfo& devobj):name
 	online = devobj.online;
 	deviceId = devobj.deviceId;
 	mChannelList = devobj.mChannelList;
+	proType = devobj.proType;
 }
 
 string SipServerDeviceInfo::getName()

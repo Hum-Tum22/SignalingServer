@@ -99,6 +99,7 @@ public:
     void clearCatchByDeviceId(string devId);
     void updateDeviceInfoCatch(string devId, Device* device);
     void GetAllDeviceList(list<std::shared_ptr<Device>>& devlist);
+    std::shared_ptr<Device> GetDeviceChannelList(string devId, list<std::shared_ptr<IDeviceChannel>>& channellist);
     int  GetAllChannelCount();
     //int  GetAllChannelCount();
 };

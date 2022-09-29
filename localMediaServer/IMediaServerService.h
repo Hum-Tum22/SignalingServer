@@ -133,7 +133,7 @@ class MediaServerServiceImpl : public IMediaServerService {
             }
 
             if (streamId.empty()) {
-                streamId = ownString::str_format("%08x", ssrc);
+                //streamId = ownString::str_format("%08x", ssrc);
             }
             int rtpServerPort = mediaServerItem.getRtpProxyPort();
             if (mediaServerItem.isRtpEnable()) {
@@ -153,7 +153,7 @@ class MediaServerServiceImpl : public IMediaServerService {
         MediaServerItem *mediaServerItem = getOne(mediaServerId);
         if (mediaServerItem != NULL)
         {
-            std::string streamId = ownString::str_format("%s_%s", deviceId, channelId);
+            std::string streamId;// = ownString::str_format("%s_%s", deviceId, channelId);
             zlmrtpServerFactory.closeRTPServer(*mediaServerItem, streamId);
             releaseSsrc(mediaServerItem->getId(), ssrc);
         }
@@ -504,10 +504,10 @@ class MediaServerServiceImpl : public IMediaServerService {
         /*logger.info("[ZLM] 正在设置 ：{} -> {}:{}",
             mediaServerItem.getId(), mediaServerItem.getIp(), mediaServerItem.getHttpPort());*/
         std::string protocol = sslEnabled ? "https" : "http";
-        std::string hookPrex = ownString::str_format("%s://%s:%s/index/hook", protocol, mediaServerItem.getHookIp(), std::to_string(serverPort));
+        std::string hookPrex;// = ownString::str_format("%s://%s:%s/index/hook", protocol, mediaServerItem.getHookIp(), std::to_string(serverPort));
         std::string recordHookPrex;
         if (mediaServerItem.getRecordAssistPort() != 0) {
-            recordHookPrex = ownString::str_format("http://127.0.0.1:%s/api/record", std::to_string(mediaServerItem.getRecordAssistPort()));
+            recordHookPrex;// = ownString::str_format("http://127.0.0.1:%s/api/record", std::to_string(mediaServerItem.getRecordAssistPort()));
         }
         std::map<std::string, std::string> param;
         param.insert(std::pair<std::string, std::string>("api.secret", mediaServerItem.getSecret()));
@@ -515,19 +515,19 @@ class MediaServerServiceImpl : public IMediaServerService {
         param.insert(std::pair<std::string, std::string>("ffmpeg.cmd", "%s -fflags nobuffer -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264  -f flv %s"));
         param.insert(std::pair<std::string, std::string>("hook.enable", "1"));
         param.insert(std::pair<std::string, std::string>("hook.on_flow_report", ""));
-        param.insert(std::pair<std::string, std::string>("hook.on_play", ownString::str_format("%s/on_play", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_play", ownString::str_format("%s/on_play", hookPrex)));
         param.insert(std::pair<std::string, std::string>("hook.on_http_access", ""));
-        param.insert(std::pair<std::string, std::string>("hook.on_publish", ownString::str_format("%s/on_publish", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_record_mp4", ((!recordHookPrex.empty()) ? ownString::str_format("%s/on_record_mp4", recordHookPrex) : "")));
+        //param.insert(std::pair<std::string, std::string>("hook.on_publish", ownString::str_format("%s/on_publish", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_record_mp4", ((!recordHookPrex.empty()) ? ownString::str_format("%s/on_record_mp4", recordHookPrex) : "")));
         param.insert(std::pair<std::string, std::string>("hook.on_record_ts", ""));
         param.insert(std::pair<std::string, std::string>("hook.on_rtsp_auth", ""));
         param.insert(std::pair<std::string, std::string>("hook.on_rtsp_realm", ""));
-        param.insert(std::pair<std::string, std::string>("hook.on_server_started", ownString::str_format("%s/on_server_started", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_shell_login", ownString::str_format("%s/on_shell_login", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_stream_changed", ownString::str_format("%s/on_stream_changed", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_stream_none_reader", ownString::str_format("%s/on_stream_none_reader", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_stream_not_found", ownString::str_format("%s/on_stream_not_found", hookPrex)));
-        param.insert(std::pair<std::string, std::string>("hook.on_server_keepalive", ownString::str_format("%s/on_server_keepalive", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_server_started", ownString::str_format("%s/on_server_started", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_shell_login", ownString::str_format("%s/on_shell_login", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_stream_changed", ownString::str_format("%s/on_stream_changed", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_stream_none_reader", ownString::str_format("%s/on_stream_none_reader", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_stream_not_found", ownString::str_format("%s/on_stream_not_found", hookPrex)));
+        //param.insert(std::pair<std::string, std::string>("hook.on_server_keepalive", ownString::str_format("%s/on_server_keepalive", hookPrex)));
         param.insert(std::pair<std::string, std::string>("hook.timeoutSec", "20"));
         param.insert(std::pair<std::string, std::string>("general.streamNoneReaderDelayMS", (mediaServerItem.getStreamNoneReaderDelayMS() == -1 ? "3600000" : std::to_string(mediaServerItem.getStreamNoneReaderDelayMS()))));
         // 推流断开后可以在超时时间内重新连接上继续推流，这样播放器会接着播放。
@@ -622,7 +622,7 @@ class MediaServerServiceImpl : public IMediaServerService {
     //@Override
     bool checkMediaRecordServer(std::string ip, int port) {
         bool result = false;
-        std::string url = ownString::str_format("http://%s:%s/index/api/record", ip, std::to_string(port));
+        std::string url;// = ownString::str_format("http://%s:%s/index/api/record", ip, std::to_string(port));
 
         std::string responseJSON = PostRequest(url, "");
         if (!responseJSON.empty())

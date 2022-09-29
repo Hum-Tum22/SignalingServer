@@ -27,7 +27,6 @@ void IDeviceMngrSvr::initialize()
     list<SipServerDeviceInfo> GbDeviceList = mGBDeviceMapper.getDevices();
     for (auto& it : GbDeviceList)
     {
-        it.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
         mDeviceMap[it.getDeviceId()] = std::make_shared<SipServerDeviceInfo>(it);
     }
 }
@@ -196,6 +195,23 @@ void IDeviceMngrSvr::GetAllDeviceList(list<std::shared_ptr<Device>>& devlist)
     {
         devlist.push_back(it.second);
     }
+}
+std::shared_ptr<Device> IDeviceMngrSvr::GetDeviceChannelList(string devId, list<std::shared_ptr<IDeviceChannel>>& channellist)
+{
+    auto iter = mDeviceMap.find(devId);
+    if (iter != mDeviceMap.end())
+    {
+        if (iter->second->getDevAccessProtocal() == Device::DEV_ACCESS_GB28181)
+        {
+            std::shared_ptr<SipServerDeviceInfo> devInfo = std::static_pointer_cast<SipServerDeviceInfo>(iter->second);
+            if (devInfo)
+            {
+                channellist = devInfo->getChannelList();
+            }
+        }
+        return iter->second;
+    }
+    return NULL;
 }
 int IDeviceMngrSvr::GetAllChannelCount()
 {

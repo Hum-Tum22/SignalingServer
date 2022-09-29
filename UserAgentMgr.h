@@ -22,6 +22,7 @@
 
 #include "UaMessageMgr.h"
 #include "localMediaServer/StreamInfo.h"
+#include "RtpPortManager.h"
 
 namespace resip
 {
@@ -178,9 +179,11 @@ public:
     void DoCancelRegist(const Data& targetuser);
     void CheckRegistState();
     CUserMessageMrg *GetMsgMgr() { return mMessageMgr; }
-    int RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort);
+    bool RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort, UaClientCall* pUaClientCall);
     bool IsStreamExist(std::string channelId);
     bool CloseStreamStreamId(std::string channelId);
+    unsigned int GetAvailableRtpPort();
+    void FreeRptPort(unsigned int uiRtpPort);
 
     static void checkStateThread(UaMgr* chandle);
     static void __stdcall RegistStateCallBack(const Data& callID, ClientRegistrationHandle h, int reason, void* pUserData);
@@ -207,6 +210,10 @@ public:
     std::thread StateThread;
     resip::Uri mSubscribeTarget;
     resip::Uri mCallTarget;
+
+
+
+    RTPPortManager mRtpPortMngr;
 };
 }
 #endif

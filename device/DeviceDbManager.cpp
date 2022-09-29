@@ -184,6 +184,10 @@ int GBDeviceChannelMapper::add(IDeviceChannel* channel)
         << "'" << pDevChl->getSubCount() << "'"
         << ");";
     ds.flush();
+    if (pDevChl->getChannelId() == "34020000001320000017")
+    {
+        cout << "" << endl;
+    }
     int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
@@ -299,6 +303,10 @@ int GBDeviceChannelMapper::update(IDeviceChannel* channel)
         ds << "subCount='" << pDevChl->getSubCount() << "'";
         ds << " WHERE deviceId='" << pDevChl->getDeviceId() << "' AND channelId='" << pDevChl->getChannelId() << "'";
     ds.flush();
+    if (pDevChl->getChannelId() == "34020000001320000017")
+    {
+        cout << "" << endl;
+    }
     int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
@@ -564,8 +572,8 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelByChannelId(string chan
         {
             countcol = ncolumn * (i + 1);
 
-            countcol++;//skip id column
             GBDeviceChannel devchl;
+            devchl.setId(std::stoi(azResult[countcol++]));
             devchl.setUuid(azResult[countcol++]);
             devchl.setChannelId(azResult[countcol++]);
             devchl.setName(azResult[countcol++]);
@@ -1117,6 +1125,7 @@ SipServerDeviceInfo GBDeviceMapper::getDeviceByDeviceId(string deviceId)
             devinfo.setHostAddress(azResult[countcol++]);
             devinfo.setCharset(azResult[countcol++]);
             devinfo.setSsrcCheck(azResult[countcol++]);
+            devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
         }
         sqlite3_free_table(azResult);
     }
@@ -1290,6 +1299,7 @@ list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
             devinfo.setCharset(azResult[countcol++]);
             devinfo.setSsrcCheck(azResult[countcol++]);
             devinfo.setChannelCount(atoi(azResult[countcol++]));
+            devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
             devicelist.push_back(devinfo);
         }
         sqlite3_free_table(azResult);
@@ -1381,6 +1391,7 @@ list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
             devinfo.setHostAddress(azResult[countcol++]);
             devinfo.setCharset(azResult[countcol++]);
             devinfo.setSsrcCheck(azResult[countcol++]);
+            devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
             //devinfo.setChannelCount(atoi(azResult[countcol++]));
             devicelist.push_back(devinfo);
         }
@@ -1441,6 +1452,7 @@ SipServerDeviceInfo GBDeviceMapper::getDeviceByHostAndPort(string host, int port
             devinfo.setHostAddress(azResult[countcol++]);
             devinfo.setCharset(azResult[countcol++]);
             devinfo.setSsrcCheck(azResult[countcol++]);
+            devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
             break;
         }
         sqlite3_free_table(azResult);

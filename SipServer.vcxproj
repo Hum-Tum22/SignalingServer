@@ -72,14 +72,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../../rapidjson/include/rapidjson;../../resip/contrib/cajun/include;../../sipcode/libcurl_install/include;../../resip/contrib/MySQLConnectorC/include;../../resip/contrib/db/build_windows;../../resip/contrib/pcre;../../resip;$(IncludePath)</IncludePath>
-    <LibraryPath>../../sipcode/libcurl_install/lib;../../resip/contrib/MySQLConnectorC/lib/opt;../../resip/Win32/Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>lib/rapidjson;../../resip/contrib/cajun/include;lib/libcurl/include;../../resip/contrib/MySQLConnectorC/include;../../resip/contrib/db/build_windows;lib/pcre;lib/resip/include;$(IncludePath)</IncludePath>
+    <LibraryPath>lib/libcurl/win;../resip/contrib/MySQLConnectorC/lib/opt;lib/resip/win;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)build\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>lib/resip/include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

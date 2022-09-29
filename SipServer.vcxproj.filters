@@ -240,11 +240,11 @@
     <ClCompile Include="localMediaServer\MediaDbManager.cpp">
       <Filter>localMediaServer</Filter>
     </ClCompile>
-    <ClCompile Include="RtpPortManager.cpp">
-      <Filter>localMediaServer</Filter>
-    </ClCompile>
     <ClCompile Include="device\ParentPlatformDbManager.cpp">
       <Filter>device</Filter>
+    </ClCompile>
+    <ClCompile Include="RtpPortManager.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -539,9 +539,6 @@
     <ClInclude Include="SipServer\MediaResourceCache.h">
       <Filter>SipServer</Filter>
     </ClInclude>
-    <ClInclude Include="RtpPortManager.h">
-      <Filter>localMediaServer</Filter>
-    </ClInclude>
     <ClInclude Include="device\ParentPlatformDbManager.h">
       <Filter>device</Filter>
     </ClInclude>
@@ -550,6 +547,9 @@
     </ClInclude>
     <ClInclude Include="mySipServer\B2BCallManager.h">
       <Filter>mySipServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RtpPortManager.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

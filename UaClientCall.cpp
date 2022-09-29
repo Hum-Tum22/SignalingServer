@@ -73,7 +73,24 @@ UaClientCall::UaClientCall(UaMgr& userAgent)
 
 UaClientCall::~UaClientCall()
 {
-   mUserAgent.unregisterCall(this);
+    mUserAgent.unregisterCall(this);
+    if (mMyUasInviteVideoInfo.localtport > 0)
+    {
+        mUserAgent.FreeRptPort(mMyUasInviteVideoInfo.localtport);
+        ostringstream ss;
+        ss << "http://192.168.1.38:80/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
+            << mMyUasInviteVideoInfo.devId << "_" << mMyUasInviteVideoInfo.channelID;
+        string strReponse = GetRequest(ss.str());
+    }
+    if (mMyUacInviteVideoInfo.rtpPort > 0)
+    {
+        if (mInviteSessionHandle.isValid())
+        {
+            mInviteSessionHandle->end();
+        }
+        mUserAgent.FreeRptPort(mMyUacInviteVideoInfo.rtpPort);
+        mUserAgent.CloseStreamStreamId(mMyUacInviteVideoInfo.streamId);
+    }
 }
 
 void 
@@ -176,14 +193,8 @@ bool UaClientCall::makeBLeg(std::string channelId)
     {
         mMyUasInviteVideoInfo.devId = devuinfo.getDeviceId();
         //判断流存在
-        if (mUserAgent.IsStreamExist(channelId))
-        {
-        }
-        else
-        {
-            ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-            tPool.submitTask(std::make_shared<RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channelId, mUserAgent));
-        }
+        ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+        tPool.submitTask(std::make_shared<RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channelId, mUserAgent, this, mUserAgent.GetAvailableRtpPort()));
         return true;
     }
     return false;
@@ -204,7 +215,7 @@ UaClientCall::onNewSession(ClientInviteSessionHandle h, InviteSession::OfferAnsw
    }
    mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_GET1XX;
    mMyUacInviteVideoInfo.mInviteSessionHandle = h->getSessionHandle();
-   cout << "***************  ******************* 1\n" << endl;
+   cout << "***************  ******************* 1 " << msg << endl;
 }
 
 void
@@ -246,12 +257,12 @@ UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnsw
    {
        if (msg.isFromWire())
        {
-           mMyUasInviteVideoInfo.mInviteSessionHandle = h->getSessionHandle();
+           mMyUasInviteVideoInfo.mInviteSessionHandle = h;
            //鉴权处理
            
        }
    }
-   cout << "***************  ******************* 2\n" << endl;
+   cout << "***************  ******************* 2\n" << msg << endl;
 }
 
 void
@@ -274,14 +285,14 @@ UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
             break;
       }
    }
-   cout << "***************  ******************* 3\n" << endl;
+   cout << "***************  ******************* 3\n" << msg << endl;
 }
 
 void
 UaClientCall::onEarlyMedia(ClientInviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
    InfoLog(<< "onEarlyMedia: msg=" << msg.brief() << ", sdp=" << sdp);
-   cout << "***************  ******************* 4\n" << endl;
+   cout << "***************  ******************* 4\n" << msg << endl;
 }
 
 void
@@ -296,13 +307,13 @@ UaClientCall::onProvisional(ClientInviteSessionHandle h, const SipMessage& msg)
       return;
    }
    InfoLog(<< "onProvisional: msg=" << msg.brief());
-   cout << "***************  ******************* 5\n" << endl;
+   cout << "***************  ******************* 5\n" << msg << endl;
 }
 
 void
 UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 6\n" << endl;
+    cout << "***************  ******************* 6 " << msg << endl;
    InfoLog(<< "onConnected: msg=" << msg.brief());
    if(!isUACConnected())
    {
@@ -316,10 +327,14 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
       unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
       mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
 
-      //申请一个流
-      //m_pVideoHandler->OnRequestOk(ResId.convertUnsignedLong(), mMyUacInviteVideoInfo.m_sdp, mMyUacInviteVideoInfo.m_sendsdp);
-      //string strUrl("http://192.168.1.232/index/api/addStreamProxy?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cb&vhost=__defaultVhost__&app=live&stream=0&url=rtp://__defaultVhost__/rtp/34020000001320000005");
-      //string strReponse = GetRequest(strUrl);
+      //开启一个rtpserver接收rtp数据
+      ostringstream ss;
+      ss << "http://192.168.1.38/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port="
+          << mMyUacInviteVideoInfo.rtpPort << "&enable_tcp=0&stream_id="
+          << mMyUacInviteVideoInfo.devId << "_" << mMyUacInviteVideoInfo.streamId;
+      ss.flush();
+      string strReponse = GetRequest(ss.str());
+      mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_CONNECT;
    }
    else
    {
@@ -333,7 +348,7 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onConnected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 7\n" << endl;
+    cout << "***************  ******************* 7\n" << msg << endl;
    InfoLog(<< "onConnected: msg=" << msg.brief());
    cout << "*************** onConnected 1 ***************************\n"
        << msg
@@ -342,14 +357,14 @@ UaClientCall::onConnected(InviteSessionHandle h, const SipMessage& msg)
 
 void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 8\n" << endl;
+    cout << "***************  ******************* 8\n" << msg << endl;
     InfoLog(<< "onConnectedConfirmed: msg=" << msg.brief());
     if (msg.isRequest())
     {
         if (msg.method() == ACK)
         {
             ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-            tPool.submitTask(std::make_shared<PushRtpStream>(mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), connectport.convertInt()));
+            tPool.submitTask(std::make_shared<PushRtpStream>(mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), connectport.convertInt(), mUserAgent.GetAvailableRtpPort()));
         }
     }
     
@@ -447,7 +462,7 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
 void
 UaClientCall::onRedirected(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 11\n" << endl;
+    cout << "***************  ******************* 11\n" << msg << endl;
    // DUM will recurse on redirect requests, so nothing to do here
    InfoLog(<< "onRedirected: msg=" << msg.brief());
 }
@@ -455,7 +470,7 @@ UaClientCall::onRedirected(ClientInviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 12\n" << endl;
+    cout << "***************  ******************* 12 " << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -465,12 +480,13 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
    InfoLog(<< "onAnswer: msg=" << msg.brief() << ", sdp=" << sdp);
 
    // Process Answer here
+   //mMyUacInviteVideoInfo.state
 }
 
 void
 UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 13\n" << endl;
+    cout << "***************  ******************* 13\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -488,6 +504,9 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
    else //my is uas
    {
        InfoLog(<< "my is uas" << msg.brief());
+
+       //流存在  直接返回;不存在则申请
+
        if (sdp.session().OtherAttrHelper().exists("y"))
        {
            ssrc = *sdp.session().OtherAttrHelper().getValues("y").begin();
@@ -513,11 +532,11 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
        std::vector<std::string> subjectArray;
        if (msg.exists(h_Subject))
        {
-           subjectArray = ownString::SipSubjectSplit(msg.header(h_Subject).value().c_str());
+           subjectArray = std::SipSubjectSplit(msg.header(h_Subject).value().c_str());
        }
 
-       SdpContents ssdp = sdp;
-       SdpContents::Session::MediumContainer &medialist = ssdp.session().media();
+       AlegResSdp = sdp;
+       SdpContents::Session::MediumContainer &medialist = AlegResSdp.session().media();
        for (auto &iter : medialist)
        {
            if (iter.exists("recvonly"))
@@ -528,13 +547,61 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
            iter.setPort(7000);
            break;
        }
-       Data strsdp = ssdp.getBodyData();
-       ssdp.session().connection().setAddress("192.168.1.38");
-       ssdp.session().origin().setAddress("192.168.1.38");
+       Data strsdp = AlegResSdp.getBodyData();
+       AlegResSdp.session().connection().setAddress("192.168.1.38");
+       AlegResSdp.session().origin().setAddress("192.168.1.38");
 
+       if (subjectArray.size() == 4)
+       {
+           mMyUasInviteVideoInfo.channelID = subjectArray[0];
+           mMyUasInviteVideoInfo.serverID = subjectArray[2];
+           mMyUasInviteVideoInfo.DataTransMoudle = subjectArray[1];
+           if (mUserAgent.IsStreamExist(subjectArray[0]))
+           {
+               //直接回复
+               h->provideAnswer(AlegResSdp);
+               ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
+               if (uas && !uas->isAccepted())
+               {
+                   uas->accept();
+               }
+           }
+           else
+           {
+               //拉流
+               bool chlOnline = makeBLeg(subjectArray[0].c_str());
+               if (chlOnline)
+               {
+                   /*h->provideAnswer(ssdp);
+                   ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
+                   if (uas && !uas->isAccepted())
+                   {
+                       uas->accept();
+                   }*/
+               }
+               else
+               {
+                   WarningCategory warning;
+                   warning.hostname() = "192.168.1.230";
+                   warning.code() = 488;
+                   warning.text() = "channel not exist";
+                   h->reject(488, &warning);
+               }
+           }
+       }
+       else
+       {
+            //参数错误
+           WarningCategory warning;
+           warning.hostname() = "192.168.1.230";
+           warning.code() = 488;
+           warning.text() = "h_Subject parameter error";
+           h->reject(488, &warning);
+       }
+       
 
         //拉流
-       bool chlOnline = false;
+       /*bool chlOnline = false;
         if (subjectArray.size() == 4)
         {
             mMyUasInviteVideoInfo.channelID = subjectArray[0];
@@ -556,9 +623,9 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
             WarningCategory warning;
             warning.hostname() = "192.168.1.230";
             warning.code() = 488;
-            warning.text() = "channel not exist";
+            warning.text() = "h_Subject parameter error";
             h->reject(488, &warning);
-        }
+        }*/
    }
   
    cout << "*************** onOffer ***************************\n"
@@ -569,7 +636,7 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
 void
 UaClientCall::onOfferRequired(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 14\n" << endl;
+    cout << "***************  ******************* 14\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -588,7 +655,7 @@ UaClientCall::onOfferRequired(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onOfferRejected(InviteSessionHandle h, const SipMessage* msg)
 {
-    cout << "***************  ******************* 15\n" << endl;
+    cout << "***************  ******************* 15\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -615,7 +682,7 @@ UaClientCall::onOfferRejected(InviteSessionHandle h, const SipMessage* msg)
 void
 UaClientCall::onOfferRequestRejected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 16\n" << endl;
+    cout << "***************  ******************* 16\n" << msg << endl;
    InfoLog(<< "onOfferRequestRejected: msg=" << msg.brief());
    // This is called when we are waiting to resend a INVITE with no sdp after a glare condition, and we 
    // instead receive an inbound INVITE or UPDATE
@@ -624,7 +691,7 @@ UaClientCall::onOfferRequestRejected(InviteSessionHandle h, const SipMessage& ms
 void
 UaClientCall::onRemoteSdpChanged(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 17\n" << endl;
+    cout << "***************  ******************* 17\n" << msg << endl;
    /// called when a modified SDP is received in a 2xx response to a
    /// session-timer reINVITE. Under normal circumstances where the response
    /// SDP is unchanged from current remote SDP no handler is called
@@ -638,7 +705,7 @@ UaClientCall::onRemoteSdpChanged(InviteSessionHandle h, const SipMessage& msg, c
 void
 UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 18\n" << endl;
+    cout << "***************  ******************* 18\n" << msg << endl;
    InfoLog(<< "onInfo: msg=" << msg.brief());
 
    // Handle message here
@@ -648,21 +715,21 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onInfoSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 19\n" << endl;
+    cout << "***************  ******************* 19\n" << msg << endl;
    InfoLog(<< "onInfoSuccess: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onInfoFailure(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 20\n" << endl;
+    cout << "***************  ******************* 20\n" << msg << endl;
    WarningLog(<< "onInfoFailure: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onRefer(InviteSessionHandle h, ServerSubscriptionHandle ss, const SipMessage& msg)
 {
-    cout << "***************  ******************* 21\n" << endl;
+    cout << "***************  ******************* 21\n" << msg << endl;
    InfoLog(<< "onRefer: msg=" << msg.brief());
 
    // Handle Refer request here
@@ -671,12 +738,12 @@ UaClientCall::onRefer(InviteSessionHandle h, ServerSubscriptionHandle ss, const 
 void
 UaClientCall::onReferAccepted(InviteSessionHandle h, ClientSubscriptionHandle csh, const SipMessage& msg)
 {
-    cout << "***************  ******************* 22\n" << endl;
+    cout << "***************  ******************* 22\n" << msg << endl;
    InfoLog(<< "onReferAccepted: msg=" << msg.brief());
 }
 void UaClientCall::onAckReceived(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 23\n" << endl;
+    cout << "***************  ******************* 23\n" << msg << endl;
     InfoLog(<< "onOffer: " << msg);
     /*string strUrl("http://192.168.1.232/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=live&stream=0&ssrc=");
     strUrl += ssrc.c_str();
@@ -690,14 +757,14 @@ void UaClientCall::onAckReceived(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onReferRejected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 24\n" << endl;
+    cout << "***************  ******************* 24\n" << msg << endl;
    WarningLog(<< "onReferRejected: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onReferNoSub(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 25\n" << endl;
+    cout << "***************  ******************* 25\n" << msg << endl;
    InfoLog(<< "onReferNoSub: msg=" << msg.brief());
 
    // Handle Refer request with (no-subscription indication) here
@@ -706,7 +773,7 @@ UaClientCall::onReferNoSub(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onMessage(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 26\n" << endl;
+    cout << "***************  ******************* 26\n" << msg << endl;
    InfoLog(<< "onMessage: msg=" << msg.brief());
 
    // Handle message here
@@ -723,14 +790,14 @@ UaClientCall::onMessage(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onMessageSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 27\n" << endl;
+    cout << "***************  ******************* 27\n" << msg << endl;
    InfoLog(<< "onMessageSuccess: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 28\n" << endl;
+    cout << "***************  ******************* 28\n" << msg << endl;
    WarningLog(<< "onMessageFailure: msg=" << msg.brief());
 }
 
@@ -744,7 +811,7 @@ UaClientCall::onForkDestroyed(ClientInviteSessionHandle h)
 void 
 UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
 {
-    cout << "***************  ******************* 30\n" << endl;
+    cout << "***************  ******************* 30\n" << msg << endl;
 }
 
 void 
@@ -926,51 +993,140 @@ UaClientCall::onRedirectReceived(AppDialogSetHandle h, const SipMessage& msg)
  ==================================================================== */
 bool RequestStreamTask::TaskRun()
 {
-    ostringstream ss;
-    ss << "http://192.168.1.38/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cb&port=0&enable_tcp=0&stream_id="
+   /* ostringstream ss;
+    ss << "http://192.168.1.38/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port=0&enable_tcp=0&stream_id="
         << devId << "_" << streamId;
-    string strReponse = GetRequest(ss.str());
+    string strReponse = GetRequest(ss.str());*/
 
-    rapidjson::Document document;
-    document.Parse((char*)strReponse.c_str());
-    if (document.HasParseError())
+    UaClientCall* pUacCall = new UaClientCall(mUserAgent);
+    if (pUacCall)
     {
-        return false;
+        pUacCall->mMyUacInviteVideoInfo.rtpPort = rtpPort;
+        pUacCall->mMyUacInviteVideoInfo.devId = devId;
+        pUacCall->mMyUacInviteVideoInfo.streamId = streamId;
+        if (mUserAgent.RequestStream(devIp, devPort, streamId, rtpPort, pUacCall))
+        {
+            for (int i = 0; i < 10 * 5; i++)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                switch (pUacCall->mMyUacInviteVideoInfo.state)
+                {
+                case UaClientCall::UacInviteVideoInfo::_RES_START:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
+                {
+                    if (mAlegCall && mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                    {
+                        mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(mAlegCall->AlegResSdp);
+                        ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+                        if (uas && !uas->isAccepted())
+                        {
+                            uas->accept();
+                            pUacCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
+                            //return true;
+                        }
+                    }
+                }
+                case UaClientCall::UacInviteVideoInfo::_RES_ACK:
+                {
+                    //ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+                    //tPool.submitTask(std::make_shared<PushRtpStream>(mAlegCall->mMyUasInviteVideoInfo.devId, mAlegCall->mMyUasInviteVideoInfo.channelID, mAlegCall->ssrc.c_str(), mAlegCall->connectport.convertInt()));
+                    return true;
+                }
+                break;
+                default:
+                    break;
+                }
+            }
+        }
     }
-    if (document.HasMember("port"))
+    else
     {
-        int lPort = json_check_int32(document, "port");
-        if(lPort > 0)
-            int nRet = mUserAgent.RequestStream(devIp, devPort, streamId, lPort);
+        if (mAlegCall)
+        {
+            if (mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+            {
+                WarningCategory warning;
+                warning.hostname() = "192.168.1.230";
+                warning.code() = 488;
+                warning.text() = "b leg create failed";
+                mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+            }
+        }
+        
     }
     return true;
 };
 bool PushRtpStream::TaskRun()
 {
     bool isStream = false;
-    for (int i = 0; i < 5 * 5; i++)
+    std::string app;
+    std::string streamId;
+    rapidjson::Document document;
+    for (int i = 0; i < 2 * 5; i++)
     {
         ostringstream ss;
-        ss << "http://192.168.1.38:80/index/api/getMediaList?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cb";
+        ss << "http://192.168.1.38:80/index/api/isMediaOnline?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
+            << "schema=rtsp&vhost=__defaultVhost__&app=rtp&stream="
+            << stream_Id;
         ss.flush();
         std::string strResponse = GetRequest(ss.str());
-        if (strResponse.find("rtp") != std::string::npos)
+        document.Parse((char*)strResponse.c_str());
+        if (!document.HasParseError())
         {
-            isStream = true;
-            break;
+            if (document.HasMember("online"))
+            {
+                if (document["online"].IsBool())
+                {
+                    isStream = document["online"].GetBool();
+                    if (isStream)
+                        break;
+                }
+                else
+                {
+                    cout << "online not bool type" << endl;
+                }
+            }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        //"{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=rtp&stream=34020000001180000800_34020000001320000014"
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
     if (isStream)
     {
+        //std::this_thread::sleep_for(std::chrono::milliseconds(500));
         ostringstream ss;
-        ss << "http://192.168.1.38/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cb&vhost=__defaultVhost__&app="
+        ss << "http://192.168.1.38/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
             << "rtp" << "&stream=" << devId << "_" << channelId
             << "&ssrc=" << strSsrc << "&dst_url=192.168.1.232&dst_port=" << connectPort
-            << "&is_udp=1&src_port=0";
+            << "&is_udp=1&src_port=" << localPort;
         ss.flush();
 
         string strReponse = GetRequest(ss.str());
+        rapidjson::Document document;
+        document.Parse((char*)strReponse.c_str());
+        if (document.HasParseError())
+        {
+            return false;
+        }
+        if (document.HasMember("local_port") && json_check_uint32(document, "local_port") > 0)
+        {
+            cout << "startSendRtp ok local_port:" << json_check_uint32(document, "local_port") << endl;
+        }
+        else
+        {
+            if (document.HasMember("msg"))
+            {
+                cout << "startSendRtp failed streamdid:" << stream_Id << " msg:" << json_check_string(document, "msg") << endl;
+            }
+        }
+    }
+    else
+    {
+        cout << "getMediaList error streamid:" << stream_Id << endl;
     }
     return true;
 };

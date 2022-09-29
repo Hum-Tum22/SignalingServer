@@ -16,7 +16,7 @@ public:
         {
             return "";
         }
-        std::string url = ownString::str_format("http://%s:%s/index/api/%s", mediaServerItem.getIp(), std::to_string(mediaServerItem.getHttpPort()), api);
+        std::string url;// = ownString::str_format("http://%s:%s/index/api/%s", mediaServerItem.getIp(), std::to_string(mediaServerItem.getHttpPort()), api);
         int paramCount = 0;
         ostringstream ds;
         ds << url;
@@ -48,7 +48,7 @@ public:
     }
 
     void sendGetForImg(MediaServerItem mediaServerItem, std::string api, std::map<std::string, std::string> params, std::string targetPath, std::string fileName) {
-        std::string url = ownString::str_format("http://%s:%s/index/api/%s", mediaServerItem.getIp(), std::to_string(mediaServerItem.getHttpPort()), api);
+        std::string url;// = ownString::str_format("http://%s:%s/index/api/%s", mediaServerItem.getIp(), std::to_string(mediaServerItem.getHttpPort()), api);
         int paramCount = 0;
         ostringstream ds;
         ds << url;

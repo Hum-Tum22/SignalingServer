@@ -66,7 +66,15 @@ public:
         }
         else if (method == MESSAGE)
         {
-            printf("");;
+            printf("");
+        }
+        if (msg.isRequest())
+        {
+            printf("");
+        }
+        else if (msg.isResponse())
+        {
+            printf("");
         }
         switch (msg.method())
         {
@@ -162,7 +170,8 @@ mRegistrationRetryDelayTime(0),
 mCurrentNotifyTimerId(0),
 //mRegHandle(NULL),
 mMessageMgr(NULL),
-mDumThread(NULL)
+mDumThread(NULL),
+mRtpPortMngr(30000, 30500)
 {
     mAor.user() = "34021000002140000002";
     mAor.host() = "192.168.1.232";
@@ -549,7 +558,7 @@ void UaMgr::CheckRegistState()
         }
     }
 }
-int UaMgr::RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort)
+bool UaMgr::RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort, UaClientCall* pUaClientCall)
 {
     Uri target;
     Data myId = mProfile->getDefaultFrom().uri().user();
@@ -597,16 +606,19 @@ int UaMgr::RequestStream(std::string devIp, int devPort, std::string channelId, 
         bsdp.session().addMedium(videoMedium);
     }
 
-    auto InviteMessage = mDum->makeInviteSession(NameAddr(target), mProfile, bsdp.getContents(), new UaClientCall(*this));
+    if (pUaClientCall)
+    {
+        auto InviteMessage = mDum->makeInviteSession(NameAddr(target), mProfile, bsdp.getContents(), pUaClientCall);
 
-    InviteMessage->header(h_Subject) = StringCategory(channelId.c_str() + Data(":") + Data("0100000001") + Data(",") + myId + Data(":") + Data("0"));
-    InviteMessage->header(h_From).uri().user() = myId;
-    InviteMessage->header(h_From).uri().host() = mProfile->getDefaultFrom().uri().host();
-    InviteMessage->header(h_From).uri().port() = mProfile->getDefaultFrom().uri().port();
-    //G_SipMrg()->InitSipDumMrg()->LockDum();
-    mDum->send(InviteMessage);
-    m_StreamInfoMap[channelId] = InStreamInfo();
-    return 0;
+        InviteMessage->header(h_Subject) = StringCategory(channelId.c_str() + Data(":") + Data("0100000001") + Data(",") + myId + Data(":") + Data("0"));
+        InviteMessage->header(h_From).uri().user() = myId;
+        InviteMessage->header(h_From).uri().host() = mProfile->getDefaultFrom().uri().host();
+        InviteMessage->header(h_From).uri().port() = mProfile->getDefaultFrom().uri().port();
+        //G_SipMrg()->InitSipDumMrg()->LockDum();
+        mDum->send(InviteMessage);
+        m_StreamInfoMap[channelId] = InStreamInfo();
+    }
+    return true;
 }
 bool UaMgr::IsStreamExist(std::string channelId)
 {
@@ -620,6 +632,14 @@ bool UaMgr::CloseStreamStreamId(std::string channelId)
 {
     m_StreamInfoMap.erase(channelId);
     return true;
+}
+unsigned int UaMgr::GetAvailableRtpPort()
+{
+    return mRtpPortMngr.allocateRTPPort();
+}
+void UaMgr::FreeRptPort(unsigned int uiRtpPort)
+{
+    mRtpPortMngr.freeRTPPort(uiRtpPort);
 }
 void __stdcall UaMgr::RegistPageMsgCallBack(const Data &UasName, const MsgCmdType& MsgCmdType, int reason, void* pUserData)
 {

@@ -1024,6 +1024,7 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
             devinfo.setTransport(reg.header(h_Vias).begin()->transport().c_str());
         }
         devinfo.setOnline(1);
+        devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
         devmng.online(&devinfo);
     }
 

@@ -1,5 +1,5 @@
-#pragma once
-
+#ifndef RTP_PORT_MANAGER_H_
+#define RTP_PORT_MANAGER_H_
 
 #include <deque>
 
@@ -16,3 +16,4 @@ private:
 	unsigned int mPortRangeMax;
 	std::deque<unsigned int> mRTPPortFreeList;
 };
+#endif

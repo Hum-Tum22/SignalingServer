@@ -17,9 +17,9 @@ MESSAGE("BUILD TYPE:" ${CMAKE_BUILD_TYPE})
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/SipServer)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/stateAgents)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../resip/resip_install/include)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../curl-7.84.0/libcurl_install/include)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../rapidjson/include/rapidjson)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/resip/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/libcurl/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/rapidjson)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/device)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/localMediaServer)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/SqlDbManager)
@@ -50,8 +50,8 @@ endif()
 
 
 
-link_directories(${PROJECT_SOURCE_DIR}/../../resip/resip_install/lib)
-link_directories(${PROJECT_SOURCE_DIR}/../../curl-7.84.0/libcurl_install/lib)
+link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
+link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
 
 link_libraries(libdum.a)
 link_libraries(libresip.a)

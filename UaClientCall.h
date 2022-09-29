@@ -18,12 +18,13 @@ namespace resip
 
 class UaClientCall : public AppDialogSet 
 {
-private:
+public:
     Data ssrc;
     ServerInviteSessionHandle mh;
     Data connectip;
     Data connectport;
     Data app;
+	SdpContents AlegResSdp;
 	int tcpOrUdp;
 private:
 public:
@@ -113,7 +114,8 @@ public:
 			_RES_START,
 			_RES_GET1XX,
 			_RES_GETSDP,
-			_RES_CONNECT
+			_RES_CONNECT,
+			_RES_ACK
 		};
 		SdpContents m_sdp;//目标返回的 sdp
 		//unsigned long m_resid;
@@ -121,6 +123,9 @@ public:
 		InviteSessionHandle mInviteSessionHandle;
 		int state;
 		time_t startime;
+		std::string devId;
+		std::string streamId;
+		int rtpPort;
 		SdpContents m_sendsdp;//记录自己发送的 主要获取发送时候的media 信息对应的端口
 		UacInviteVideoInfo(/*unsigned long tresid*/) :state(_RES_START)//, m_resid(tresid)
 		{
@@ -137,7 +142,7 @@ public:
 	class UasInviteRtimeVideoInfo
 	{
 	public:
-		InviteSessionHandle mInviteSessionHandle;
+		ServerInviteSessionHandle mInviteSessionHandle;
 		unsigned long RtpServrHandle;
 		int HaveProvide;//0,1:get sdp,2,no get sdp should  offer sdp
 		SdpContents ClentSdp;//
@@ -155,6 +160,8 @@ public:
 	};
 	UacInviteVideoInfo mMyUacInviteVideoInfo;
 	UasInviteRtimeVideoInfo mMyUasInviteVideoInfo;
+
+	std::condition_variable m_CallTask;
 };
 class RequestStreamTask: public ownTask::CTask
 {
@@ -163,9 +170,12 @@ class RequestStreamTask: public ownTask::CTask
 	int devPort;
 	std::string streamId;
 	UaMgr& mUserAgent;
+	UaClientCall* mAlegCall;
+	int rtpPort;
 public:
-	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent)
-		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent) {}
+	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, UaClientCall *alegcall, int iRtpPort)
+		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), mAlegCall(alegcall)
+	, rtpPort(iRtpPort){}
 	bool TaskRun();
 	bool TaskClose() { return false; };
 };
@@ -174,10 +184,18 @@ class PushRtpStream :public ownTask::CTask
 	std::string devId;
 	std::string channelId;
 	std::string strSsrc;
+	std::string stream_Id;
 	int connectPort;
+	int localPort;
+	//UaClientCall* mAlegCall;
 public:
-	PushRtpStream(std::string dId, std::string channelId, std::string ssrc, int cport)
-		:devId(dId), channelId(channelId), strSsrc(ssrc), connectPort(cport) {}
+	PushRtpStream(std::string dId, std::string channelId, std::string ssrc, int cport, int lPort)
+		:devId(dId), channelId(channelId), strSsrc(ssrc), connectPort(cport), localPort(lPort)
+	{
+		stream_Id = devId;
+		stream_Id += "_";
+		stream_Id += channelId;
+	}
 	bool TaskRun();
 	bool TaskClose() { return false; };
 };

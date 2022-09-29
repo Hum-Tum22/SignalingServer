@@ -7,8 +7,13 @@
 
 #include "device/DeviceManager.h"
 #include <iostream>
+#include <sstream>
+#include "UaClientCall.h"
+#include "SipServer.h"
+#include "tools/ownString.h"
 
 using namespace std;
+
 #define HTTP_TIMEOUT 10
 size_t getUrlResponse(char* buffer, size_t size, size_t count, string* response)
 {
@@ -400,29 +405,87 @@ void HttpServer::DeviceChannelList(struct mg_connection* nc, int ev, void* ev_da
 
 		string wid = json_check_string(document, "wid");
 		string channel = json_check_string(document, "channel");
+		list<std::shared_ptr<Device>> devlist;
+		IDeviceMngrSvr& devMgr = GetIDeviceMngr();
 		rapidjson::StringBuffer response;
 		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
-		writer.StartObject();
-		writer.Key("code"); writer.Int(0);
-		writer.Key("msg"); writer.String("");
-		writer.Key("data");
-		writer.StartArray();
-
-		writer.Key("channel"); writer.String("34020000001320000001");
-		writer.Key("description"); writer.String("");
-		writer.Key("name"); writer.String("ipc1");
-
-		/*writer.Key("channel"); writer.String("");
-		writer.Key("description"); writer.String("");
-		writer.Key("name"); writer.String("");*/
-
-		writer.EndArray();
-		writer.EndObject();
+		if (channel.empty())
+		{
+			writer.StartObject();
+			writer.Key("code"); writer.Int(0);
+			writer.Key("msg"); writer.String("");
+			writer.Key("data");
+			writer.StartArray();
+			devMgr.GetAllDeviceList(devlist);
+			for (auto& iter : devlist)
+			{
+				if (iter->getDevAccessProtocal() == Device::DEV_ACCESS_GB28181)
+				{
+					std::shared_ptr<SipServerDeviceInfo> devInfo = std::static_pointer_cast<SipServerDeviceInfo>(iter);
+					writer.StartObject();
+					writer.Key("channel"); writer.String(devInfo->getDeviceId().c_str());
+					writer.Key("description"); writer.String("");
+					writer.Key("name"); writer.String(devInfo->getName().c_str());
+					writer.EndObject();
+				}
+			}
+			writer.EndArray();
+			writer.EndObject();
+		}
+		else
+		{
+			writer.StartObject();
+			writer.Key("code"); writer.Int(0);
+			writer.Key("msg"); writer.String("");
+			writer.Key("data");
+			writer.StartArray();
+			list<std::shared_ptr<IDeviceChannel>> channellist;
+			std::shared_ptr<Device> devInfo = devMgr.GetDeviceChannelList(channel, channellist);
+			for (auto& itr : channellist)
+			{
+				std::shared_ptr<GBDeviceChannel> chlInfo = std::static_pointer_cast<GBDeviceChannel>(itr);
+				if (chlInfo)
+				{
+					writer.StartObject();
+					writer.Key("channel"); writer.String(chlInfo->getChannelId().c_str());
+					writer.Key("description"); writer.String("");
+					writer.Key("name"); writer.String(chlInfo->getName().c_str());
+					writer.EndObject();
+				}
+			}
+			writer.EndArray();
+			writer.EndObject();
+		}
 		
 		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
 		nc->flags |= MG_F_SEND_AND_CLOSE;
 	}
 	return;
+}
+bool HttpIsStreamExist(std::string schema, std::string app, std::string streamId)
+{
+	rapidjson::Document document;
+	std::ostringstream ss;
+	ss << "http://192.168.1.38:80/index/api/getRtpInfo?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
+		<< "stream=" << streamId;
+	ss.flush();
+	std::string strResponse = GetRequest(ss.str());
+	document.Parse((char*)strResponse.c_str());
+	if (!document.HasParseError())
+	{
+		if (document.HasMember("exist"))
+		{
+			if (document["exist"].IsBool())
+			{
+				return document["online"].GetBool();
+			}
+			else
+			{
+				cout << "online not bool type" << endl;
+			}
+		}
+	}
+	return false;
 }
 void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 {
@@ -440,29 +503,186 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 	else
 	{
 		std::string jsonStr(hm->body.p, hm->body.len);
-		//rapidjson::Document document;
-		//document.Parse((char*)jsonStr.c_str());
-		//if (document.HasParseError())
-		//{
-		//	LogOut("Web", L_ERROR, "Json: parse error", jsonStr.c_str());
-		//	mg_printf(nc, g_msg200jsonerror);
-		//	nc->flags |= MG_F_SEND_AND_CLOSE;
-		//	return;
-		//}
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
 
-		//std::string cmd = json_check_string(document, "cmd");
-		//LogOut("Web", L_INFO, "cmd:%s", cmd.c_str());
-		//rapidjson::StringBuffer response;
-		//if (strcmp(cmdGetPreviewUrl, cmd.c_str()) == 0)
-		//	WebGetPreviewUrlAction(nc, document, response, userInfo);
-		////else if(strcmp(cmdGetPlaybackUrl, cmd.c_str()) == 0)
-		////    WebIpcPresetCtrlAction(nc, document, response, userInfo);
-		////else if(strcmp(cmdPlaybackCtrl, cmd.c_str()) == 0)
-		////    WebIpcCruiseCtrlAction(nc, document, response, userInfo);
-		//else
-		//	CommonResponseParamToJson(cmd.c_str(), -1, _ER_INVALID_CMD, response);
-		//LogOut("Web", L_INFO, "Json response:%s", response.GetString());
-		//mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
+		std::string wid = json_check_string(document, "wid");
+		std::string channel = json_check_string(document, "channel");
+		if (channel.empty())
+			channel = wid;
+		std::string app = json_check_string(document, "app");
+		std::string stream_Id = json_check_string(document, "stream");
+		std::string deviceId;
+
+		rapidjson::StringBuffer response;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		//查询流是否存在
+		bool isStream = false;
+		sipserver::SipServer* pSvr = GetServer();
+		if (pSvr)
+		{
+			resip::UaMgr* pUaMgr = pSvr->GetUaManager();
+			if (pUaMgr)
+			{
+				if (pUaMgr->IsStreamExist(channel))
+				{
+					isStream = true;
+				}
+				else
+				{
+					IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+					SipServerDeviceInfo devuinfo;
+					list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+					for (auto& it : chlist)
+					{
+						if (it.getStatus())
+						{
+							devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+							break;
+						}
+					}
+					if (!devuinfo.getDeviceId().empty())
+					{
+						deviceId = devuinfo.getDeviceId();
+						if (stream_Id.empty())
+						{
+							stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+						}
+						UaClientCall* pUacCall = new UaClientCall(*pUaMgr);
+						pUacCall->mMyUasInviteVideoInfo.devId = devuinfo.getDeviceId();
+						//判断流存在
+						ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+						tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, (UaClientCall*)NULL, pUaMgr->GetAvailableRtpPort()));
+						for (int i = 0; i < 2 * 5; i++)
+						{
+							if (HttpIsStreamExist("rtsp", "rtp", stream_Id))
+							{
+								isStream = true;
+								break;
+							}
+							//"{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=rtp&stream=34020000001180000800_34020000001320000014"
+							std::this_thread::sleep_for(std::chrono::milliseconds(500));
+						}
+					}
+				}
+			}
+		}
+
+		//存在
+		if (isStream)
+		{
+			if (stream_Id.empty())
+			{
+				IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+				SipServerDeviceInfo devuinfo;
+				list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+				for (auto& it : chlist)
+				{
+					if (it.getStatus())
+					{
+						devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+						break;
+					}
+				}
+				if (!devuinfo.getDeviceId().empty())
+				{
+					deviceId = devuinfo.getDeviceId();
+					if (stream_Id.empty())
+					{
+						stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+					}
+				}
+			}
+			writer.StartObject();
+			writer.Key("code"); writer.Int(0);
+			writer.Key("msg"); writer.String("");
+			writer.Key("data");
+			writer.StartObject();
+				writer.Key("app"); writer.String("rtp");
+				writer.Key("stream"); writer.String(stream_Id.c_str());
+				writer.Key("channelId"); writer.String(channel.c_str());
+				writer.Key("deviceID"); writer.String(deviceId.c_str());
+				/*ostringstream ss;
+				ss << "http://192.168.1.38:80/rtp/" << stream_Id << ".live.mp4";
+				ss.flush();*/
+				writer.Key("host"); writer.String("192.168.1.38");
+				writer.Key("host"); writer.String("192.168.1.38");
+				std::string url = std::str_format("http://192.168.1.38:80/rtp/%s.live.mp4", stream_Id.c_str());
+				writer.Key("fmp4"); writer.String(url.c_str());
+				std::string rtcUrl = 
+					std::str_format("https://192.168.1.38:443/index/api/webrtc?app=rtp&stream=%s&type=play",
+						stream_Id.c_str());
+				writer.Key("rtc"); writer.String(rtcUrl.c_str());
+			
+
+
+				/*writer.Key("app"); writer.String("rtp");
+				writer.Key("app"); writer.String("rtp");
+				writer.Key("app"); writer.String("rtp");
+				writer.Key("app"); writer.String("rtp");*/
+
+				/*{
+					"app": "rtp",
+					"stream" : "34020000002000000001_34020000001320000015",
+					"deviceID" : "34020000002000000001",
+					"channelId" : "34020000001320000015",
+					"flv" : "http://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.flv",
+					"https_flv" : "https://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.flv",
+					"ws_flv" : "ws://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.flv",
+					"wss_flv" : "wss://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.flv",
+					"fmp4" : "http://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.mp4",
+					"https_fmp4" : "https://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.mp4",
+					"ws_fmp4" : "ws://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.mp4",
+					"wss_fmp4" : "wss://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.mp4",
+					"hls" : "http://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015/hls.m3u8",
+					"https_hls" : "https://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015/hls.m3u8",
+					"ws_hls" : "ws://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015/hls.m3u8",
+					"wss_hls" : "wss://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015/hls.m3u8",
+					"ts" : "http://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.ts",
+					"https_ts" : "https://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.ts",
+					"ws_ts" : "ws://192.168.1.232:80/rtp/34020000002000000001_34020000001320000015.live.ts",
+					"wss_ts" : "wss://192.168.1.232:443/rtp/34020000002000000001_34020000001320000015.live.ts",
+					"rtmp" : "rtmp://192.168.1.232:1935/rtp/34020000002000000001_34020000001320000015",
+					"rtmps" : null,
+					"rtsp" : "rtsp://192.168.1.232:554/rtp/34020000002000000001_34020000001320000015",
+					"rtsps" : null,
+					"rtc" : "https://192.168.1.232:443/index/api/webrtc?app=rtp&stream=34020000002000000001_34020000001320000015&type=play",
+					"mediaServerId" : "FQ3TF8yT83wh5Wvz",
+					"tracks" : [{
+					"codecIdName": null,
+						"codecId" : 0,
+						"channels" : 0,
+						"sampleBit" : 0,
+						"ready" : true,
+						"fps" : 0,
+						"width" : 1920,
+						"codecType" : 0,
+						"sampleRate" : 0,
+						"height" : 1080
+				}],
+					"startTime": null,
+						"endTime" : null,
+						"progress" : 0.0,
+						"transactionInfo" : null
+				}
+				}*/
+				writer.EndObject();
+			writer.EndObject();
+		}
+		else
+		{
+			writer.StartObject();
+			writer.Key("code"); writer.Int(1);
+			writer.Key("msg"); writer.String(std::GbkToUtf8("播放失败").c_str());
+			writer.EndObject();
+		}
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
 		nc->flags |= MG_F_SEND_AND_CLOSE;
 	}
 	return;
@@ -483,29 +703,29 @@ void HttpServer::StopLive(struct mg_connection* nc, int ev, void* ev_data)
 	else
 	{
 		std::string jsonStr(hm->body.p, hm->body.len);
-		//rapidjson::Document document;
-		//document.Parse((char*)jsonStr.c_str());
-		//if (document.HasParseError())
-		//{
-		//	LogOut("Web", L_ERROR, "Json: parse error", jsonStr.c_str());
-		//	mg_printf(nc, g_msg200jsonerror);
-		//	nc->flags |= MG_F_SEND_AND_CLOSE;
-		//	return;
-		//}
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
 
-		//std::string cmd = json_check_string(document, "cmd");
-		//LogOut("Web", L_INFO, "cmd:%s", cmd.c_str());
-		//rapidjson::StringBuffer response;
-		//if (strcmp(cmdGetPreviewUrl, cmd.c_str()) == 0)
-		//	WebGetPreviewUrlAction(nc, document, response, userInfo);
-		////else if(strcmp(cmdGetPlaybackUrl, cmd.c_str()) == 0)
-		////    WebIpcPresetCtrlAction(nc, document, response, userInfo);
-		////else if(strcmp(cmdPlaybackCtrl, cmd.c_str()) == 0)
-		////    WebIpcCruiseCtrlAction(nc, document, response, userInfo);
-		//else
-		//	CommonResponseParamToJson(cmd.c_str(), -1, _ER_INVALID_CMD, response);
-		//LogOut("Web", L_INFO, "Json response:%s", response.GetString());
-		//mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
+		std::string wid = json_check_string(document, "wid");
+		std::string channel = json_check_string(document, "channel");
+		std::string app = json_check_string(document, "app");
+		std::string stream_Id = json_check_string(document, "stream");
+		std::string ssrc = json_check_string(document, "ssrc");
+
+		rapidjson::StringBuffer response;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		writer.StartObject();
+		writer.Key("code"); writer.Int(0);
+		writer.Key("msg"); writer.String("");
+		writer.EndObject();
+
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
 		nc->flags |= MG_F_SEND_AND_CLOSE;
 	}
 	return;
