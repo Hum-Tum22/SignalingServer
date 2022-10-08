@@ -63,7 +63,7 @@ std::vector<std::string> std::SipSubjectSplit(const  std::string& s)
     }
     return elems;
 }
-std::string std::Utf8ToGbk(const std::string& in, const std::string& localename)
+std::string std::Utf8ToGbk(const std::string& in, char const* localename)
 {
 	//std::locale(localename);
 	//std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt_utf8; // UTF-8 <-> Unicode×ª»»Æ÷ 
@@ -87,7 +87,7 @@ std::string std::Utf8ToGbk(const std::string& in, const std::string& localename)
 	return "";
 }
 
-std::string std::GbkToUtf8(const std::string& in, const std::string& localename)
+std::string std::GbkToUtf8(const std::string& in, char const* localename)
 {
 	//std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt_utf8; // UTF-8 <-> Unicode×ª»»Æ÷ 
 	//std::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> cvt_ansi{ new std::codecvt_byname<wchar_t, char, std::mbstate_t>(localename.c_str()) }; // GBK <-> Unicode×ª»»Æ÷ 

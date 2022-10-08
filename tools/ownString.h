@@ -15,11 +15,11 @@ namespace std
 	std::vector<std::string> SipSubjectSplit(const  std::string& subject);
 
 #ifdef _WIN32
-	std::string Utf8ToGbk(const std::string& in, const std::string& localename = ".936");
-	std::string GbkToUtf8(const std::string& in, const std::string& localename = ".936");
+	std::string Utf8ToGbk(const std::string& in, char const* localename = ".936");
+	std::string GbkToUtf8(const std::string& in, char const* localename = ".936");
 #else
-	std::string Utf8ToGbk(const std::string& in, const std::string& localename = "zh_CN.GB18030");
-	std::string GbkToUtf8(const std::string& in, const std::string& localename = "zh_CN.GB18030");
+	std::string Utf8ToGbk(const std::string& in, char const* localename = "zh_CN.GB18030");
+	std::string GbkToUtf8(const std::string& in, char const* localename = "zh_CN.GB18030");
 #endif
 }
 #endif
