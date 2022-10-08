@@ -652,8 +652,8 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 				std::string mediaInfo = GetMediaConfigInfo();
 				writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson::kObjectType);
 			
-				std::vector<std::string> stdvc;
-				stdvc.rbegin()
+				/*std::vector<std::string> stdvc;
+				stdvc.*/
 
 				/*writer.Key("app"); writer.String("rtp");
 				writer.Key("app"); writer.String("rtp");
