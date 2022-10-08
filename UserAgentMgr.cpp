@@ -617,6 +617,7 @@ bool UaMgr::RequestStream(std::string devIp, int devPort, std::string channelId,
         //G_SipMrg()->InitSipDumMrg()->LockDum();
         mDum->send(InviteMessage);
         m_StreamInfoMap[channelId] = InStreamInfo();
+        m_StreamInfoMap[channelId].useCount = 1;
     }
     return true;
 }
@@ -630,7 +631,23 @@ bool UaMgr::IsStreamExist(std::string channelId)
 }
 bool UaMgr::CloseStreamStreamId(std::string channelId)
 {
-    m_StreamInfoMap.erase(channelId);
+    /*ostringstream ss;
+    ss << "http://192.168.1.38:80/index/api/closeRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&stream="
+        << devId << "_" << channelId;
+    string strReponse = GetRequest(ss.str());*/
+    auto it = m_StreamInfoMap.find(channelId);
+    if (it == m_StreamInfoMap.end())
+    {
+        m_StreamInfoMap.erase(channelId);
+    }
+    else
+    {
+        it->second.useCount--;
+        if (it->second.useCount == 0)
+        {
+            //delete uaclientcall
+        }
+    }
     return true;
 }
 unsigned int UaMgr::GetAvailableRtpPort()

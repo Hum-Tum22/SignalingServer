@@ -212,7 +212,6 @@ public:
     resip::Uri mCallTarget;
 
 
-
     RTPPortManager mRtpPortMngr;
 };
 }

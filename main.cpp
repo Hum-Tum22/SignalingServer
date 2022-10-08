@@ -47,7 +47,7 @@ int main(int argc, char** argv)
             cerr << "Failed to start repro, exiting..." << endl;
             exit(-1);
         }
-        HttpServer httpSv;
+        HttpServer httpSv(pSipSvr->gbHttpPort);
         pSipSvr->mainLoop();
 
         pSipSvr->shutdown();

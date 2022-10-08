@@ -31,6 +31,7 @@
 #include "writer.h"
 #include "stringbuffer.h"
 #include "document.h"
+#include "SipServer.h"
 
 #define RESIPROCATE_SUBSYSTEM Subsystem::TEST
 
@@ -77,8 +78,9 @@ UaClientCall::~UaClientCall()
     if (mMyUasInviteVideoInfo.localtport > 0)
     {
         mUserAgent.FreeRptPort(mMyUasInviteVideoInfo.localtport);
+        sipserver::SipServer* pSvr = GetServer();
         ostringstream ss;
-        ss << "http://192.168.1.38:80/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
+        ss << "http://" << (pSvr?pSvr->zlmHost:"127.0.0.1") << ":" << (pSvr?pSvr->zlmHttpPort:8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
             << mMyUasInviteVideoInfo.devId << "_" << mMyUasInviteVideoInfo.channelID;
         string strReponse = GetRequest(ss.str());
     }
@@ -328,8 +330,9 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
       mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
 
       //开启一个rtpserver接收rtp数据
+      sipserver::SipServer* pSvr = GetServer();
       ostringstream ss;
-      ss << "http://192.168.1.38/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port="
+      ss << "http://" << (pSvr? pSvr->zlmHost:"127.0.0.1") << ":" << (pSvr? pSvr->zlmHttpPort:8080) << "/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port="
           << mMyUacInviteVideoInfo.rtpPort << "&enable_tcp=0&stream_id="
           << mMyUacInviteVideoInfo.devId << "_" << mMyUacInviteVideoInfo.streamId;
       ss.flush();
@@ -391,9 +394,6 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
    case InviteSessionHandler::RemoteBye:
       reasonData = "received a BYE from peer";
       {
-          /*strUrl = "http://192.168.1.232/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=live&stream=0&ssrc=";
-          strUrl += ssrc.c_str();
-          string strReponse = GetRequest(strUrl);*/
           if (isUACConnected())
           {
           }
@@ -745,10 +745,6 @@ void UaClientCall::onAckReceived(InviteSessionHandle h, const SipMessage& msg)
 {
     cout << "***************  ******************* 23\n" << msg << endl;
     InfoLog(<< "onOffer: " << msg);
-    /*string strUrl("http://192.168.1.232/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=live&stream=0&ssrc=");
-    strUrl += ssrc.c_str();
-    strUrl += "&dst_url=192.168.1.140&dst_port=11000&is_udp=1";
-    string strReponse = GetRequest(strUrl);*/
 
     cout << "*************** onReferAccepted ***************************\n"
         << msg
@@ -993,11 +989,6 @@ UaClientCall::onRedirectReceived(AppDialogSetHandle h, const SipMessage& msg)
  ==================================================================== */
 bool RequestStreamTask::TaskRun()
 {
-   /* ostringstream ss;
-    ss << "http://192.168.1.38/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port=0&enable_tcp=0&stream_id="
-        << devId << "_" << streamId;
-    string strReponse = GetRequest(ss.str());*/
-
     UaClientCall* pUacCall = new UaClientCall(mUserAgent);
     if (pUacCall)
     {
@@ -1067,10 +1058,11 @@ bool PushRtpStream::TaskRun()
     std::string app;
     std::string streamId;
     rapidjson::Document document;
+    sipserver::SipServer* pSvr = GetServer();
     for (int i = 0; i < 2 * 5; i++)
     {
         ostringstream ss;
-        ss << "http://192.168.1.38:80/index/api/isMediaOnline?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
+        ss << "http://" << (pSvr?pSvr->zlmHost:"127.0.0.1") <<":" << (pSvr?pSvr->zlmHttpPort:8080) << "/index/api/isMediaOnline?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
             << "schema=rtsp&vhost=__defaultVhost__&app=rtp&stream="
             << stream_Id;
         ss.flush();
@@ -1099,7 +1091,7 @@ bool PushRtpStream::TaskRun()
     {
         //std::this_thread::sleep_for(std::chrono::milliseconds(500));
         ostringstream ss;
-        ss << "http://192.168.1.38/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
+        ss << "http://" << (pSvr?pSvr->zlmHost:"127.0.0.1") << ":" << (pSvr?pSvr->zlmHttpPort:8080) << "/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
             << "rtp" << "&stream=" << devId << "_" << channelId
             << "&ssrc=" << strSsrc << "&dst_url=192.168.1.232&dst_port=" << connectPort
             << "&is_udp=1&src_port=" << localPort;

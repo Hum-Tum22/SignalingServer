@@ -213,6 +213,9 @@ SipServer::SipServer()
     //, mCommandServerThread(0)
     , mCongestionManager(0)
     , mUserAgent(0)
+    , mRegistSv(0)
+    , zlmHttpPort(8080)
+    , gbHttpPort(8090)
 {
 }
 
@@ -263,7 +266,10 @@ SipServer::run(int argc, char** argv)
 #endif
         return false;
     }
-
+    //其它初始化
+    zlmHttpPort = mProxyConfig->getConfigInt("zlmhttpport", 8080);
+    gbHttpPort = mProxyConfig->getConfigInt("gbhttpport", 8090);
+    zlmHost = mProxyConfig->getConfigData("zlmhost", "127.0.0.1", true).c_str();
     // Non-Windows server process stuff
     if (!mRestarting)
     {

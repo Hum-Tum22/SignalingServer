@@ -14,7 +14,7 @@
 
 using namespace std;
 
-#define HTTP_TIMEOUT 10
+#define HTTP_TIMEOUT 20
 size_t getUrlResponse(char* buffer, size_t size, size_t count, string* response)
 {
 	size_t recv_size = size * count;
@@ -464,28 +464,61 @@ void HttpServer::DeviceChannelList(struct mg_connection* nc, int ev, void* ev_da
 }
 bool HttpIsStreamExist(std::string schema, std::string app, std::string streamId)
 {
-	rapidjson::Document document;
-	std::ostringstream ss;
-	ss << "http://192.168.1.38:80/index/api/getRtpInfo?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
-		<< "stream=" << streamId;
-	ss.flush();
-	std::string strResponse = GetRequest(ss.str());
-	document.Parse((char*)strResponse.c_str());
-	if (!document.HasParseError())
+	sipserver::SipServer* pSvr = GetServer();
+	if (pSvr)
 	{
-		if (document.HasMember("exist"))
+		rapidjson::Document document;
+		std::ostringstream ss;
+		ss << "http://" << pSvr->zlmHost << ":" << pSvr->zlmHttpPort << "/index/api/getRtpInfo?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
+			<< "stream=" << streamId;
+		ss.flush();
+		std::string strResponse = GetRequest(ss.str());
+		document.Parse((char*)strResponse.c_str());
+		if (!document.HasParseError())
 		{
-			if (document["exist"].IsBool())
+			if (document.HasMember("exist"))
 			{
-				return document["online"].GetBool();
-			}
-			else
-			{
-				cout << "online not bool type" << endl;
+				if (document["exist"].IsBool())
+				{
+					return document["online"].GetBool();
+				}
+				else
+				{
+					cout << "online not bool type" << endl;
+				}
 			}
 		}
 	}
 	return false;
+}
+std::string GetMediaConfigInfo()
+{
+	sipserver::SipServer* pSvr = GetServer();
+	if (pSvr)
+	{
+		rapidjson::Document document;
+		std::ostringstream ss;
+		ss << "http://" << pSvr->zlmHost << ":" << pSvr->zlmHttpPort << "/index/api/getServerConfig?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+		ss.flush();
+		std::string strResponse = GetRequest(ss.str());
+		document.Parse((char*)strResponse.c_str());
+		if (!document.HasParseError())
+		{
+			if (document.HasMember("code"))
+			{
+				int iCode = json_check_int32(document, "code");
+				if (iCode == 0 && document.HasMember("data") && document["data"].IsArray())
+				{
+					rapidjson::Value& msbody = document["data"][0];
+					rapidjson::StringBuffer sbBuf;
+					rapidjson::Writer<rapidjson::StringBuffer> jWriter(sbBuf);
+					msbody.Accept(jWriter);
+					return std::string(sbBuf.GetString());
+				}
+			}
+		}
+	}
+	return "";
 }
 void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 {
@@ -608,19 +641,19 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 				writer.Key("stream"); writer.String(stream_Id.c_str());
 				writer.Key("channelId"); writer.String(channel.c_str());
 				writer.Key("deviceID"); writer.String(deviceId.c_str());
-				/*ostringstream ss;
-				ss << "http://192.168.1.38:80/rtp/" << stream_Id << ".live.mp4";
-				ss.flush();*/
-				writer.Key("host"); writer.String("192.168.1.38");
-				writer.Key("host"); writer.String("192.168.1.38");
-				std::string url = std::str_format("http://192.168.1.38:80/rtp/%s.live.mp4", stream_Id.c_str());
+				writer.Key("host"); writer.String(pSvr->zlmHost.c_str());
+				std::string url = std::str_format("http://%s:%d/rtp/%s.live.mp4", pSvr->zlmHost.c_str(), pSvr->zlmHttpPort, stream_Id.c_str());
 				writer.Key("fmp4"); writer.String(url.c_str());
 				std::string rtcUrl = 
-					std::str_format("https://192.168.1.38:443/index/api/webrtc?app=rtp&stream=%s&type=play",
-						stream_Id.c_str());
+					std::str_format("https://%s:443/index/api/webrtc?app=rtp&stream=%s&type=play",
+						pSvr->zlmHost.c_str(), stream_Id.c_str());
 				writer.Key("rtc"); writer.String(rtcUrl.c_str());
+				//writer.Key("mediainfo"); writer.String(GetMediaConfigInfo().c_str());
+				std::string mediaInfo = GetMediaConfigInfo();
+				writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson::kObjectType);
 			
-
+				std::vector<std::string> stdvc;
+				stdvc.rbegin()
 
 				/*writer.Key("app"); writer.String("rtp");
 				writer.Key("app"); writer.String("rtp");
@@ -718,6 +751,15 @@ void HttpServer::StopLive(struct mg_connection* nc, int ev, void* ev_data)
 		std::string stream_Id = json_check_string(document, "stream");
 		std::string ssrc = json_check_string(document, "ssrc");
 
+		sipserver::SipServer* pSvr = GetServer();
+		if (pSvr)
+		{
+			resip::UaMgr* pUaMgr = pSvr->GetUaManager();
+			if (pUaMgr)
+			{
+				pUaMgr->CloseStreamStreamId(channel);
+			}
+		}
 		rapidjson::StringBuffer response;
 		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
 		writer.StartObject();

@@ -152,6 +152,11 @@ private:
 public:
 	resip::UaMgr* GetUaManager() { return mUserAgent; };
 	CUserMessageMrg* GetMsgManager() { return mMessageMgr; };
+public:
+
+	std::string zlmHost;
+	int zlmHttpPort;
+	int gbHttpPort;
 };
 }
 sipserver::SipServer* GetServer();
