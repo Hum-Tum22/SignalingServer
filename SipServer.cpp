@@ -414,7 +414,7 @@ SipServer::run(int argc, char** argv)
     Uri target("sip:44010200492000000001@81.68.130.90:8092");
     Uri fromUri("sip:34020000002000000001@192.168.1.230:5060");
     Data passwd("admin123");
-    mUserAgent->DoRegist(target, fromUri, passwd);
+    //mUserAgent->DoRegist(target, fromUri, passwd);
     mRunning = true;
 
     return true;
