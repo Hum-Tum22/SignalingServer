@@ -71,6 +71,7 @@ private:
     unsigned int mDBPort;
     resip::Data mCustomUserAuthQuery;
     resip::Data dbFilePath;
+    bool bDbPassword;
 
 
     void userWhereClauseToDataStream(const Key& key, resip::DataStream& ds) const;

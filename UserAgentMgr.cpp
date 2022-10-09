@@ -35,6 +35,7 @@
 #include "MsgContentXml.h"
 #include "UaMessageMgr.h"
 #include "device/DeviceManager.h"
+#include "SipServerConfig.h"
 
 using namespace resip;
 using namespace std;
@@ -173,10 +174,7 @@ mMessageMgr(NULL),
 mDumThread(NULL),
 mRtpPortMngr(30000, 30500)
 {
-    mAor.user() = "34021000002140000002";
-    mAor.host() = "192.168.1.232";
-    mAor.port() = 5060;
-    Log::initialize(Log::Cout, Log::Stack, "gb28181");
+    //Log::initialize(Log::Cout, Log::Stack, "gb28181");
 
     if (mHostFileLookupOnlyDnsMode)
     {
@@ -286,8 +284,13 @@ mRtpPortMngr(30000, 30500)
     }
 
     // UserProfile Settings
-    Uri mFrom("sip:34020000002000000001@192.168.1.230:5060");
-    mProfile->setDefaultFrom(NameAddr(mFrom));
+    //Uri mFrom("sip:34020000002000000001@192.168.1.230:5060");
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    Uri defaultFrom;
+    defaultFrom.user() = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
+    defaultFrom.host() = DnsUtil::getLocalIpAddress();
+    defaultFrom.port() = svrCfgi.getConfigInt("port", 5060);
+    mProfile->setDefaultFrom(NameAddr(defaultFrom));
 
     // Generate InstanceId appropriate for testing only.  Should be UUID that persists 
     // across machine re-starts and is unique to this applicaiton instance.  The one used 
@@ -691,7 +694,7 @@ UaMgr::startup()
     if (mRegisterDuration)
     {
         InfoLog(<< "register for " << mAor);
-        mDum->send(mDum->makeRegistration(NameAddr(mAor)));
+        //mDum->send(mDum->makeRegistration(NameAddr(mAor)));
     }
     else
     {

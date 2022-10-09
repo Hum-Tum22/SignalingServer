@@ -159,6 +159,10 @@ public:
             << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
             << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
+        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
+            << msg
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
     }
     virtual void outboundRetransmit(const Tuple& source, const Tuple& destination, const SendData& data)
     {
@@ -166,6 +170,10 @@ public:
             << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << data.data
             << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
+        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
+            << data.data
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
     }
     virtual void inboundMessage(const Tuple& source, const Tuple& destination, const SipMessage& msg)
     {
@@ -173,6 +181,10 @@ public:
             << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
             << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
+        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
+            << msg
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
     }
 };
 
@@ -292,10 +304,11 @@ SipServer::run(int argc, char** argv)
 
     // Initialize resip logger
     Data loggingType = mProxyConfig->getConfigData("LoggingType", "cout", true);
-    Log::initialize(
+    /*Log::initialize(
         *mProxyConfig,
         mArgv[0],
-        isEqualNoCase(loggingType, "file") ? &g_ReproLogger : 0);
+        isEqualNoCase(loggingType, "file") ? &g_ReproLogger : 0);*/
+    Log::initialize(Log::Cout, Log::Stack, "gb28181");
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 
@@ -398,7 +411,7 @@ SipServer::run(int argc, char** argv)
     {
         mRegSyncServerAMQP->getThread()->run();
     }*/
-    Uri target("sip:44010200492000000001@192.168.1.232:5060");
+    Uri target("sip:44010200492000000001@81.68.130.90:8092");
     Uri fromUri("sip:34020000002000000001@192.168.1.230:5060");
     Data passwd("admin123");
     mUserAgent->DoRegist(target, fromUri, passwd);

@@ -16,6 +16,8 @@
 
 #include <sstream>
 
+#include "SipServerConfig.h"
+
 using namespace resip;
 using namespace repro;
 using namespace std;
@@ -28,7 +30,8 @@ SqliteDb::SqliteDb(const resip::ConfigParse& config,
     const Data& dbName) :
     SqlDb(config),
     dbFilePath(path),
-    mConn(0)
+    mConn(0),
+    bDbPassword(false)
 {
     if (!dbFilePath.empty())
     {
@@ -52,6 +55,9 @@ SqliteDb::SqliteDb(const resip::ConfigParse& config,
 
     InfoLog(<< "Using BerkeleyDb prefixed with " << dbFilePath);
     initialize();
+
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    bDbPassword = svrCfgi.getConfigBool("DbPassword", false);
 }
 
 
@@ -294,8 +300,16 @@ SqliteDb::getUserAuthInfo(const AbstractDb::Key& key) const
         a1 << user
             << Symbols::COLON
             << domain
-            << Symbols::COLON
-            << "12345";
+            << Symbols::COLON;
+        if (bDbPassword)
+        {
+            MyServerConfig& svrCfgi = GetSipServerConfig();
+            a1 << svrCfgi.getConfigData("password", "12345", true);
+        }
+        else
+        {
+            a1 << "12345";
+        }
         a1.flush();
         //rec.passwordHash = a1.getHex();
         ret.push_back(a1.getHex());
