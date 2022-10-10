@@ -36,6 +36,7 @@
 #include "UaMessageMgr.h"
 #include "device/DeviceManager.h"
 #include "SipServerConfig.h"
+#include "SipServer.h"
 
 using namespace resip;
 using namespace std;
@@ -111,8 +112,12 @@ public:
                 //sdp->session().origin().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
                 if (msg.isRequest())
                 {
-                    sdp->session().connection().setAddress("192.168.1.38");
-                    sdp->session().origin().setAddress("192.168.1.38");
+                    sipserver::SipServer* pSvr = GetServer();
+                    if (pSvr)
+                    {
+                        sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
+                        sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
+                    }
                 }
                 else if (msg.isResponse())
                 {
