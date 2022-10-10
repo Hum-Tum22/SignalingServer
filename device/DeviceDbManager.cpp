@@ -320,6 +320,10 @@ int GBDeviceChannelMapper::update(IDeviceChannel* channel)
 list<GBDeviceChannel> GBDeviceChannelMapper::queryChannels(string deviceId, string parentChannelId, string query, bool hasSubChannel, bool online)
 {
     list<GBDeviceChannel> chllist;
+    if (!pDb)
+    {
+        return chllist;
+    }
     ostringstream ds;
     ds << "SELECT dc.* FROM gb_device_channel dc WHERE dc.deviceId='" << deviceId << "' ";
     if (!query.empty())
@@ -401,6 +405,10 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannels(string deviceId, stri
 GBDeviceChannel GBDeviceChannelMapper::queryChannel(string deviceId, string channelId)
 {
     GBDeviceChannel devchl;
+    if (!pDb)
+    {
+        return devchl;
+    }
     ostringstream ds;
     ds << "SELECT * FROM gb_device_channel WHERE deviceId='" << deviceId << "' AND channelId='" << channelId << "'";
     ds.flush();
@@ -557,7 +565,10 @@ void GBDeviceChannelMapper::startPlay(string deviceId, string channelId, string 
 list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelByChannelId(string channelId)
 {
     list<GBDeviceChannel> chllist;
-
+    if (!pDb)
+    {
+        return chllist;
+    }
     ostringstream ds;
     ds << "SELECT * FROM gb_device_channel WHERE channelId='" << channelId << "'";
     ds.flush();
@@ -718,7 +729,10 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelsByDeviceIdWithStartAnd
     bool hasSubChannel, bool online, int start, int limit)
 {
     list<GBDeviceChannel> chllist;
-
+    if (!pDb)
+    {
+        return chllist;
+    }
     ostringstream ds;
     ds << "SELECT dc1.* FROM gb_device_channel dc1 WHERE dc1.deviceId ='" << deviceId << "'";
     if (!query.empty())
@@ -800,6 +814,10 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelsByDeviceIdWithStartAnd
 list<GBDeviceChannel> GBDeviceChannelMapper::queryOnlineChannelsByDeviceId(string deviceId)
 {
     list<GBDeviceChannel> chllist;
+    if (!pDb)
+    {
+        return chllist;
+    }
     ostringstream ds;
     ds << "SELECT * FROM gb_device_channel WHERE deviceId='" << deviceId << "' AND status='1'";
     ds.flush();
@@ -911,6 +929,10 @@ void GBDeviceChannelMapper::updatePotion(string deviceId, string channelId, doub
 list<IDeviceChannel> GBDeviceChannelMapper::getAllChannelInPlay()
 {
     list<IDeviceChannel> chllist;
+    if (!pDb)
+    {
+        return chllist;
+    }
     ostringstream ds;
     ds << "SELECT * FROM gb_device_channel WHERE length(trim(streamId)) > '0'";
     ds.flush();
@@ -973,6 +995,10 @@ list<IDeviceChannel> GBDeviceChannelMapper::getAllChannelInPlay()
 }
 int GBDeviceChannelMapper::getAllChannelCount()
 {
+    if (!pDb)
+    {
+        return -1;
+    }
     ostringstream ds;
     ds << "SELECT COUNT(*) FROM gb_device_channel ";
     ds.flush();
@@ -1256,6 +1282,10 @@ int GBDeviceMapper::update(Device* device)
 list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
 {
     list<SipServerDeviceInfo> devicelist;
+    if (!pDb)
+    {
+        return devicelist;
+    }
     //query gb device 
     //"SELECT * FROM device WHERE deviceId ='"
     ostringstream ds;
@@ -1315,6 +1345,10 @@ list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
 }
 int GBDeviceMapper::del(string deviceId)
 {
+    if (!pDb)
+    {
+        return -1;
+    }
     char* szErrMsg = 0;
     //add gb device
     ostringstream ds;
@@ -1332,6 +1366,10 @@ int GBDeviceMapper::del(string deviceId)
 }
 int GBDeviceMapper::outlineForAll()
 {
+    if (!pDb)
+    {
+        return -1;
+    }
     char* szErrMsg = 0;
     //add gb device
     ostringstream ds;
@@ -1350,6 +1388,10 @@ int GBDeviceMapper::outlineForAll()
 list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
 {
     list<SipServerDeviceInfo> devicelist;
+    if (!pDb)
+    {
+        return devicelist;
+    }
     //query gb device 
     //"SELECT * FROM device WHERE deviceId ='"
     ostringstream ds;
@@ -1409,6 +1451,10 @@ list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
 SipServerDeviceInfo GBDeviceMapper::getDeviceByHostAndPort(string host, int port)
 {
     SipServerDeviceInfo devinfo;
+    if (!pDb)
+    {
+        return devinfo;
+    }
     //query gb device 
     //"SELECT * FROM device WHERE deviceId ='"
     ostringstream ds;

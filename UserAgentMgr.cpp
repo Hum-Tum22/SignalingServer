@@ -289,7 +289,7 @@ mRtpPortMngr(30000, 30500)
     Uri defaultFrom;
     defaultFrom.user() = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
     defaultFrom.host() = DnsUtil::getLocalIpAddress();
-    defaultFrom.port() = svrCfgi.getConfigInt("port", 5060);
+    defaultFrom.port() = svrCfgi.getConfigInt("UDPPort", 5060);
     mProfile->setDefaultFrom(NameAddr(defaultFrom));
 
     // Generate InstanceId appropriate for testing only.  Should be UUID that persists 
