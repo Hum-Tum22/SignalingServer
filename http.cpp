@@ -602,6 +602,14 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 							//"{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=rtp&stream=34020000001180000800_34020000001320000014"
 							std::this_thread::sleep_for(std::chrono::milliseconds(500));
 						}
+						if (!isStream)
+						{
+							std::cout << "******************* channel:" << channel << " zlm timeout " << std::endl;
+						}
+					}
+					else
+					{
+						std::cout << "******************* channel:" << channel << " not found" << std::endl;
 					}
 				}
 			}
