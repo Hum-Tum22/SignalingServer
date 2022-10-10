@@ -280,7 +280,7 @@ SipServer::run(int argc, char** argv)
     }
     //其它初始化
     zlmHttpPort = mProxyConfig->getConfigInt("zlmhttpport", 8080);
-    gbHttpPort = mProxyConfig->getConfigInt("gbhttpport", 8090);
+    gbHttpPort = mProxyConfig->getConfigInt("HttpPort", 8090);
     zlmHost = mProxyConfig->getConfigData("zlmhost", "127.0.0.1", true).c_str();
     // Non-Windows server process stuff
     if (!mRestarting)
@@ -413,7 +413,7 @@ SipServer::run(int argc, char** argv)
     }*/
     Uri target("sip:44010200492000000001@81.68.130.90:8092");
     Uri fromUri("sip:34020000002000000001@192.168.1.230:5060");
-    Data passwd("admin123");
+    Data passwd("12345");
     //mUserAgent->DoRegist(target, fromUri, passwd);
     mRunning = true;
 

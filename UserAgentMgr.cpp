@@ -372,9 +372,10 @@ mRtpPortMngr(30000, 30500)
 
     mDumThread = new DumThread(*mDum);
 
-    mDevCfg.HeartBeatCount = 3;
-    mDevCfg.HeartBeatInterval = 60;
-    mDevCfg.Expires = 600;
+    MyServerConfig& SvrCfg = GetSipServerConfig();
+    mDevCfg.HeartBeatCount = SvrCfg.getConfigInt("keepaliveTimeOutNum", 3);
+    mDevCfg.HeartBeatInterval = SvrCfg.getConfigInt("keepaliveInterval", 3);
+    mDevCfg.Expires = SvrCfg.getConfigInt("Expires", 3);
     StateThread = std::thread(checkStateThread, this);
 }
 UaMgr::~UaMgr()
