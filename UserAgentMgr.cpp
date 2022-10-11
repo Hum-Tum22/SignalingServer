@@ -165,7 +165,7 @@ private:
 };
 
 
-UaMgr::UaMgr(SipStack& stack):
+UaMgr::UaMgr(SipStack& stack, int iRtpPortRangeMin, int iRtpPortRangeMax):
 mProfile(new MasterProfile),
 mStack(stack),
 mDum(new DialogUsageManager(mStack)),
@@ -177,7 +177,7 @@ mCurrentNotifyTimerId(0),
 //mRegHandle(NULL),
 mMessageMgr(NULL),
 mDumThread(NULL),
-mRtpPortMngr(30000, 30500)
+mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 {
     //Log::initialize(Log::Cout, Log::Stack, "gb28181");
 

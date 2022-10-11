@@ -351,7 +351,9 @@ SipServer::run(int argc, char** argv)
     }
     if (!mUserAgent)
     {
-        mUserAgent = new UaMgr(*mSipStack);
+        int iRtpPortMin = mProxyConfig->getConfigInt("RtpPortRangeMin", 17000);
+        int iRtpPortMax = mProxyConfig->getConfigInt("RtpPortRangeMax", 18000);
+        mUserAgent = new UaMgr(*mSipStack, iRtpPortMin, iRtpPortMax);
     }
 
     // Create the Proxy and associate objects

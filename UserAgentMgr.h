@@ -41,7 +41,7 @@ class UaMgr : //public BasicClientCmdLineParser,
     public RedirectHandler
 {
 public:
-    UaMgr(SipStack& stack);
+    UaMgr(SipStack& stack, int iRtpPortRangeMin = 17000, int iRtpPortRangeMax = 18000);
     virtual ~UaMgr();
 
     virtual void startup();

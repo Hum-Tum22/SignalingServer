@@ -14,12 +14,15 @@
 
 using namespace std;
 
-#define HTTP_TIMEOUT 20
+#define HTTP_TIMEOUT 10
 size_t getUrlResponse(char* buffer, size_t size, size_t count, string* response)
 {
 	size_t recv_size = size * count;
-	response->clear();
-	response->append(buffer);
+	if (recv_size > 0)
+	{
+		response->append(buffer);
+	}
+	//response->clear();
 	return recv_size;
 }
 string GetRequest(const string& url)
@@ -48,10 +51,15 @@ string GetRequest(const string& url)
 	curl_easy_cleanup(handle);
 	return response;
 }
-size_t curlWriteCallback(char* buff, size_t size, size_t nmemb, string* response) {
-	response->clear();
-	response->append(buff);
-	return size * nmemb;
+size_t curlWriteCallback(char* buff, size_t size, size_t nmemb, string* response)
+{
+	size_t send_size = size * nmemb;
+	if (send_size > 0)
+	{
+		response->append(buff);
+	}
+	//response->clear();
+	return send_size;
 }
 string PostRequest(const string& url, const string& data)
 {
@@ -824,3 +832,70 @@ void HttpServer::UserManager(struct mg_connection* nc, int ev, void* ev_data)
 	}
 	return;
 }
+
+// Print HTTP response and signal that we're done
+//static void fn(struct mg_connection* c, int ev, void* ev_data, void* fn_data)
+//{
+//	if (ev == MG_EV_OPEN)
+//	{
+//		// Connection created. Store connect expiration time in c->label
+//		*(uint64_t*)c->label = mg_millis() + s_timeout_ms;
+//	}
+//	else if (ev == MG_EV_POLL)
+//	{
+//		if (mg_millis() > *(uint64_t*)c->label &&
+//			(c->is_connecting || c->is_resolving)) {
+//			mg_error(c, "Connect timeout");
+//		}
+//	}
+//	else if (ev == MG_EV_CONNECT)
+//	{
+//		// Connected to server. Extract host name from URL
+//		struct mg_str host = mg_url_host(s_url);
+//
+//		// If s_url is https://, tell client connection to use TLS
+//		if (mg_url_is_ssl(s_url)) {
+//			struct mg_tls_opts opts = { .ca = "ca.pem", .srvname = host };
+//			mg_tls_init(c, &opts);
+//		}
+//
+//		// Send request
+//		int content_length = s_post_data ? strlen(s_post_data) : 0;
+//		mg_printf(c,
+//			"%s %s HTTP/1.0\r\n"
+//			"Host: %.*s\r\n"
+//			"Content-Type: octet-stream\r\n"
+//			"Content-Length: %d\r\n"
+//			"\r\n",
+//			s_post_data ? "POST" : "GET", mg_url_uri(s_url), (int)host.len,
+//			host.ptr, content_length);
+//		mg_send(c, s_post_data, content_length);
+//	}
+//	else if (ev == MG_EV_HTTP_MSG)
+//	{
+//		// Response is received. Print it
+//		struct mg_http_message* hm = (struct mg_http_message*)ev_data;
+//		printf("%.*s", (int)hm->message.len, hm->message.ptr);
+//		c->is_closing = 1;         // Tell mongoose to close this connection
+//		*(bool*)fn_data = true;  // Tell event loop to stop
+//	}
+//	else if (ev == MG_EV_ERROR)
+//	{
+//		*(bool*)fn_data = true;  // Error, tell event loop to stop
+//	}
+//}
+//
+//int main(int argc, char* argv[]) {
+//	const char* log_level = getenv("LOG_LEVEL");  // Allow user to set log level
+//	if (log_level == NULL) log_level = "4";       // Default is verbose
+//
+//	struct mg_mgr mgr;              // Event manager
+//	bool done = false;              // Event handler flips it to true
+//	if (argc > 1) s_url = argv[1];  // Use URL provided in the command line
+//	mg_log_set(atoi(log_level));    // Set to 0 to disable debug
+//	mg_mgr_init(&mgr);              // Initialise event manager
+//	mg_http_connect(&mgr, s_url, fn, &done);  // Create client connection
+//	while (!done) mg_mgr_poll(&mgr, 50);      // Event manager loops until 'done'
+//	mg_mgr_free(&mgr);                        // Free resources
+//	return 0;
+//}
