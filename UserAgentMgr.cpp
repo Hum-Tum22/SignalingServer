@@ -37,6 +37,7 @@
 #include "device/DeviceManager.h"
 #include "SipServerConfig.h"
 #include "SipServer.h"
+#include "tools/ownString.h"
 
 using namespace resip;
 using namespace std;
@@ -1531,8 +1532,6 @@ std::string UaMgr::CreateSSRC(std::string name, std::string streamId)
 		ssrc += std::string("00000");
 	}
 
-	char buf[5] = { 0 };
-	sprintf_s(buf, 5, "%04d", CreateSSRCseq());
-	ssrc += std::string(buf);
+    ssrc += std::str_format("%04d", CreateSSRCseq());
 	return ssrc;
 }
