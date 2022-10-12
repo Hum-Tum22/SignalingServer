@@ -168,6 +168,12 @@ protected:
     void unregisterCall(UaClientCall* call);
     bool isValidCall(UaClientCall* call);
 public:
+    typedef enum 
+    {
+        _UERAGERNT_NOT_STREAM,
+        _UERAGERNT_STREAM_GETING,
+        _UERAGERNT_STREAM_OK,
+    }streamStatus;
     bool run();
     void DoRegist(const Uri& target, const Uri& fromUri, const Data& passwd);
     shared_ptr<UaSessionInfo> GetUaInfoByUser(const Data& user);
@@ -179,11 +185,14 @@ public:
     void DoCancelRegist(const Data& targetuser);
     void CheckRegistState();
     CUserMessageMrg *GetMsgMgr() { return mMessageMgr; }
-    bool RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort, UaClientCall* pUaClientCall);
-    bool IsStreamExist(std::string channelId);
+    bool RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, int sdpPort, int rtpType);
+    streamStatus getStreamStatus(std::string channelId);
+    UaClientCall* reTurnCallByStreamId(std::string streamId);
     bool CloseStreamStreamId(std::string channelId);
     unsigned int GetAvailableRtpPort();
     void FreeRptPort(unsigned int uiRtpPort);
+    std::string CreateSSRC(std::string name, std::string streamId);
+
 
     static void checkStateThread(UaMgr* chandle);
     static void __stdcall RegistStateCallBack(const Data& callID, ClientRegistrationHandle h, int reason, void* pUserData);
@@ -199,7 +208,7 @@ public:
     std::mutex mapSubMtx;
     std::map<Data, ServerSubscriptionInfos> m_SvSubmap;
     std::mutex mapStreamMtx;
-    std::map<std::string, InStreamInfo> m_StreamInfoMap;
+    std::map<std::string, UaClientCall*> m_StreamInfoMap;
 
     bool mHostFileLookupOnlyDnsMode;
     bool mOutboundEnabled;

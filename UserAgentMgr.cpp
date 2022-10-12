@@ -567,76 +567,61 @@ void UaMgr::CheckRegistState()
         }
     }
 }
-bool UaMgr::RequestStream(std::string devIp, int devPort, std::string channelId, int sdpPort, UaClientCall* pUaClientCall)
+bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, int sdpPort, int rtpType)
 {
-    Uri target;
-    Data myId = mProfile->getDefaultFrom().uri().user();
-    target.user() = channelId.c_str();
-    target.host() = devIp.c_str();
-    target.port() = devPort;
-    resip::SdpContents bsdp;
-    bsdp.session().version() = 0;
-    bsdp.session().origin() = resip::SdpContents::Session::Origin(myId, 0/* CreateSessionID(12345)*/, 0, SdpContents::IP4, "192.168.1.232");
-    bsdp.session().connection() = resip::SdpContents::Session::Connection(SdpContents::IP4, "192.168.1.232");
-    bsdp.session().name() = "Play";
-    bsdp.session().addTime(resip::SdpContents::Session::Time(0, 0));//     = clientSdp.session().getTimes();//t
-    bsdp.session().OtherAttrHelper().addAttribute("y", "0100000001");// = CreateSSRC(name, DesId);// y
+    Uri mCallTarget;
+    mCallTarget.user() = channelId.c_str();
+    mCallTarget.host() = devIp.c_str();
+    mCallTarget.port() = devPort;
 
-    Data dprotocol = "RTP/AVP";
-    /*if (ProtocolType == RTP_TCP_S || ProtocolType == RTP_TCP_C)
+    UaClientCall* newCall = new UaClientCall(*this);
+    newCall->mMyUacInviteVideoInfo.devId = devId;
+    newCall->mMyUacInviteVideoInfo.devIp = devIp;
+    newCall->mMyUacInviteVideoInfo.devPort = devPort;
+    newCall->mMyUacInviteVideoInfo.streamId = channelId;
+    newCall->mMyUacInviteVideoInfo.rtpPort = sdpPort;
+    newCall->mMyUacInviteVideoInfo.rtpType = rtpType;
+    newCall->mMyUacInviteVideoInfo.sdpIp = DnsUtil::getLocalIpAddress().c_str();
+    newCall->mMyUacInviteVideoInfo.ssrc = CreateSSRC("Play", channelId);
+    newCall->mMyUacInviteVideoInfo.sessionName = "Play";
+    newCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_START;
     {
-        dprotocol = "TCP/RTP/AVP";
-    }*/
-    //list<SDPDATATYPEPORT>::iterator iter = DataTypeList.begin();
-    //for (;iter != DataTypeList.end();iter++)
-    {
-        //Data MediaName = GetMediaNameByType((GB28181_DATATYPE)iter->datatype);
-        resip::SdpContents::Session::Medium videoMedium("video", sdpPort, 0, dprotocol);
-        //for (; iter != DataTypeList.end(); iter++)
-        {
-            videoMedium.addCodec(resip::SdpContents::Session::Codec("PS", 96, 90000));
-        }
-        //if (ProtocolType == RTP_TCP_S)
-        //{
-        //    //videoMedium.addAttribute("TCP_SERVER",Data(iter->port));
-        //    videoMedium.addAttribute("setup", "passive");
-        //}
-        //else if (ProtocolType == RTP_TCP_C)
-        //{
-        //    //videoMedium.addAttribute("TCP_CLIENT",Data(iter->port));
-        //    videoMedium.addAttribute("setup", "active");
-        //}
-        //if (name == Data("Download"))
-        //{
-        //    Data DownSpeed(pDownloadParam->nDownloadSpeed);
-        //    videoMedium.addAttribute("downloadspeed", DownSpeed);
-        //}
-        videoMedium.addAttribute("recvonly");
-        bsdp.session().addMedium(videoMedium);
+        CUSTORLOCKGUARD locker(mapStreamMtx);
+        m_StreamInfoMap[channelId] = newCall;
     }
-
-    if (pUaClientCall)
-    {
-        auto InviteMessage = mDum->makeInviteSession(NameAddr(target), mProfile, bsdp.getContents(), pUaClientCall);
-
-        InviteMessage->header(h_Subject) = StringCategory(channelId.c_str() + Data(":") + Data("0100000001") + Data(",") + myId + Data(":") + Data("0"));
-        InviteMessage->header(h_From).uri().user() = myId;
-        InviteMessage->header(h_From).uri().host() = mProfile->getDefaultFrom().uri().host();
-        InviteMessage->header(h_From).uri().port() = mProfile->getDefaultFrom().uri().port();
-        //G_SipMrg()->InitSipDumMrg()->LockDum();
-        mDum->send(InviteMessage);
-        m_StreamInfoMap[channelId] = InStreamInfo();
-        m_StreamInfoMap[channelId].useCount = 1;
-    }
+    newCall->initiateCall(mCallTarget, mProfile);
     return true;
 }
-bool UaMgr::IsStreamExist(std::string channelId)
+UaMgr::streamStatus UaMgr::getStreamStatus(std::string channelId)
 {
-    if (m_StreamInfoMap.find(channelId) == m_StreamInfoMap.end())
+    CUSTORLOCKGUARD locker(mapStreamMtx);
+    auto iter = m_StreamInfoMap.find(channelId);
+    if (iter != m_StreamInfoMap.end() && iter->second != NULL)
     {
-        return false;
+        switch (iter->second->mMyUacInviteVideoInfo.state)
+        {
+        case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
+        case UaClientCall::UacInviteVideoInfo::_RES_ACK:
+            return _UERAGERNT_STREAM_OK;
+        case UaClientCall::UacInviteVideoInfo::_RES_START:
+        case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
+        case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
+            return _UERAGERNT_STREAM_GETING;
+        default:
+            return _UERAGERNT_NOT_STREAM;
+        }
     }
-    return true;
+    return _UERAGERNT_NOT_STREAM;
+}
+UaClientCall* UaMgr::reTurnCallByStreamId(std::string streamId)
+{
+    CUSTORLOCKGUARD locker(mapStreamMtx);
+    auto iter = m_StreamInfoMap.find(streamId);
+    if (iter != m_StreamInfoMap.end() && iter->second != NULL)
+    {
+        return iter->second;
+    }
+    return NULL;
 }
 bool UaMgr::CloseStreamStreamId(std::string channelId)
 {
@@ -644,18 +629,11 @@ bool UaMgr::CloseStreamStreamId(std::string channelId)
     ss << "http://192.168.1.38:80/index/api/closeRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&stream="
         << devId << "_" << channelId;
     string strReponse = GetRequest(ss.str());*/
+    CUSTORLOCKGUARD locker(mapStreamMtx);
     auto it = m_StreamInfoMap.find(channelId);
-    if (it == m_StreamInfoMap.end())
+    if (it != m_StreamInfoMap.end())
     {
         m_StreamInfoMap.erase(channelId);
-    }
-    else
-    {
-        it->second.useCount--;
-        if (it->second.useCount == 0)
-        {
-            //delete uaclientcall
-        }
     }
     return true;
 }
@@ -1522,4 +1500,39 @@ UaMgr::onTryingNextTarget(AppDialogSetHandle, const SipMessage& msg)
 
     // Always allow redirection for now
     return true;
+}
+static unsigned int g_YSRCSeq = 0;
+unsigned int CreateSSRCseq()
+{
+    if (g_YSRCSeq >= 0x270f) //
+    {
+        g_YSRCSeq = 0;
+    }
+    g_YSRCSeq++;
+    return g_YSRCSeq;
+}
+std::string UaMgr::CreateSSRC(std::string name, std::string streamId)
+{
+	std::string ssrc;
+	if (name == std::string("Play"))
+	{
+		ssrc += std::to_string(0);
+	}
+	else
+	{
+		ssrc += std::to_string(1);
+	}
+	if (streamId.size() == 20)
+	{
+		ssrc += streamId.substr(3, 5);
+	}
+	else
+	{
+		ssrc += std::string("00000");
+	}
+
+	char buf[5] = { 0 };
+	sprintf_s(buf, 5, "%04d", CreateSSRCseq());
+	ssrc += std::string(buf);
+	return ssrc;
 }

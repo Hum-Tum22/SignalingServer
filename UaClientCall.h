@@ -25,7 +25,7 @@ public:
     Data connectport;
     Data app;
 	SdpContents AlegResSdp;
-	int tcpOrUdp;
+	//int tcpOrUdp;
 private:
 public:
     UaClientCall(UaMgr& userAgent);
@@ -103,6 +103,7 @@ private:
    resip::DialogId mUACConnectedDialogId;
 
    void makeOffer(SdpContents& offer);
+   void makeRequestOffer(SdpContents& offer, std::string myId);
 public:
 	bool makeBLeg(std::string channelId);
 public:
@@ -115,19 +116,25 @@ public:
 			_RES_GET1XX,
 			_RES_GETSDP,
 			_RES_CONNECT,
-			_RES_ACK
+			_RES_ACK,
+			_RES_FAILED
 		};
-		SdpContents m_sdp;//目标返回的 sdp
+		SdpContents m_DstSdp;//目标返回的 sdp
 		//unsigned long m_resid;
-		int rtpType;
+		int rtpType;	// 0:udp,1:tcp active, 2:tcp pass
+		std::string sdpIp;
+		std::string ssrc;
+		std::string sessionName;
 		InviteSessionHandle mInviteSessionHandle;
 		int state;
 		time_t startime;
 		std::string devId;
+		std::string devIp;
+		int devPort;
 		std::string streamId;
 		int rtpPort;
 		SdpContents m_sendsdp;//记录自己发送的 主要获取发送时候的media 信息对应的端口
-		UacInviteVideoInfo(/*unsigned long tresid*/) :state(_RES_START)//, m_resid(tresid)
+		UacInviteVideoInfo(/*unsigned long tresid*/) :state(_RES_START), devPort(0)//, m_resid(tresid)
 		{
 			time(&startime);
 		}
@@ -170,12 +177,11 @@ class RequestStreamTask: public ownTask::CTask
 	int devPort;
 	std::string streamId;
 	UaMgr& mUserAgent;
-	UaClientCall* mAlegCall;
 	int rtpPort;
+	int rtpType;
 public:
-	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, UaClientCall *alegcall, int iRtpPort)
-		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), mAlegCall(alegcall)
-	, rtpPort(iRtpPort){}
+	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort)
+		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(0){}
 	bool TaskRun();
 	bool TaskClose() { return false; };
 };
@@ -185,6 +191,7 @@ class PushRtpStream :public ownTask::CTask
 	std::string channelId;
 	std::string strSsrc;
 	std::string stream_Id;
+	std::string strDstIp;
 	int connectPort;
 	int localPort;
 	//UaClientCall* mAlegCall;
@@ -200,7 +207,6 @@ public:
 	bool TaskClose() { return false; };
 };
 }
-
 #endif
 
 /* ====================================================================

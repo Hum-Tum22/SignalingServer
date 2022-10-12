@@ -571,11 +571,8 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 			resip::UaMgr* pUaMgr = pSvr->GetUaManager();
 			if (pUaMgr)
 			{
-				if (pUaMgr->IsStreamExist(channel))
-				{
-					isStream = true;
-				}
-				else
+				resip::UaMgr::streamStatus smStatus = pUaMgr->getStreamStatus(channel);
+				if (smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
 				{
 					IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
 					SipServerDeviceInfo devuinfo;
@@ -595,29 +592,46 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 						{
 							stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
 						}
-						UaClientCall* pUacCall = new UaClientCall(*pUaMgr);
-						pUacCall->mMyUasInviteVideoInfo.devId = devuinfo.getDeviceId();
 						//ÅÐ¶ÏÁ÷´æÔÚ
 						ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-						tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, (UaClientCall*)NULL, pUaMgr->GetAvailableRtpPort()));
-						for (int i = 0; i < 2 * 5; i++)
-						{
-							if (HttpIsStreamExist("rtsp", "rtp", stream_Id))
-							{
-								isStream = true;
-								break;
-							}
-							//"{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=rtp&stream=34020000001180000800_34020000001320000014"
-							std::this_thread::sleep_for(std::chrono::milliseconds(500));
-						}
-						if (!isStream)
-						{
-							std::cout << "******************* channel:" << channel << " zlm timeout " << std::endl;
-						}
+						tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, pUaMgr->GetAvailableRtpPort()));
 					}
 					else
 					{
 						std::cout << "******************* channel:" << channel << " not found" << std::endl;
+					}
+				}
+				else if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
+				{
+					isStream = true;
+					if (stream_Id.empty())
+					{
+						UaClientCall* pCall = pUaMgr->reTurnCallByStreamId(channel);
+						if (pCall)
+						{
+							stream_Id = std::str_format("%s_%s", pCall->mMyUacInviteVideoInfo.devId.c_str(), channel.c_str());
+						}
+					}
+				}
+				if (smStatus != resip::UaMgr::_UERAGERNT_STREAM_OK)
+				{
+					for (int i = 0; i < 2 * 10; i++)
+					{
+						smStatus = pUaMgr->getStreamStatus(channel);
+						if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
+						{
+							std::this_thread::sleep_for(std::chrono::milliseconds(500));
+							//if (HttpIsStreamExist("rtsp", "rtp", stream_Id))
+							{
+								isStream = true;
+								break;
+							}
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					}
+					if (!isStream)
+					{
+						std::cout << "******************* channel:" << channel << " zlm timeout " << std::endl;
 					}
 				}
 			}
