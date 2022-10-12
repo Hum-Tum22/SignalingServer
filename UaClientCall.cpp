@@ -527,6 +527,10 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
    }
    InfoLog(<< "onAnswer: msg=" << msg.brief() << ", sdp=" << sdp);
 
+   NameAddr myaddr = h->myAddr();
+   NameAddr peeraddr = h->peerAddr();
+   NameAddr remoteTarget = h->remoteTarget();
+   NameAddr pendingRemoteTarget = h->pendingRemoteTarget();
    // Process Answer here
    //Tuple sourceTuple = msg.getSource();
    //in_addr_t msgSourceAddress = sourceTuple.toGenericIPAddress().v4Address.sin_addr.s_addr;
@@ -887,7 +891,24 @@ UaClientCall::onForkDestroyed(ClientInviteSessionHandle h)
 void 
 UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
 {
-    cout << "***************  ******************* 30\n" << msg << endl;
+    Data msgData;
+    {
+        oDataStream ds(msgData);
+        ds << msg;
+        ds.flush();
+    }
+    if (isUACConnected())
+    {
+        if (msg.isRequest() && msg.method() == ACK)
+        {
+            msg.header(h_RequestLine).uri().host() = mMyUacInviteVideoInfo.devIp.c_str();
+            msg.header(h_RequestLine).uri().port() = mMyUacInviteVideoInfo.devPort;
+            msg.header(h_Contacts).front().uri() = msg.header(h_RequestLine).uri();
+        }
+    }
+    
+    cout << "***************  ******************* 30\n" << msgData << endl;
+    
 }
 
 void 

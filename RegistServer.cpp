@@ -978,6 +978,9 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
 
     resip::Uri mAor = GetSrcUri(reg);
     resip::Tuple fromtu = reg.getSource();
+    resip::Tuple dstTu = ((resip::SipMessage)reg).getDestination();
+    resip::Tuple receivedTu = reg.getReceivedTransportTuple();
+    Tuple publicAddress = Helper::getClientPublicAddress(reg);
     //resip::Tuple localtu = CTools::GetInLocalIP(fromtu);
     //Data localip = resip::Tuple::inet_ntop(localtu);
     IDeviceMngrSvr &devmng = GetIDeviceMngr();
