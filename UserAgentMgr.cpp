@@ -131,13 +131,19 @@ public:
         }
         else if (msg.method() == REGISTER)
         {
+            Data destip = Tuple::inet_ntop(destination);
         }
         else if (msg.method() == MESSAGE)
         {
-
+            Data destip = Tuple::inet_ntop(destination);
+            if (destip == "192.168.1.230")
+            {
+                cout << destip << endl;
+            }
         }
         else
         {
+            Data destip = Tuple::inet_ntop(destination);
         }
         
         InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
@@ -272,12 +278,16 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mProfile->setMethodsParamEnabled(true);
 
    // Install Sdp Message Decorator
-   mProfile->setOutboundDecorator(std::make_shared<SdpMessageDecorator>());
+    mProfile->setOutboundDecorator(std::make_shared<SdpMessageDecorator>());
 
     // Other Profile Settings
     mProfile->setUserAgent("basicClient/1.0");
     mProfile->setDefaultRegistrationTime(mRegisterDuration);
     mProfile->setDefaultRegistrationRetryTime(120);
+
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    Uri contact(svrCfgi.getConfigData("ContactUri", "", true));
+    mContact = contact;
     if (!mContact.host().empty())
     {
         mProfile->setOverrideHostAndPort(mContact);
@@ -291,7 +301,6 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 
     // UserProfile Settings
     //Uri mFrom("sip:34020000002000000001@192.168.1.230:5060");
-    MyServerConfig& svrCfgi = GetSipServerConfig();
     Uri defaultFrom;
     defaultFrom.user() = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
     defaultFrom.host() = DnsUtil::getLocalIpAddress();
@@ -400,7 +409,7 @@ void UaMgr::DoRegist(const Uri& target, const Uri& fromUri, const Data& passwd)
     shared_ptr<UaSessionInfo> ua = GetUaInfoByUser(target.user());
     if (!ua)
     {
-        shared_ptr<UaSessionInfo> uaSession(new UaSessionInfo(target, fromUri, passwd));
+        shared_ptr<UaSessionInfo> uaSession(new UaSessionInfo(target, mProfile->getDefaultFrom().uri(), passwd));
         Regist(uaSession);
         CUSTORLOCKGUARD locker(mapMtx);
         UserAgentInfoMap[target.user()] = uaSession;
@@ -421,7 +430,8 @@ void UaMgr::Regist(shared_ptr<UaSessionInfo> ua)
             << ua->passwd;
         mDum->getMasterProfile()->setDigestCredential(ua->toUri.host(), ua->fromUri.user(), a1.getHex(), true);
 #else
-        mDum->getMasterProfile()->setDigestCredential(ua->toUri.host(), ua->fromUri.user(), ua->passwd);
+        mDum->getMasterProfile()->setDigestCredential(/*ua->toUri.host()*/
+            mProfile->getDefaultFrom().uri().host(), mProfile->getDefaultFrom().uri().user(), ua->passwd);
 #endif
         Uri tUri = ua->toUri;
         tUri.host() = tUri.user().substr(0, 10);
@@ -603,6 +613,7 @@ UaMgr::streamStatus UaMgr::getStreamStatus(std::string channelId)
         {
         case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
         case UaClientCall::UacInviteVideoInfo::_RES_ACK:
+        case UaClientCall::UacInviteVideoInfo::_RES_OK:
             return _UERAGERNT_STREAM_OK;
         case UaClientCall::UacInviteVideoInfo::_RES_START:
         case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
@@ -889,6 +900,8 @@ UaMgr::onSuccess(ClientRegistrationHandle h, const SipMessage& msg)
             newCall->initiateCall(mCallTarget, mProfile);
         }
     }
+    //h->addBinding(msg.header(h_Contacts).front());
+    Data localip = resip::Tuple::inet_ntop(msg.getSource());
     int reason = msg.header(h_StatusLine).statusCode();
     RegistStateCallBack(msg.header(h_CallID).value(), h, reason, this);
     //mRegHandle = h;
@@ -899,6 +912,30 @@ UaMgr::onSuccess(ClientRegistrationHandle h, const SipMessage& msg)
         ds << msg;
     }
     cout << command << endl;
+    if (msg.exists(h_Vias))
+    {
+        const Via& via = msg.header(h_Vias).front();
+        if (via.exists(p_received))
+        {
+            int port = via.sentPort();
+            if (via.exists(p_rport) && via.param(p_rport).hasValue())
+            {
+                port = via.param(p_rport).port();
+            }
+            Uri contact;
+            contact.user() = msg.header(h_From).uri().user();
+            contact.host() = via.param(p_received);
+            contact.port() = port;
+            mProfile->setOverrideHostAndPort(contact);
+        }
+        else
+        {
+            if (mProfile->hasOverrideHostAndPort())
+            {
+                mProfile->unsetOverrideHostAndPort();
+            }
+        }
+    }
 }
 
 void

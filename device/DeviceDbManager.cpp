@@ -878,6 +878,73 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryOnlineChannelsByDeviceId(strin
     }
     return chllist;
 }
+list<std::shared_ptr<IDeviceChannel>> GBDeviceChannelMapper::queryChannelByDeviceId(string deviceId)
+{
+    list<std::shared_ptr<IDeviceChannel>> chllist;
+    if (!pDb)
+    {
+        return chllist;
+    }
+    ostringstream ds;
+    ds << "SELECT * FROM gb_device_channel WHERE deviceId='" << deviceId << "'";
+    ds.flush();
+    char* szErrMsg = 0;
+    char** azResult = NULL;
+    int nrow = 0, ncolumn = 0;
+    int rc = pDb->Sqlite_query(ds.str().c_str(), &azResult, &nrow, &ncolumn, &szErrMsg);
+    if (rc == SQLITE_OK)
+    {
+        int countcol = 0;
+        for (int i = 0; i < nrow; i++)
+        {
+            countcol = ncolumn * (i + 1);
+
+            countcol++;//skip id column
+            std::shared_ptr<GBDeviceChannel> devchl = std::make_shared<GBDeviceChannel>();
+            devchl->setUuid(azResult[countcol++]);
+            devchl->setChannelId(azResult[countcol++]);
+            devchl->setName(azResult[countcol++]);
+            devchl->setManufacture(azResult[countcol++]);
+            devchl->setModel(azResult[countcol++]);
+            devchl->setOwner(azResult[countcol++]);
+            devchl->setCivilCode(azResult[countcol++]);
+            devchl->setBlock(azResult[countcol++]);
+            devchl->setAddress(azResult[countcol++]);
+            devchl->setParentId(azResult[countcol++]);
+            devchl->setSafetyWay(atoi(azResult[countcol++]));
+            devchl->setRegisterWay(atoi(azResult[countcol++]));
+            devchl->setCertNum(azResult[countcol++]);
+            devchl->setCertifiable(atoi(azResult[countcol++]));
+            devchl->setErrCode(atoi(azResult[countcol++]));
+            devchl->setEndTime(azResult[countcol++]);
+            devchl->setSecrecy(azResult[countcol++]);
+            devchl->setIpAddress(azResult[countcol++]);
+            devchl->setPort(atoi(azResult[countcol++]));
+            devchl->setPassword(azResult[countcol++]);
+            devchl->setPTZType(atoi(azResult[countcol++]));
+            devchl->setStatus(atoi(azResult[countcol++]));
+            devchl->setLongitude(atof(azResult[countcol++]));
+            devchl->setLatitude(atof(azResult[countcol++]));
+            devchl->setStreamId(azResult[countcol++]);
+            devchl->setDeviceId(azResult[countcol++]);
+            devchl->setParental(atoi(azResult[countcol++]));
+            devchl->setHasAudio(atoi(azResult[countcol++]));
+            devchl->setCreateTime(azResult[countcol++]);
+            devchl->setUpdateTime(azResult[countcol++]);
+            devchl->setSubCount(atoi(azResult[countcol++]));
+            chllist.push_back(devchl);
+        }
+        sqlite3_free_table(azResult);
+    }
+    else
+    {
+        if (szErrMsg)
+        {
+            sqlite3_free(szErrMsg);
+        }
+    }
+    return chllist;
+}
 int GBDeviceChannelMapper::cleanChannelsNotInList(string deviceId, const list<IDeviceChannel>& channels)
 {
     return 0;
@@ -1076,7 +1143,7 @@ void GBDeviceMapper::IniTable()
     else
     {
         //´´½¨Ë÷Òý
-        rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_channel_deviceid` on gb_device(`deviceId`)", &szErrMsg);
+        rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_deviceId_uindex` on gb_device(`deviceId`)", &szErrMsg);
         if (rc != SQLITE_OK)
         {
             if (szErrMsg)
@@ -1085,7 +1152,7 @@ void GBDeviceMapper::IniTable()
                 szErrMsg = NULL;
             }
         }
-        rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_channel_uuid` on gb_device(`uuid`)", &szErrMsg);
+        rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_uuid` on gb_device(`uuid`)", &szErrMsg);
         if (rc != SQLITE_OK)
         {
             if (szErrMsg)
@@ -1340,6 +1407,12 @@ list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
         {
             sqlite3_free(szErrMsg);
         }
+    }
+    for (auto &iter : devicelist)
+    {
+
+        list<std::shared_ptr<IDeviceChannel>> chlList = mGBDeviceChannleMapper.queryChannelByDeviceId(iter.getDeviceId());
+        iter.setChannelList(chlList);
     }
     return devicelist;
 }

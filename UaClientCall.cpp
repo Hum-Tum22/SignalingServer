@@ -127,8 +127,8 @@ UaClientCall::timerExpired()
       // First few times, send a message to the other party
       if(mInviteSessionHandle.isValid())
       {
-         PlainContents plain("session keepalive");
-         mInviteSessionHandle->message(plain);
+          PlainContents plain("session keepalive");
+          mInviteSessionHandle->message(plain);
       }
    }
    else 
@@ -905,6 +905,10 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
             msg.header(h_RequestLine).uri().port() = mMyUacInviteVideoInfo.devPort;
             msg.header(h_Contacts).front().uri() = msg.header(h_RequestLine).uri();
         }
+    }
+    else
+    {
+
     }
     
     cout << "***************  ******************* 30\n" << msgData << endl;

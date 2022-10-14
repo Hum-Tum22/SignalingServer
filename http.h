@@ -25,6 +25,11 @@ private:
     static void StartLive(struct mg_connection* nc, int ev, void* ev_data);
     static void StopLive(struct mg_connection* nc, int ev, void* ev_data);
     static void UserManager(struct mg_connection* nc, int ev, void* ev_data);
+    static void zlmHookPublish(struct mg_connection* nc, int ev, void* ev_data);
+    static void zlmHookStreamNoneReader(struct mg_connection* nc, int ev, void* ev_data);
+    static void zlmHookStreamChanged(struct mg_connection* nc, int ev, void* ev_data);
+    static void zlmHookStreamNotFound(struct mg_connection* nc, int ev, void* ev_data);
+    static void zlmHookSendRtpStopped(struct mg_connection* nc, int ev, void* ev_data);
 
     bool init(const string& rootpath = "./", const string& indexfile = "index");
 private:

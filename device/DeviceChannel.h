@@ -186,6 +186,43 @@ class GBDeviceChannel: public IDeviceChannel
 	int channelType;
 public:
 	GBDeviceChannel() {};
+	GBDeviceChannel(const GBDeviceChannel& dChl):
+		id(dChl.id)
+		, uuid(dChl.uuid)
+		, channelId(dChl.channelId)
+		, deviceId(dChl.deviceId)
+		, name(dChl.name)
+		, manufacture(dChl.manufacture)
+		, model(dChl.model)
+		, owner(dChl.owner)
+		, civilCode(dChl.civilCode)
+		, block(dChl.block)
+		, address(dChl.address)
+		, parental(dChl.parental)
+		, parentId(dChl.parentId)
+		, safetyWay(dChl.safetyWay)
+		, registerWay(dChl.registerWay)
+		, certNum(dChl.certNum)
+		, certifiable(dChl.certifiable)
+		, errCode(dChl.errCode)
+		, endTime(dChl.endTime)
+		, secrecy(dChl.secrecy)
+		, ipAddress(dChl.ipAddress)
+		, port(dChl.port)
+		, password(dChl.password)
+		, PTZType(dChl.PTZType)
+		, PTZTypeText(dChl.PTZTypeText)
+		, createTime(dChl.createTime)
+		, updateTime(dChl.updateTime)
+		, status(dChl.status)
+		, longitude(dChl.longitude)
+		, latitude(dChl.latitude)
+		, subCount(dChl.subCount)
+		, streamId(dChl.streamId)
+		, hasAudio(dChl.hasAudio)
+		, channelType(dChl.channelType)
+
+	{};
 	int getId() {
 		return id;
 	}

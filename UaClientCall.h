@@ -117,6 +117,7 @@ public:
 			_RES_GETSDP,
 			_RES_CONNECT,
 			_RES_ACK,
+			_RES_OK,
 			_RES_FAILED
 		};
 		SdpContents m_DstSdp;//目标返回的 sdp

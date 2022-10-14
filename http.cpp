@@ -165,7 +165,12 @@ bool HttpServer::init(const string& rootpath, const string& indexfile)
 	mg_register_http_endpoint(httpcon, "/device/open_live", StartLive);
 	mg_register_http_endpoint(httpcon, "/device/close_live", StopLive);
 	mg_register_http_endpoint(httpcon, "/userAction", UserManager);
-
+	mg_register_http_endpoint(httpcon, "/index/hook/on_stream_none_reader", zlmHookStreamNoneReader);
+	mg_register_http_endpoint(httpcon, "/index/hook/on_publish", zlmHookPublish);
+	//mg_register_http_endpoint(httpcon, "//index/hook/on_play", UserManager);
+	mg_register_http_endpoint(httpcon, "/index/hook/on_stream_changed", zlmHookStreamChanged);
+	mg_register_http_endpoint(httpcon, "/index/hook/on_stream_not_found", zlmHookStreamNotFound);
+	mg_register_http_endpoint(httpcon, "/index/hook/on_send_rtp_stopped", zlmHookSendRtpStopped);
 	
 	mg_set_protocol_http_websocket(httpcon);
 
@@ -603,15 +608,16 @@ void HttpServer::StartLive(struct mg_connection* nc, int ev, void* ev_data)
 				}
 				else if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
 				{
-					isStream = true;
-					if (stream_Id.empty())
+					UaClientCall* pCall = pUaMgr->reTurnCallByStreamId(channel);
+					if (pCall)
 					{
-						UaClientCall* pCall = pUaMgr->reTurnCallByStreamId(channel);
-						if (pCall)
+						if (stream_Id.empty())
 						{
 							stream_Id = std::str_format("%s_%s", pCall->mMyUacInviteVideoInfo.devId.c_str(), channel.c_str());
 						}
 					}
+					isStream = true;
+					
 				}
 				if (smStatus != resip::UaMgr::_UERAGERNT_STREAM_OK)
 				{
@@ -846,7 +852,327 @@ void HttpServer::UserManager(struct mg_connection* nc, int ev, void* ev_data)
 	}
 	return;
 }
+void HttpServer::zlmHookPublish(struct mg_connection* nc, int ev, void* ev_data)
+{
+	struct http_message* hm = (struct http_message*)ev_data;
+	if (!hm || !hm->body.len || (strncmp(hm->method.p, "GET", hm->method.len) &&
+		strncmp(hm->method.p, "POST", hm->method.len) && strncmp(hm->method.p, "PUT", hm->method.len))
+		)
+	{
+		mg_printf(nc, g_msg200Ok);
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+		return;
+	}
+	else
+	{
+		std::string jsonStr(hm->body.p, hm->body.len);
+		cout << "*******************************\n"
+			<< jsonStr << "\n"
+			<< "*******************************\n" << endl;
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
 
+		std::string strApp = json_check_string(document, "app");
+		std::string strId = json_check_string(document, "id");
+		std::string strIp = json_check_string(document, "ip");
+		std::string strMediaServerId = json_check_string(document, "mediaServerId");
+		int iOriginType = json_check_int32(document, "originType");
+		std::string strOriginTypeStr = json_check_string(document, "originTypeStr");
+		std::string strParams = json_check_string(document, "params");
+		int iPort = json_check_int32(document, "port");
+		std::string strSchema = json_check_string(document, "schema");
+		std::string strStream = json_check_string(document, "stream");
+		std::string strVhost = json_check_string(document, "vhost");
+		
+		rapidjson::StringBuffer response;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		writer.StartObject();
+		writer.Key("code"); writer.Int(0);
+		writer.Key("add_mute_audio"); writer.Bool(true);
+		writer.Key("continue_push_ms"); writer.Int(10000);
+		writer.Key("enable_audio"); writer.Bool(true);
+		writer.Key("enable_fmp4"); writer.Bool(true);
+		writer.Key("enable_hls"); writer.Bool(true);
+		writer.Key("enable_mp4"); writer.Bool(false);
+		writer.Key("enable_rtmp"); writer.Bool(true);
+		writer.Key("enable_rtsp"); writer.Bool(true);
+		writer.Key("enable_ts"); writer.Bool(true);
+		writer.Key("hls_save_path"); writer.String("/hls_save_path/");
+		writer.Key("modify_stamp"); writer.Bool(false);
+		writer.Key("mp4_as_player"); writer.Bool(false);
+		writer.Key("mp4_max_second"); writer.Int(3600);
+		writer.Key("mp4_save_path"); writer.String("/mp4_save_path/");
+		writer.EndObject();
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+	}
+	return;
+}
+void HttpServer::zlmHookStreamNoneReader(struct mg_connection* nc, int ev, void* ev_data)
+{
+	struct http_message* hm = (struct http_message*)ev_data;
+	if (!hm || !hm->body.len || (strncmp(hm->method.p, "GET", hm->method.len) &&
+		strncmp(hm->method.p, "POST", hm->method.len) && strncmp(hm->method.p, "PUT", hm->method.len))
+		)
+	{
+		mg_printf(nc, g_msg200Ok);
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+		return;
+	}
+	else
+	{
+		std::string jsonStr(hm->body.p, hm->body.len);
+		cout << "*******************************\n"
+			<< jsonStr << "\n"
+			<< "*******************************\n" << endl;
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
+
+		std::string strApp = json_check_string(document, "app");
+		std::string strMediaServerId = json_check_string(document, "mediaServerId");
+		std::string strSchema = json_check_string(document, "schema");
+		std::string strStream = json_check_string(document, "stream");
+		std::string strVhost = json_check_string(document, "vhost");
+		if (strApp == "rtp")
+		{
+			sipserver::SipServer* pSvr = GetServer();
+			if (pSvr)
+			{
+				resip::UaMgr* pUaMgr = pSvr->GetUaManager();
+				if (pUaMgr)
+				{
+					std::vector<std::string> streamIdVct = vStringSplit(strStream, "_");
+					UaClientCall *pCall = pUaMgr->reTurnCallByStreamId(streamIdVct[1]);
+					if (pCall)
+					{
+						pCall->terminateCall();
+					}
+				}
+			}
+		}
+
+		rapidjson::StringBuffer response;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		writer.StartObject();
+		writer.Key("close"); writer.Bool(true);
+		writer.Key("code"); writer.Int(0);
+		writer.EndObject();
+
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+	}
+	return;
+}
+void HttpServer::zlmHookStreamChanged(struct mg_connection* nc, int ev, void* ev_data)
+{
+	struct http_message* hm = (struct http_message*)ev_data;
+	if (!hm || !hm->body.len || (strncmp(hm->method.p, "GET", hm->method.len) &&
+		strncmp(hm->method.p, "POST", hm->method.len) && strncmp(hm->method.p, "PUT", hm->method.len))
+		)
+	{
+		mg_printf(nc, g_msg200Ok);
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+		return;
+	}
+	else
+	{
+		std::string jsonStr(hm->body.p, hm->body.len);
+		cout << "*******************************\n"
+			<< jsonStr << "\n"
+			<< "*******************************\n" << endl;
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
+		int iAliveSecond = json_check_int32(document, "aliveSecond");
+		std::string strApp = json_check_string(document, "app");
+		int iBytesSpeed = json_check_int32(document, "bytesSpeed");
+		uint64_t llCreateStamp = json_check_int64(document, "createStamp");
+		bool bIsRecordingHLS = json_check_int64(document, "isRecordingHLS");
+		bool bIsRecordingMP4 = json_check_int64(document, "isRecordingMP4");
+		std::string strMediaServerId = json_check_string(document, "mediaServerId");
+		if (document.HasMember("originSock"))
+		{
+			rapidjson::Value& msbody = document["originSock"];
+			std::string strIdentifier = json_check_string(msbody, "identifier");
+			std::string strLocal_ip = json_check_string(msbody, "local_ip");
+			int iLocal_port = json_check_int32(msbody, "local_port");
+			std::string strPeer_ip = json_check_string(msbody, "peer_ip");
+			int iPeer_port = json_check_int32(msbody, "peer_port");
+		}
+		int iOriginType = json_check_int32(document, "originType");
+		std::string strOriginTypeStr = json_check_string(document, "originTypeStr");
+		std::string strOriginUrl = json_check_string(document, "originUrl");
+		int iReaderCount = json_check_int32(document, "readerCount");
+		bool bRegist = json_check_bool(document, "regist");
+		std::string strSchema = json_check_string(document, "schema");
+		std::string strStream = json_check_string(document, "stream");
+		int iTotalReaderCount = json_check_int32(document, "totalReaderCount");
+		if (document.HasMember("tracks") && document["tracks"].IsArray())
+		{
+			rapidjson::Value& msbody = document["tracks"];
+			for (unsigned int i = 0; i < msbody.Size(); i++)
+			{
+				int iChannels = json_check_int32(msbody[i], "channels");
+				int iCodec_id = json_check_int32(msbody[i], "codec_id");
+				std::string strCodec_id_name = json_check_string(msbody[i], "codec_id_name");
+				int iCodec_type = json_check_int32(msbody[i], "codec_type");
+				int iLoss = json_check_int32(msbody[i], "loss");
+				bool bReady = json_check_bool(msbody[i], "ready");
+				int iSample_bit = json_check_int32(msbody[i], "sample_bit");
+				int iSample_rate = json_check_int32(msbody[i], "sample_rate");
+				int iFps = json_check_int32(msbody[i], "fps");
+				int iHeight = json_check_int32(msbody[i], "height");
+				int iWidth = json_check_int32(msbody[i], "width");
+			}
+		}
+		std::string strVhost = json_check_string(document, "vhost");
+		if (strSchema == "rtp")
+		{
+			sipserver::SipServer* pSvr = GetServer();
+			if (pSvr)
+			{
+				resip::UaMgr* pUaMgr = pSvr->GetUaManager();
+				if (pUaMgr)
+				{
+					std::vector<std::string> streamIdVct = vStringSplit(strStream, "_");
+					UaClientCall* pCall = pUaMgr->reTurnCallByStreamId(streamIdVct[1]);
+					if (pCall)
+					{
+						switch (pCall->mMyUacInviteVideoInfo.state)
+						{
+						case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
+							pCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_OK;
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+		}
+		rapidjson::StringBuffer response;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		writer.StartObject();
+		writer.Key("code"); writer.Int(0);
+		writer.Key("msg"); writer.String("success");
+		writer.EndObject();
+
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+	}
+	return;
+}
+void HttpServer::zlmHookStreamNotFound(struct mg_connection* nc, int ev, void* ev_data)
+{
+	struct http_message* hm = (struct http_message*)ev_data;
+	if (!hm || !hm->body.len || (strncmp(hm->method.p, "GET", hm->method.len) &&
+		strncmp(hm->method.p, "POST", hm->method.len) && strncmp(hm->method.p, "PUT", hm->method.len))
+		)
+	{
+		mg_printf(nc, g_msg200Ok);
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+		return;
+	}
+	else
+	{
+		std::string jsonStr(hm->body.p, hm->body.len);
+		cout << "*******************************\n"
+			<< jsonStr << "\n"
+			<< "*******************************\n" << endl;
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
+
+		/*std::string cmd = json_check_string(document, "cmd");
+		rapidjson::StringBuffer response;
+		if (strcmp("addUser", cmd.c_str()) == 0)
+			WebAddUserAction(nc, document, response);
+		else if (strcmp("delUser", cmd.c_str()) == 0)
+			WebDelUserAction(nc, document, response);
+		else if (strcmp("changeUser", cmd.c_str()) == 0)
+			WebChangeUserAction(nc, document, response);
+		else
+		{
+			rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+			writer.StartObject();
+			writer.Key("code"); writer.Int(-2);
+			writer.Key("msg"); writer.String("");
+			writer.EndObject();
+		}
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());*/
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+	}
+	return;
+}
+void HttpServer::zlmHookSendRtpStopped(struct mg_connection* nc, int ev, void* ev_data)
+{
+	struct http_message* hm = (struct http_message*)ev_data;
+	if (!hm || !hm->body.len || (strncmp(hm->method.p, "GET", hm->method.len) &&
+		strncmp(hm->method.p, "POST", hm->method.len) && strncmp(hm->method.p, "PUT", hm->method.len))
+		)
+	{
+		mg_printf(nc, g_msg200Ok);
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+		return;
+	}
+	else
+	{
+		std::string jsonStr(hm->body.p, hm->body.len);
+		cout << "*******************************\n"
+			<< jsonStr << "\n"
+			<< "*******************************\n" << endl;
+		rapidjson::Document document;
+		document.Parse((char*)jsonStr.c_str());
+		if (document.HasParseError())
+		{
+			mg_printf(nc, g_msg200jsonerror);
+			nc->flags |= MG_F_SEND_AND_CLOSE;
+			return;
+		}
+
+		/*std::string cmd = json_check_string(document, "cmd");
+		rapidjson::StringBuffer response;
+		if (strcmp("addUser", cmd.c_str()) == 0)
+			WebAddUserAction(nc, document, response);
+		else if (strcmp("delUser", cmd.c_str()) == 0)
+			WebDelUserAction(nc, document, response);
+		else if (strcmp("changeUser", cmd.c_str()) == 0)
+			WebChangeUserAction(nc, document, response);
+		else
+		{
+			rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+			writer.StartObject();
+			writer.Key("code"); writer.Int(-2);
+			writer.Key("msg"); writer.String("");
+			writer.EndObject();
+		}
+		mg_printf(nc, g_msg200Ok_msg, response.GetSize(), response.GetString());*/
+		nc->flags |= MG_F_SEND_AND_CLOSE;
+	}
+	return;
+}
 // Print HTTP response and signal that we're done
 //static void fn(struct mg_connection* c, int ev, void* ev_data, void* fn_data)
 //{

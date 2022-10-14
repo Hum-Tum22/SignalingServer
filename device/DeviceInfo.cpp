@@ -278,9 +278,11 @@ list<std::shared_ptr<IDeviceChannel>> SipServerDeviceInfo::getChannelList()
 {
 	return  mChannelList;
 }
-void SipServerDeviceInfo::setChannelList(list<GBDeviceChannel*> channelList)
+void SipServerDeviceInfo::setChannelList(list<std::shared_ptr<IDeviceChannel>> channelList)
 {
-	//mChannelList = channelList;
+	mChannelList = channelList;
+	/*mTotal = channelList.size();
+	mCurCount = 0;*/
 }
 void SipServerDeviceInfo::updateChannelList(list<GBDeviceChannel*> channelList)
 {

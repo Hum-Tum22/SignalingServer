@@ -241,6 +241,8 @@ public:
 
     //@Select("SELECT * FROM device_channel WHERE deviceId=#{deviceId} AND status=1")
     list<GBDeviceChannel> queryOnlineChannelsByDeviceId(string deviceId);
+    //@Select("SELECT * FROM device_channel WHERE deviceId=#{deviceId}")
+    list<std::shared_ptr<IDeviceChannel>> queryChannelByDeviceId(string deviceId);
 
     /*@Delete(value = { " <script>" +
             "DELETE " +

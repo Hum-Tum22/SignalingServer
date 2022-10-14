@@ -168,7 +168,7 @@ public:
 	void setSsrcCheck(string isssrc);
 
 	list<std::shared_ptr<IDeviceChannel>> getChannelList();
-	void setChannelList(list<GBDeviceChannel*> channelList);
+	void setChannelList(list<std::shared_ptr<IDeviceChannel>> channelList);
 
 	void updateChannelList(list<GBDeviceChannel*> channelList);
 

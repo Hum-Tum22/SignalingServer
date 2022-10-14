@@ -67,7 +67,7 @@ bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, vec
 		ResponseElement->InsertEndChild(DeviceListElement);
 
 		//add item
-		for (int i = 0; i < Items.size(); i++)
+		for (unsigned int i = 0; i < Items.size(); i++)
 		{
 			AddDeviceItemToCatalog(doc, DeviceListElement, Items[i]);
 		}

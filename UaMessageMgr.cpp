@@ -84,7 +84,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_CATALOG)
         {
             IDeviceMngrSvr& devmng = GetIDeviceMngr();
-            if (XmlMsg.DeviceID == "34020000002000000001")
+            if (Data(XmlMsg.DeviceID) == mDum.getMasterUserProfile()->getDefaultFrom().uri().user())
             {
                 list<std::shared_ptr<Device>> devlist;
                 int sumnum = 0;
@@ -155,7 +155,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
                         vector<CatalogItem> items;
                         CatalogItem item;
                         item.DeviceID = devinfo->getDeviceId();
-                        item.ParentID = "34020000002000000001";
+                        item.ParentID = mDum.getMasterUserProfile()->getDefaultFrom().uri().user().c_str();
                         item.Name = devinfo->getDeviceId();
                         item.Manufacturer = devinfo->getManufacturer();
                         item.Model = devinfo->getModel();
