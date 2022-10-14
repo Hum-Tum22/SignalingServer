@@ -67,7 +67,7 @@ void IDeviceMngrSvr::online(Device *device)
                 devinfo->setCreateTime(nowtm.tmFormat());
 
                 mDeviceMap.insert(std::pair<string, std::shared_ptr<Device>>(devinfo->getDeviceId(), devinfo));
-                mGBDeviceMapper.add(device);
+                mGBDeviceMapper.add(deviceInfo);
             }
         }
         

@@ -1298,6 +1298,7 @@ int GBDeviceMapper::add(Device* device)
     {
         if (szErrMsg)
         {
+            cout << ds.str().c_str() << "error rc:" << rc << *szErrMsg << endl;
             sqlite3_free(szErrMsg);
         }
     }
