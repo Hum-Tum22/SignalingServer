@@ -286,8 +286,11 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mProfile->setDefaultRegistrationRetryTime(120);
 
     MyServerConfig& svrCfgi = GetSipServerConfig();
-    Uri contact(svrCfgi.getConfigData("ContactUri", "", true));
-    mContact = contact;
+    Data conTactUriData(svrCfgi.getConfigData("ContactUri", "", true));
+    if (!conTactUriData.empty())
+    {
+        mContact = Uri(conTactUriData);
+    }
     if (!mContact.host().empty())
     {
         mProfile->setOverrideHostAndPort(mContact);
