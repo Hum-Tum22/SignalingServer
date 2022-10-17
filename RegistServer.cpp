@@ -839,24 +839,21 @@ bool MyRegistrarHandler::onRefresh(resip::ServerRegistrationHandle sr, const res
             std::shared_ptr<Device> pDev = devmng.queryDevice(username.c_str());
             if (pDev)
             {
-                if (pDev->getDevAccessProtocal() == Device::DEV_ACCESS_GB28181)
+                std::shared_ptr<SipServerDeviceInfo> pGbDev = std::static_pointer_cast<SipServerDeviceInfo>(pDev);
+                if (pGbDev)
                 {
-                    std::shared_ptr<SipServerDeviceInfo> pGbDev = std::static_pointer_cast<SipServerDeviceInfo>(pDev);
-                    if (pGbDev)
-                    {
-                        Data ip = resip::Tuple::inet_ntop(reg.getSource());
-                        pGbDev->setIp(ip.c_str());
-                        int port = reg.getSource().getPort();
-                        pGbDev->setPort(port);
-                        std::string hostAddr = std::str_format("%s:%d", ip.c_str(), port);
-                        pGbDev->setHostAddress(hostAddr);
-                        CDateTime nowtm;
-                        pGbDev->setUpdateTime(nowtm.tmFormat());
+                    Data ip = resip::Tuple::inet_ntop(reg.getSource());
+                    pGbDev->setIp(ip.c_str());
+                    int port = reg.getSource().getPort();
+                    pGbDev->setPort(port);
+                    std::string hostAddr = std::str_format("%s:%d", ip.c_str(), port);
+                    pGbDev->setHostAddress(hostAddr);
+                    CDateTime nowtm;
+                    pGbDev->setUpdateTime(nowtm.tmFormat());
 
-                        if (reg.exists(h_Expires))
-                            pGbDev->setExpires(reg.header(h_Expires).value());
-                        devmng.updateDevice(pGbDev.get());
-                    }
+                    if (reg.exists(h_Expires))
+                        pGbDev->setExpires(reg.header(h_Expires).value());
+                    devmng.updateDevice(pGbDev.get());
                 }
             }
         }
@@ -1067,25 +1064,46 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
                 }
             }
         }
-        SipServerDeviceInfo devinfo;
-        devinfo.setDeviceId(deviceid.c_str());
-        Data ip = resip::Tuple::inet_ntop(reg.getSource());
-        devinfo.setIp(ip.c_str());
-        int port = reg.getSource().getPort();
-        devinfo.setPort(port);
-        Data hostAddr(ip);
-        hostAddr += ":";
-        hostAddr += Data(port);
-        devinfo.setHostAddress(hostAddr.c_str());
-        if (reg.exists(h_Expires))
-            devinfo.setExpires(reg.header(h_Expires).value());
-        if (reg.exists(h_Vias))
+        std::shared_ptr<Device> pDev = devmng.queryDevice(deviceid.c_str());
+        if (pDev)
         {
-            devinfo.setTransport(reg.header(h_Vias).begin()->transport().c_str());
+            std::shared_ptr<SipServerDeviceInfo> pGbDev = std::static_pointer_cast<SipServerDeviceInfo>(pDev);
+            if (pGbDev)
+            {
+                Data ip = resip::Tuple::inet_ntop(reg.getSource());
+                pGbDev->setIp(ip.c_str());
+                int port = reg.getSource().getPort();
+                pGbDev->setPort(port);
+                std::string hostAddr = std::str_format("%s:%d", ip.c_str(), port);
+                pGbDev->setHostAddress(hostAddr);
+                CDateTime nowtm;
+                pGbDev->setUpdateTime(nowtm.tmFormat());
+
+                if (reg.exists(h_Expires))
+                    pGbDev->setExpires(reg.header(h_Expires).value());
+                devmng.updateDevice(pGbDev.get());
+            }
         }
-        devinfo.setOnline(1);
-        devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
-        devmng.online(&devinfo);
+        else
+        {
+            SipServerDeviceInfo devinfo;
+            devinfo.setDeviceId(deviceid.c_str());
+            Data ip = resip::Tuple::inet_ntop(reg.getSource());
+            devinfo.setIp(ip.c_str());
+            int port = reg.getSource().getPort();
+            devinfo.setPort(port);
+            std::string hostAddr = std::str_format("%s:%d", ip.c_str(), port);
+            devinfo.setHostAddress(hostAddr);
+            if (reg.exists(h_Expires))
+                devinfo.setExpires(reg.header(h_Expires).value());
+            if (reg.exists(h_Vias))
+            {
+                devinfo.setTransport(reg.header(h_Vias).begin()->transport().c_str());
+            }
+            devinfo.setOnline(1);
+            devinfo.setDevAccessProtocal(Device::DEV_ACCESS_GB28181);
+            devmng.online(&devinfo);
+        }
     }
 
     AsyncDrainSiloMessage* async = new AsyncDrainSiloMessage(*this, Data::Empty, 0);  // tid and tu not needed since no response expected
