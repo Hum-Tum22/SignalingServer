@@ -32,6 +32,8 @@
 #include "SipExtensionInfo.h"
 #include "SipServerConfig.h"
 #include "device/DeviceManager.h"
+#include "tools/m_Time.h"
+#include "tools/ownString.h"
 
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
@@ -805,6 +807,60 @@ bool MyRegistrarHandler::onRefresh(resip::ServerRegistrationHandle sr, const res
     resip::Tuple fromtu = reg.getSource();
     //resip::Tuple localtu = CTools::GetInLocalIP(fromtu);
     //Data localip = resip::Tuple::inet_ntop(localtu);
+    Data username;
+    if (reg.exists(h_Authorizations))
+    {
+        auto authList = reg.header(h_Authorizations);
+        for (auto& iter : authList)
+        {
+            if (iter.exists(p_username))
+            {
+                username = iter.param(p_username);
+            }
+        }
+    }
+    if (reg.exists(h_ProxyAuthorizations))
+    {
+        auto authList = reg.header(h_ProxyAuthorizations);
+        for (auto& iter : authList)
+        {
+            if (iter.exists(p_username))
+            {
+                username = iter.param(p_username);
+            }
+        }
+    }
+    if (!username.empty())
+    {
+        IDeviceMngrSvr& devmng = GetIDeviceMngr();
+        SqliteDb* pdb = dynamic_cast<SqliteDb*>(mAbstractDb);
+        if (pdb)
+        {
+            std::shared_ptr<Device> pDev = devmng.queryDevice(username.c_str());
+            if (pDev)
+            {
+                if (pDev->getDevAccessProtocal() == Device::DEV_ACCESS_GB28181)
+                {
+                    std::shared_ptr<SipServerDeviceInfo> pGbDev = std::static_pointer_cast<SipServerDeviceInfo>(pDev);
+                    if (pGbDev)
+                    {
+                        Data ip = resip::Tuple::inet_ntop(reg.getSource());
+                        pGbDev->setIp(ip.c_str());
+                        int port = reg.getSource().getPort();
+                        pGbDev->setPort(port);
+                        std::string hostAddr = std::str_format("%s:%d", ip.c_str(), port);
+                        pGbDev->setHostAddress(hostAddr);
+                        CDateTime nowtm;
+                        pGbDev->setUpdateTime(nowtm.tmFormat());
+
+                        if (reg.exists(h_Expires))
+                            pGbDev->setExpires(reg.header(h_Expires).value());
+                        devmng.updateDevice(pGbDev.get());
+                    }
+                }
+            }
+        }
+    }
     return true;
     //SipMessage Reg200ok;
     //bool AuthorResult = true;
@@ -975,7 +1031,8 @@ bool MyRegistrarHandler::onRemoveAll(resip::ServerRegistrationHandle sr, const r
 }
 bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::SipMessage& reg)
 {
-
+    std::shared_ptr<ContactList> oContactList = sr->getOriginalContacts();
+    const ContactList& reqContactList = sr->getRequestContacts();
     resip::Uri mAor = GetSrcUri(reg);
     resip::Tuple fromtu = reg.getSource();
     resip::Tuple dstTu = ((resip::SipMessage)reg).getDestination();
@@ -1037,14 +1094,35 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
     std::unique_ptr<ApplicationMessage> async_ptr(async);
     mAsyncDispatcher->post(async_ptr);
 
-    return true;
-    return true;
     SipMessage success;
+    Helper::makeResponse(success, reg, 200);
+    if (Helper::isClientBehindNAT(reg))
+    {
+        Tuple ClientPublicAddress = Helper::getClientPublicAddress(reg);
+        if (success.exists(h_Contacts))
+        {
+            success.header(h_Contacts).front().uri().host() = resip::Tuple::inet_ntop(ClientPublicAddress);
+            success.header(h_Contacts).front().uri().port() = ClientPublicAddress.getPort();
+        }
+        else
+        {
+            success.header(h_Contacts).push_back(reg.header(h_Contacts).front());
+            success.header(h_Contacts).front().uri().host() = resip::Tuple::inet_ntop(ClientPublicAddress);
+            success.header(h_Contacts).front().uri().port() = ClientPublicAddress.getPort();
+        }
+    }
+    DateCategory now(resip::TmType::GB28181Date);
+    success.header(h_Date) = now;
+    sr->accept(success);
+    return false;
+    return true;
+    /*SipMessage success;
     Helper::makeResponse(success, reg, 200);
 
     DateCategory now(resip::TmType::GB28181Date);
     success.header(h_Date) = now;
-    sr->accept(success);
+    sr->accept(success);*/
+    
     /*Data id;
     if (success.exists(h_Contacts))
     {

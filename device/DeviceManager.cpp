@@ -164,12 +164,8 @@ void IDeviceMngrSvr::updateDevice(Device* device)
     SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
     OnvifDeviceInfo* pOnvifDev = dynamic_cast<OnvifDeviceInfo*>(device);
     if (pGBDev)
-    {
-        auto iter = mDeviceMap.find(pGBDev->getDeviceId());
-        if (iter != mDeviceMap.end())
-        {
-
-        }
+    {   
+        mGBDeviceMapper.update(pGBDev);
     }
 
 }
