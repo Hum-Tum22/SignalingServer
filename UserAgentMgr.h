@@ -171,7 +171,7 @@ public:
     typedef enum 
     {
         _UERAGERNT_NOT_STREAM,
-        _UERAGERNT_STREAM_GETING,
+        _UERAGERNT_STREAM_PENDING,
         _UERAGERNT_STREAM_OK,
     }streamStatus;
     bool run();

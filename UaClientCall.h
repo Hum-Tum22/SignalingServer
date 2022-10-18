@@ -12,6 +12,7 @@
 #include "UserAgentMgr.h"
 #include "tools/CTask.h"
 #include "http.h"
+#include "tools/ownString.h"
 
 namespace resip
 {
@@ -19,12 +20,12 @@ namespace resip
 class UaClientCall : public AppDialogSet 
 {
 public:
-    Data ssrc;
+    /*Data ssrc;
     ServerInviteSessionHandle mh;
     Data connectip;
     Data connectport;
     Data app;
-	SdpContents AlegResSdp;
+	SdpContents AlegResSdp;*/
 	//int tcpOrUdp;
 private:
 public:
@@ -134,7 +135,10 @@ public:
 		int devPort;
 		std::string streamId;
 		int rtpPort;
-		SdpContents m_sendsdp;//记录自己发送的 主要获取发送时候的media 信息对应的端口
+		SdpContents m_sendsdp;//记录自己发送的 主要获取发送时候的media 信息对应的端口****************************/
+
+		std::mutex m_EvMutex;
+		std::condition_variable m_EvtUac;
 		UacInviteVideoInfo(/*unsigned long tresid*/) :state(_RES_START), devPort(0)//, m_resid(tresid)
 		{
 			time(&startime);
@@ -161,6 +165,11 @@ public:
 		std::string devId;
 		std::string serverID;
 		std::string DataTransMoudle;
+		std::string app;
+		Data ssrc;
+		Data connectip;
+		Data connectport;
+		SdpContents AlegResSdp;
 		UasInviteRtimeVideoInfo() :RtpServrHandle(0), HaveProvide(0), localtport(0)
 		{
 			time(&hearttime);
@@ -180,15 +189,19 @@ class RequestStreamTask: public ownTask::CTask
 	UaMgr& mUserAgent;
 	int rtpPort;
 	int rtpType;
+	UaClientCall *pmAlegCall;
 public:
-	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort)
-		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(0){}
+	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort, UaClientCall* pAlegcall = NULL)
+		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(0)
+	, pmAlegCall(pAlegcall){}
 	bool TaskRun();
 	bool TaskClose() { return false; };
 };
 class PushRtpStream :public ownTask::CTask
 {
 	std::string devId;
+	std::string devIp;
+	int devPort;
 	std::string channelId;
 	std::string strSsrc;
 	std::string stream_Id;
@@ -197,12 +210,10 @@ class PushRtpStream :public ownTask::CTask
 	int localPort;
 	//UaClientCall* mAlegCall;
 public:
-	PushRtpStream(std::string dId, std::string channelId, std::string ssrc, int cport, int lPort)
+	PushRtpStream(std::string dId, std::string dIp, int dPort, std::string channelId, std::string ssrc, int cport, int lPort)
 		:devId(dId), channelId(channelId), strSsrc(ssrc), connectPort(cport), localPort(lPort)
 	{
-		stream_Id = devId;
-		stream_Id += "_";
-		stream_Id += channelId;
+		stream_Id = std::str_format("%s_%s", devId.c_str(),channelId.c_str());
 	}
 	bool TaskRun();
 	bool TaskClose() { return false; };

@@ -621,7 +621,7 @@ UaMgr::streamStatus UaMgr::getStreamStatus(std::string channelId)
         case UaClientCall::UacInviteVideoInfo::_RES_START:
         case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
         case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
-            return _UERAGERNT_STREAM_GETING;
+            return _UERAGERNT_STREAM_PENDING;
         default:
             return _UERAGERNT_NOT_STREAM;
         }

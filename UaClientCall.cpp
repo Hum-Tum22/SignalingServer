@@ -127,8 +127,8 @@ UaClientCall::timerExpired()
       // First few times, send a message to the other party
       if(mInviteSessionHandle.isValid())
       {
-          PlainContents plain("session keepalive");
-          mInviteSessionHandle->message(plain);
+          PlainContents contents("Keepalive", Mime("Application", "MANSCDP+xml"));
+          mInviteSessionHandle->message(contents);
       }
    }
    else 
@@ -249,10 +249,9 @@ bool UaClientCall::makeBLeg(std::string channelId)
     }
     if (!devuinfo.getDeviceId().empty())
     {
-        mMyUasInviteVideoInfo.devId = devuinfo.getDeviceId();
         //判断流存在
         ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-        tPool.submitTask(std::make_shared<RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channelId, mUserAgent, mUserAgent.GetAvailableRtpPort()));
+        tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channelId, mUserAgent, mUserAgent.GetAvailableRtpPort(), this));
         return true;
     }
     return false;
@@ -273,6 +272,7 @@ UaClientCall::onNewSession(ClientInviteSessionHandle h, InviteSession::OfferAnsw
    }
    mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_GET1XX;
    mMyUacInviteVideoInfo.mInviteSessionHandle = h->getSessionHandle();
+   mMyUacInviteVideoInfo.m_EvtUac.notify_one();
    cout << "***************  ******************* 1 " << msg << endl;
 }
 
@@ -339,6 +339,7 @@ UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
             {
                // Try another flow? 
                 mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_FAILED;
+                mMyUacInviteVideoInfo.m_EvtUac.notify_one();
             }
          default:
             break;
@@ -386,6 +387,7 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
         unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
         mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
         mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_CONNECT;
+        mMyUacInviteVideoInfo.m_EvtUac.notify_one();
     }
     else
     {
@@ -414,8 +416,34 @@ void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage&
     {
         if (msg.method() == ACK)
         {
-            ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-            tPool.submitTask(std::make_shared<PushRtpStream>(mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), connectport.convertInt(), mUserAgent.GetAvailableRtpPort()));
+            /*mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), 
+                connectport.convertInt(), mUserAgent.GetAvailableRtpPort()*/
+            sipserver::SipServer* pSvr = GetServer();
+            ostringstream ss;
+            ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
+                << "rtp" << "&stream=" << mMyUasInviteVideoInfo.devId << "_" << mMyUasInviteVideoInfo.channelID
+                << "&ssrc=" << mMyUasInviteVideoInfo.ssrc << "&dst_url=" << mMyUasInviteVideoInfo.connectip << "&dst_port=" << mMyUasInviteVideoInfo.connectport
+                << "&is_udp=1&src_port=" << mUserAgent.GetAvailableRtpPort();
+            ss.flush();
+
+            string strReponse = GetRequest(ss.str());
+            rapidjson::Document document;
+            document.Parse((char*)strReponse.c_str());
+            if (document.HasParseError())
+            {
+                //return false;
+            }
+            if (document.HasMember("local_port") && json_check_uint32(document, "local_port") > 0)
+            {
+                cout << "startSendRtp ok local_port:" << json_check_uint32(document, "local_port") << endl;
+            }
+            else
+            {
+                if (document.HasMember("msg"))
+                {
+                    cout << "startSendRtp failed streamdid:" << mMyUasInviteVideoInfo.channelID << " msg:" << json_check_string(document, "msg") << endl;
+                }
+            }
         }
     }
     
@@ -559,10 +587,12 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
        if (codeno == 0)
        {
            mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_GETSDP;
+           mMyUacInviteVideoInfo.m_EvtUac.notify_one();
            return;
        }
    }
    mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_FAILED;
+   mMyUacInviteVideoInfo.m_EvtUac.notify_one();
 }
 
 void
@@ -591,23 +621,23 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
 
        if (sdp.session().OtherAttrHelper().exists("y"))
        {
-           ssrc = *sdp.session().OtherAttrHelper().getValues("y").begin();
+           mMyUasInviteVideoInfo.ssrc = *sdp.session().OtherAttrHelper().getValues("y").begin();
        }
        const Data &sessionname = sdp.session().name();
        if (sessionname == "Play")
        {
-           app = "rtp";
+           mMyUasInviteVideoInfo.app = "rtp";
        }
        else if (sessionname == "Playback")
        {
-           app = "rtp";
+           mMyUasInviteVideoInfo.app = "rtp";
        }
-       connectip = sdp.session().origin().getAddress();
-       connectport = Data((uint32_t)(*sdp.session().media().begin()).port());
+       mMyUasInviteVideoInfo.connectip = sdp.session().origin().getAddress();
+       mMyUasInviteVideoInfo.connectport = Data((uint32_t)(*sdp.session().media().begin()).port());
        const SdpContents::Session::MediumContainer& rmedialist = sdp.session().media();
        for (auto& iter : rmedialist)
        {
-            connectport = Data(iter.port());
+           mMyUasInviteVideoInfo.connectport = Data(iter.port());
             //tcpOrUdp = (iter.name() == "RTP/AVP" ? 0 : 1);
             break;
        }
@@ -617,8 +647,8 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
            subjectArray = std::SipSubjectSplit(msg.header(h_Subject).value().c_str());
        }
 
-       AlegResSdp = sdp;
-       SdpContents::Session::MediumContainer &medialist = AlegResSdp.session().media();
+       mMyUasInviteVideoInfo.AlegResSdp = sdp;
+       SdpContents::Session::MediumContainer &medialist = mMyUasInviteVideoInfo.AlegResSdp.session().media();
        for (auto &iter : medialist)
        {
            if (iter.exists("recvonly"))
@@ -629,9 +659,9 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
            iter.setPort(7000);
            break;
        }
-       Data strsdp = AlegResSdp.getBodyData();
-       AlegResSdp.session().connection().setAddress("192.168.1.38");
-       AlegResSdp.session().origin().setAddress("192.168.1.38");
+       Data strsdp = mMyUasInviteVideoInfo.AlegResSdp.getBodyData();
+       mMyUasInviteVideoInfo.AlegResSdp.session().connection().setAddress("192.168.1.38");
+       mMyUasInviteVideoInfo.AlegResSdp.session().origin().setAddress("192.168.1.38");
 
        if (subjectArray.size() == 4)
        {
@@ -641,7 +671,7 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
            if (mUserAgent.getStreamStatus(subjectArray[0]) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
            {
                //直接回复
-               h->provideAnswer(AlegResSdp);
+               h->provideAnswer(mMyUasInviteVideoInfo.AlegResSdp);
                ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
                if (uas && !uas->isAccepted())
                {
@@ -905,6 +935,7 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
             msg.header(h_RequestLine).uri().port() = mMyUacInviteVideoInfo.devPort;
             msg.header(h_Contacts).front().uri() = msg.header(h_RequestLine).uri();
         }
+        mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
     }
     else
     {
@@ -1098,13 +1129,14 @@ bool RequestStreamTask::TaskRun()
     {
         if (mUserAgent.RequestLiveStream(devId, devIp, devPort, streamId, rtpPort, rtpType))
         {
-            for (int i = 0; i < 10 * 5; i++)
+            UaClientCall* pBlegCall = mUserAgent.reTurnCallByStreamId(streamId);
+            if (pBlegCall)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                UaClientCall* pClient = mUserAgent.reTurnCallByStreamId(streamId);
-                if (pClient)
+                std::mutex mtx;
+                std::unique_lock<std::mutex> lck(mtx);
+                while (pBlegCall->mMyUacInviteVideoInfo.m_EvtUac.wait_for(lck, std::chrono::seconds(5)) != std::cv_status::timeout)
                 {
-                    switch (pClient->mMyUacInviteVideoInfo.state)
+                    switch (pBlegCall->mMyUacInviteVideoInfo.state)
                     {
                     case UaClientCall::UacInviteVideoInfo::_RES_START:
                         break;
@@ -1114,27 +1146,34 @@ bool RequestStreamTask::TaskRun()
                         break;
                     case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
                     {
-                        //if (mAlegCall && mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
-                        //{
-                        //    mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(mAlegCall->AlegResSdp);
-                        //    ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
-                        //    if (uas && !uas->isAccepted())
-                        //    {
-                        //        uas->accept();
-                        //        mAlegCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
-                        //        //return true;
-                        //    }
-                        //}
+                        if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                        {
+                            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
+                            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+                            if (uas && !uas->isAccepted())
+                            {
+                                uas->accept();
+                            }
+                        }
                         return true;
                     }
                     case UaClientCall::UacInviteVideoInfo::_RES_ACK:
                     {
-                        //ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-                        //tPool.submitTask(std::make_shared<PushRtpStream>(mAlegCall->mMyUasInviteVideoInfo.devId, mAlegCall->mMyUasInviteVideoInfo.channelID, mAlegCall->ssrc.c_str(), mAlegCall->connectport.convertInt()));
                         return true;
                     }
                     case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
                     {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "b leg create failed";
+                                pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+                            }
+                        }
                         mUserAgent.CloseStreamStreamId(streamId);
                         return true;
                     }
@@ -1146,25 +1185,147 @@ bool RequestStreamTask::TaskRun()
             }
         }
     }
+    else if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+    {
+        if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+        {
+            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
+            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+            if (uas && !uas->isAccepted())
+            {
+                uas->accept();
+            }
+        }
+    }
     else
     {
-        /*if (mAlegCall)
+        UaClientCall* pBlegCall = mUserAgent.reTurnCallByStreamId(streamId);
+        if (pBlegCall)
         {
-            if (mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+            std::mutex mtx;
+            std::unique_lock<std::mutex> lck(mtx);
+            while (pBlegCall->mMyUacInviteVideoInfo.m_EvtUac.wait_for(lck, std::chrono::seconds(5)) != std::cv_status::timeout)
             {
-                WarningCategory warning;
-                warning.hostname() = DnsUtil::getLocalIpAddress();;
-                warning.code() = 488;
-                warning.text() = "b leg create failed";
-                mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+                switch (pBlegCall->mMyUacInviteVideoInfo.state)
+                {
+                case UaClientCall::UacInviteVideoInfo::_RES_START:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
+                    break;
+                case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
+                {
+                    if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                    {
+                        pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
+                        ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+                        if (uas && !uas->isAccepted())
+                        {
+                            uas->accept();
+                        }
+                    }
+                    return true;
+                }
+                case UaClientCall::UacInviteVideoInfo::_RES_ACK:
+                {
+                    return true;
+                }
+                case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
+                {
+                    if (pmAlegCall)
+                    {
+                        if (pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                        {
+                            WarningCategory warning;
+                            warning.hostname() = DnsUtil::getLocalIpAddress();;
+                            warning.code() = 488;
+                            warning.text() = "b leg create failed";
+                            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+                        }
+                    }
+                    mUserAgent.CloseStreamStreamId(streamId);
+                    return true;
+                }
+                break;
+                default:
+                    break;
+                }
             }
-        }*/
-        
+        }
     }
     return true;
 };
 bool PushRtpStream::TaskRun()
 {
+    //if (mUserAgent.getStreamStatus(channelId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
+    //{
+    //    if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, rtpPort, rtpType))
+    //    {
+    //        for (int i = 0; i < 10 * 5; i++)
+    //        {
+    //            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //            UaClientCall* pClient = mUserAgent.reTurnCallByStreamId(channelId);
+    //            if (pClient)
+    //            {
+    //                switch (pClient->mMyUacInviteVideoInfo.state)
+    //                {
+    //                case UaClientCall::UacInviteVideoInfo::_RES_START:
+    //                    break;
+    //                case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
+    //                    break;
+    //                case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
+    //                    break;
+    //                case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
+    //                {
+    //                    //if (mAlegCall && mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+    //                    //{
+    //                    //    mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(mAlegCall->AlegResSdp);
+    //                    //    ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+    //                    //    if (uas && !uas->isAccepted())
+    //                    //    {
+    //                    //        uas->accept();
+    //                    //        mAlegCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
+    //                    //        //return true;
+    //                    //    }
+    //                    //}
+    //                    return true;
+    //                }
+    //                case UaClientCall::UacInviteVideoInfo::_RES_ACK:
+    //                {
+    //                    //ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+    //                    //tPool.submitTask(std::make_shared<PushRtpStream>(mAlegCall->mMyUasInviteVideoInfo.devId, mAlegCall->mMyUasInviteVideoInfo.channelID, mAlegCall->ssrc.c_str(), mAlegCall->connectport.convertInt()));
+    //                    return true;
+    //                }
+    //                case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
+    //                {
+    //                    mUserAgent.CloseStreamStreamId(channelId);
+    //                    return true;
+    //                }
+    //                break;
+    //                default:
+    //                    break;
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+    //else
+    //{
+    //    /*if (mAlegCall)
+    //    {
+    //        if (mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+    //        {
+    //            WarningCategory warning;
+    //            warning.hostname() = DnsUtil::getLocalIpAddress();;
+    //            warning.code() = 488;
+    //            warning.text() = "b leg create failed";
+    //            mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+    //        }
+    //    }*/
+
+    //}
+    //return true;
     bool isStream = false;
     std::string app;
     std::string streamId;
