@@ -20,15 +20,6 @@ namespace resip
 class UaClientCall : public AppDialogSet 
 {
 public:
-    /*Data ssrc;
-    ServerInviteSessionHandle mh;
-    Data connectip;
-    Data connectport;
-    Data app;
-	SdpContents AlegResSdp;*/
-	//int tcpOrUdp;
-private:
-public:
     UaClientCall(UaMgr& userAgent);
    virtual ~UaClientCall();
    
@@ -97,6 +88,7 @@ private:
    unsigned int mTimerExpiredCounter;
    bool mPlacedCall;
    resip::InviteSessionHandle mInviteSessionHandleReplaced;
+   int mSessionState;
 
    // UAC forked call handling helper members
    bool isUACConnected();
@@ -104,79 +96,65 @@ private:
    resip::DialogId mUACConnectedDialogId;
 
    void makeOffer(SdpContents& offer);
-   void makeRequestOffer(SdpContents& offer, std::string myId);
+   void makeMyOffer(SdpContents& offer, std::string myId);
+   void closeMediaStream();
 public:
-	bool makeBLeg(std::string channelId);
+	bool makeBLeg();
+	//收到一个invite off请求处理
+	void ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer);
+	resip::InviteSessionHandle& getInviteSessionHandle();
 public:
-	class UacInviteVideoInfo
-	{
-	public:
-		typedef enum _requeststate
-		{
-			_RES_START,
-			_RES_GET1XX,
-			_RES_GETSDP,
-			_RES_CONNECT,
-			_RES_ACK,
-			_RES_OK,
-			_RES_FAILED
-		};
-		SdpContents m_DstSdp;//目标返回的 sdp
-		//unsigned long m_resid;
-		int rtpType;	// 0:udp,1:tcp active, 2:tcp pass
-		std::string sdpIp;
-		std::string ssrc;
-		std::string sessionName;
-		InviteSessionHandle mInviteSessionHandle;
-		int state;
-		time_t startime;
-		std::string devId;
-		std::string devIp;
-		int devPort;
-		std::string streamId;
-		int rtpPort;
-		SdpContents m_sendsdp;//记录自己发送的 主要获取发送时候的media 信息对应的端口****************************/
+	std::condition_variable m_CallEvt;
+	//sdp info
+	SdpContents mResponseSdp;
+	SdpContents mRequestSdp;
+	Data sessionName;
+	Data remoteIp;
+	int remotePort;
+	unsigned long startTime;
+	unsigned long stopTime;
+	int rtpType;			//0:udp,1:tcp active,2:tcp pass
+	Data ssrc;
 
-		std::mutex m_EvMutex;
-		std::condition_variable m_EvtUac;
-		UacInviteVideoInfo(/*unsigned long tresid*/) :state(_RES_START), devPort(0)//, m_resid(tresid)
-		{
-			time(&startime);
-		}
-		~UacInviteVideoInfo()
-		{
-			//if (m_RtpClint)
-			{
-				//delete m_RtpClint;
-			}
-		}
-	};
-	class UasInviteRtimeVideoInfo
+	//dev info
+	std::string devId;
+	std::string devIp;
+	int devPort;
+	std::string myId;
+	std::string remoteId;
+	//stream info
+	std::string streamId;
+	std::string channelId;
+	Data app;
+	//local info
+	int myRtpPort;
+	std::string mySdpIp;
+
+	typedef enum _CallState
 	{
-	public:
-		ServerInviteSessionHandle mInviteSessionHandle;
-		unsigned long RtpServrHandle;
-		int HaveProvide;//0,1:get sdp,2,no get sdp should  offer sdp
-		SdpContents ClentSdp;//
-		SdpContents SerSdp;
-		time_t hearttime;
-		int localtport;
-		std::string channelID;
-		std::string devId;
-		std::string serverID;
-		std::string DataTransMoudle;
-		std::string app;
-		Data ssrc;
-		Data connectip;
-		Data connectport;
-		SdpContents AlegResSdp;
-		UasInviteRtimeVideoInfo() :RtpServrHandle(0), HaveProvide(0), localtport(0)
-		{
-			time(&hearttime);
-		}
-	};
-	UacInviteVideoInfo mMyUacInviteVideoInfo;
-	UasInviteRtimeVideoInfo mMyUasInviteVideoInfo;
+		CALL_UAC_RES_START,
+		CALL_UAC_NEW_GET1XX,			
+		CALL_UAC_GET1XX_PROV,			//onProvisional
+		CALL_UAC_ANSWER_200OK,
+		CALL_UAC_CONNECTED,
+		CALL_UAC_FAILURE,
+		CALL_UAC_TERMINATED,
+
+		CALL_UAS_NEW,
+		CALL_UAS_RECEIVE_OFFER,
+		CALL_UAS_CONNECTED,
+		CALL_UAS_CONNECTED_CONFIRMED,
+		CALL_UAS_REJECT,
+		CALL_UAS_TERMINATED,
+
+		CALL_MY_MEDIA_OK,
+		CALL_MEDIA_WAIT,
+		CALL_MEDIA_READY,
+		CALL_MEDIA_ERROR,
+		CALL_MEDIA_TIMEOUT,
+		CALL_MEDIA_STREAM_CLOSED,
+		CALL_NOT_FOUND,
+	}CALL_STATE;
 
 	std::condition_variable m_CallTask;
 };
@@ -185,15 +163,19 @@ class RequestStreamTask: public ownTask::CTask
 	std::string devId;
 	std::string devIp;
 	int devPort;
+	std::string channelId;
 	std::string streamId;
 	UaMgr& mUserAgent;
 	int rtpPort;
 	int rtpType;
 	UaClientCall *pmAlegCall;
+
+	std::string sessionName;
+	unsigned long startTime;
+	unsigned long stopTime;
 public:
-	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort, UaClientCall* pAlegcall = NULL)
-		:devId(dId),devIp(dIp), devPort(dPort), streamId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(0)
-	, pmAlegCall(pAlegcall){}
+	RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort, int rtptype, UaClientCall* pAlegcall = NULL,
+		std::string sesName = "Play", unsigned long stime = 0, unsigned long etime = 0);
 	bool TaskRun();
 	bool TaskClose() { return false; };
 };

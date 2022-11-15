@@ -173,6 +173,7 @@ public:
         _UERAGERNT_NOT_STREAM,
         _UERAGERNT_STREAM_PENDING,
         _UERAGERNT_STREAM_OK,
+        _UERAGERNT_CALL_OK,
     }streamStatus;
     bool run();
     void DoRegist(const Uri& target, const Uri& fromUri, const Data& passwd);
@@ -185,10 +186,19 @@ public:
     void DoCancelRegist(const Data& targetuser);
     void CheckRegistState();
     CUserMessageMrg *GetMsgMgr() { return mMessageMgr; }
-    bool RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, int sdpPort, int rtpType);
+    bool RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, std::string streamId, int sdpPort, int rtpType);
+    bool RequestVodStream(std::string devId, std::string devIp, int devPort, std::string channelId, std::string streamId, int sdpPort,
+        int rtpType, unsigned long stime, unsigned long etime);
     streamStatus getStreamStatus(std::string channelId);
-    UaClientCall* reTurnCallByStreamId(std::string streamId);
+    void setCallStatus(std::string streamId, int status);
+    int getCallStatus(std::string streamId);
+    //UaClientCall* reTurnCallByStreamId(std::string streamId);
     bool CloseStreamStreamId(std::string channelId);
+
+    /*streamStatus getPlaybackStatus(std::string streamId);
+    UaClientCall* reTurnCallByPlaybackStreamId(std::string streamId);
+    bool CloseStreamByPlaybackStreamId(std::string streamId);*/
+
     unsigned int GetAvailableRtpPort();
     void FreeRptPort(unsigned int uiRtpPort);
     std::string CreateSSRC(std::string name, std::string streamId);
@@ -208,7 +218,7 @@ public:
     std::mutex mapSubMtx;
     std::map<Data, ServerSubscriptionInfos> m_SvSubmap;
     std::mutex mapStreamMtx;
-    std::map<std::string, UaClientCall*> m_StreamInfoMap;
+    std::map<std::string, int> m_StreamInfoMap;
 
     bool mHostFileLookupOnlyDnsMode;
     bool mOutboundEnabled;

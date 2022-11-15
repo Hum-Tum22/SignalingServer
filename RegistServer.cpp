@@ -486,7 +486,6 @@ void CRegistServer::populateRegistrations()
         try
         {
             Uri aor(it->second.mAor);
-
             ContactInstanceRecord rec;
             rec.mContact = NameAddr(it->second.mContact);
             rec.mSipPath = NameAddrs(it->second.mPath);

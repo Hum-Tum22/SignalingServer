@@ -27,6 +27,7 @@
 #include "device/DeviceManager.h"
 #include "tools/ownString.h"
 #include "tools/iThreadPool.h"
+#include "tools/m_Time.h"
 
 #include "myjsondef.h"
 #include "writer.h"
@@ -64,11 +65,11 @@ class CallTimer : public resip::DumCommand
 }
 
 UaClientCall::UaClientCall(UaMgr& userAgent)
-: AppDialogSet(userAgent.getDialogUsageManager()),
-  mUserAgent(userAgent),
-  mTimerExpiredCounter(0),
-  mPlacedCall(false),
-  mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty)
+    : AppDialogSet(userAgent.getDialogUsageManager()),
+    mUserAgent(userAgent),
+    mTimerExpiredCounter(0),
+    mPlacedCall(false),
+    mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty), mSessionState(-1)
 {
    mUserAgent.registerCall(this);
 }
@@ -76,23 +77,32 @@ UaClientCall::UaClientCall(UaMgr& userAgent)
 UaClientCall::~UaClientCall()
 {
     mUserAgent.unregisterCall(this);
-    if (mMyUasInviteVideoInfo.localtport > 0)
+    if (isUACConnected())
     {
-        mUserAgent.FreeRptPort(mMyUasInviteVideoInfo.localtport);
-        sipserver::SipServer* pSvr = GetServer();
-        ostringstream ss;
-        ss << "http://" << (pSvr?pSvr->zlmHost:"127.0.0.1") << ":" << (pSvr?pSvr->zlmHttpPort:8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
-            << mMyUasInviteVideoInfo.devId << "_" << mMyUasInviteVideoInfo.channelID;
-        string strReponse = GetRequest(ss.str());
-    }
-    if (mMyUacInviteVideoInfo.rtpPort > 0)
-    {
-        if (mInviteSessionHandle.isValid())
+        if (myRtpPort > 0)
         {
-            mInviteSessionHandle->end();
+            if (mInviteSessionHandle.isValid())
+            {
+                mInviteSessionHandle->end();
+            }
+            mUserAgent.FreeRptPort(myRtpPort);
+            mUserAgent.CloseStreamStreamId(streamId);
+            closeMediaStream();
+            myRtpPort = 0;
         }
-        mUserAgent.FreeRptPort(mMyUacInviteVideoInfo.rtpPort);
-        mUserAgent.CloseStreamStreamId(mMyUacInviteVideoInfo.streamId);
+    }
+    else
+    {
+        if (myRtpPort > 0)
+        {
+            mUserAgent.FreeRptPort(myRtpPort);
+            sipserver::SipServer* pSvr = GetServer();
+            ostringstream ss;
+            ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
+                << devId << "_" << streamId;
+            string strReponse = GetRequest(ss.str());
+            myRtpPort = 0;
+        }
     }
 }
 
@@ -101,10 +111,10 @@ UaClientCall::initiateCall(const Uri& target, shared_ptr<UserProfile> profile)
 {
     Data myId = profile->getDefaultFrom().uri().user();
     SdpContents offer;
-    makeRequestOffer(offer, myId.c_str());
+    makeMyOffer(offer, myId.c_str());
 
     shared_ptr<SipMessage> invite = mUserAgent.getDialogUsageManager().makeInviteSession(NameAddr(target), profile, &offer, this);
-    invite->header(h_Subject) = StringCategory(mMyUacInviteVideoInfo.streamId.c_str() + Data(":") + Data(mMyUacInviteVideoInfo.ssrc) + Data(",") + myId + Data(":") + Data("0"));
+    invite->header(h_Subject) = StringCategory(channelId.c_str() + Data(":") + Data(ssrc) + Data(",") + myId + Data(":") + Data("0"));
     invite->header(h_From).uri().user() = myId;
     invite->header(h_From).uri().host() = profile->getDefaultFrom().uri().host();
     invite->header(h_From).uri().port() = profile->getDefaultFrom().uri().port();
@@ -121,25 +131,44 @@ UaClientCall::terminateCall()
 void 
 UaClientCall::timerExpired()
 {
-   mTimerExpiredCounter++;
-   if(mTimerExpiredCounter < CallTimeCounterToByeOn)
-   {
-      // First few times, send a message to the other party
-      if(mInviteSessionHandle.isValid())
-      {
-          PlainContents contents("Keepalive", Mime("Application", "MANSCDP+xml"));
-          mInviteSessionHandle->message(contents);
-      }
-   }
-   else 
-   {
-      // Then hangup
-      terminateCall();
-   }
-
-   // start timer for next one
-   unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
-   mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
+    mTimerExpiredCounter++;
+    bool isTerminate = true;
+    if(mTimerExpiredCounter < CallTimeCounterToByeOn)
+    {
+        // First few times, send a message to the other party
+        if (mSessionState < 0 || mSessionState > 0)
+        {
+            if (mSessionState < 0)
+            {
+                mSessionState = 0;
+            }
+            if (mInviteSessionHandle.isValid())
+            {
+                PlainContents contents("Keepalive", Mime("Application", "MANSCDP+xml"));
+                mInviteSessionHandle->message(contents);
+            }
+        }
+        else
+        {
+            //设备不支持 session message 不再send
+            mTimerExpiredCounter = 0;
+        }
+    }
+    else 
+    {
+        // Then hangup
+        terminateCall();
+        isTerminate = false;
+    }
+    CALL_STATE state = (CALL_STATE)mUserAgent.getCallStatus(streamId);
+    if (state == CALL_NOT_FOUND || state == CALL_MEDIA_STREAM_CLOSED)
+    {
+        if(isTerminate)
+            terminateCall();
+    }
+    // start timer for next one
+    unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
+    mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
 }
 
 shared_ptr<UserProfile>
@@ -184,24 +213,24 @@ UaClientCall::makeOffer(SdpContents& offer)
     offer.session().origin().getSessionId() = currentTime;
     offer.session().origin().getVersion() = currentTime;  
 }
-void UaClientCall::makeRequestOffer(SdpContents& offer, std::string myId)
+void UaClientCall::makeMyOffer(SdpContents& offer, std::string myId)
 {
     offer.session().version() = 0;
-    offer.session().origin() = resip::SdpContents::Session::Origin(Data(myId), 0/* CreateSessionID(12345)*/, 0, SdpContents::IP4, Data(mMyUacInviteVideoInfo.sdpIp));
-    offer.session().connection() = resip::SdpContents::Session::Connection(SdpContents::IP4, Data(mMyUacInviteVideoInfo.sdpIp));
-    offer.session().name() = Data(mMyUacInviteVideoInfo.sessionName);
-    if (mMyUacInviteVideoInfo.sessionName == "Play")
+    offer.session().origin() = resip::SdpContents::Session::Origin(Data(myId), 0/* CreateSessionID(12345)*/, 0, SdpContents::IP4, Data(mySdpIp));
+    offer.session().connection() = resip::SdpContents::Session::Connection(SdpContents::IP4, Data(mySdpIp));
+    offer.session().name() = Data(sessionName);
+    if (sessionName == "Play")
     {
         offer.session().addTime(resip::SdpContents::Session::Time(0, 0));
     }
-    else if (mMyUacInviteVideoInfo.sessionName == "PlayBack")
+    else if (sessionName == "Playback")
     {
-        offer.session().addTime(resip::SdpContents::Session::Time(0, 0));
+        offer.session().addTime(resip::SdpContents::Session::Time(startTime, stopTime));
     }
-    offer.session().OtherAttrHelper().addAttribute("y", mMyUacInviteVideoInfo.ssrc.c_str());// = CreateSSRC(name, DesId);// y
+    offer.session().OtherAttrHelper().addAttribute("y", ssrc.c_str());// = CreateSSRC(name, DesId);// y
 
     Data dprotocol = "RTP/AVP";
-    if (mMyUacInviteVideoInfo.rtpType == 1 || mMyUacInviteVideoInfo.rtpType == 2)
+    if (rtpType == 1 || rtpType == 2)
     {
         dprotocol = "TCP/RTP/AVP";
     }
@@ -209,10 +238,21 @@ void UaClientCall::makeRequestOffer(SdpContents& offer, std::string myId)
     //for (;iter != DataTypeList.end();iter++)
     {
         //Data MediaName = GetMediaNameByType((GB28181_DATATYPE)iter->datatype);
-        resip::SdpContents::Session::Medium videoMedium("video", mMyUacInviteVideoInfo.rtpPort, 0, dprotocol);
+        resip::SdpContents::Session::Medium videoMedium("video", myRtpPort, 0, dprotocol);
         //for (; iter != DataTypeList.end(); iter++)
         {
             videoMedium.addCodec(resip::SdpContents::Session::Codec("PS", 96, 90000));
+        }
+
+        if (rtpType == 1)
+        {
+            //videoMedium.addAttribute("TCP_CLIENT", Data(rtpPort));
+            videoMedium.addAttribute("setup", "active");
+        }
+        else if (rtpType == 2)
+        {
+            //videoMedium.addAttribute("TCP_SERVER", Data(rtpPort));
+            videoMedium.addAttribute("setup", "passive");
         }
         //if (ProtocolType == RTP_TCP_S)
         //{
@@ -233,28 +273,217 @@ void UaClientCall::makeRequestOffer(SdpContents& offer, std::string myId)
         offer.session().addMedium(videoMedium);
     }
 }
-bool UaClientCall::makeBLeg(std::string channelId)
+void UaClientCall::closeMediaStream()
 {
-    //判断通道在存
-    IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-    SipServerDeviceInfo devuinfo;
-    list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channelId.c_str());
-    for (auto& it : chlist)
+    sipserver::SipServer* pSvr = GetServer();
+    ostringstream ss;
+    ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/closeRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+        << "&stream_id=" << streamId;
+    ss.flush();
+    string strReponse = GetRequest(ss.str());
+    rapidjson::Document document;
+    document.Parse((char*)strReponse.c_str());
+    if (!document.HasParseError())
     {
-        if (it.getStatus())
+        int codeno = json_check_int32(document, "code");
+        if (codeno == 0)
         {
-            devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-            break;
+            mUserAgent.setCallStatus(streamId, CALL_MEDIA_STREAM_CLOSED);
         }
     }
-    if (!devuinfo.getDeviceId().empty())
+}
+bool UaClientCall::makeBLeg()
+{
+    if (!devId.empty())
     {
-        //判断流存在
         ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-        tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), devuinfo.getIp(), devuinfo.getPort(), channelId, mUserAgent, mUserAgent.GetAvailableRtpPort(), this));
+        tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devId, devIp, devPort, channelId, mUserAgent, mUserAgent.GetAvailableRtpPort(), 0, this));
         return true;
     }
     return false;
+}
+void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer)
+{
+    //解析offer sdp
+    mRequestSdp = offer;
+    app = "rtp";
+    sessionName = offer.session().name();
+    if (offer.session().OtherAttrHelper().exists("y"))
+    {
+        ssrc = *offer.session().OtherAttrHelper().getValues("y").begin();
+    }
+    remoteIp = offer.session().origin().getAddress();
+    
+
+    const SdpContents::Session::MediumContainer& rmedialist = offer.session().media();
+    for (auto& iter : rmedialist)
+    {
+        if (iter.protocol() == Data("RTP/AVP"))
+        {
+            rtpType = 0;
+        }
+        else if (iter.protocol() == Data("TCP/RTP/AVP"))
+        {
+            rtpType = 1;
+            if (iter.exists("setup"))
+            {
+                //active passive
+                //if(iter.getValues("setup"))
+            }
+        }
+        else
+        {
+            rtpType = 0;
+        }
+        if (iter.port() > 0)
+        {
+            remotePort = iter.port();
+            break;
+        }
+    }
+
+    //解析h_Subject
+    std::vector<std::string> subjectArray;
+    if (msg.exists(h_Subject))
+    {
+        subjectArray = std::SipSubjectSplit(msg.header(h_Subject).value().c_str());
+    }
+
+    //创建answer sdp
+    mResponseSdp = offer;
+    myRtpPort = mUserAgent.GetAvailableRtpPort();
+    SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
+    for (auto& iter : medialist)
+    {
+        if (iter.exists("recvonly"))
+        {
+            iter.clearAttribute("recvonly");
+            iter.addAttribute("sendonly");
+        }
+        iter.setPort(myRtpPort);
+        break;
+    }
+    mResponseSdp.session().connection().setAddress(DnsUtil::getLocalIpAddress());
+    mResponseSdp.session().origin().setAddress(DnsUtil::getLocalIpAddress());
+
+    if (subjectArray.size() == 4)
+    {
+        if (sessionName == Data("Play"))
+        {
+            channelId = subjectArray[0];
+            remoteId = subjectArray[2];
+            IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+            SipServerDeviceInfo devuinfo;
+            list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channelId.c_str());
+            for (auto& it : chlist)
+            {
+                if (it.getStatus())
+                {
+                    devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+                    devId = devuinfo.getDeviceId();
+                    devIp = devuinfo.getIp();
+                    devPort = devuinfo.getPort();
+                    streamId = std::str_format("%s_%s", devId.c_str(), channelId.c_str());
+                    break;
+                }
+            }
+            //DataTransMoudle = subjectArray[1];
+            if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+            {
+                //直接回复
+                handle->provideAnswer(mResponseSdp);
+                ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
+                if (uas && !uas->isAccepted())
+                {
+                    uas->accept();
+                }
+            }
+            else
+            {
+                //拉流
+                bool chlOnline = makeBLeg();
+                if (!chlOnline)
+                {
+                    WarningCategory warning;
+                    warning.hostname() = DnsUtil::getLocalIpAddress();
+                    warning.code() = 488;
+                    warning.text() = "make bleg error!";
+                    handle->reject(488, &warning);
+                }
+            }
+        }
+        else if (sessionName == Data("Playback"))
+        {
+            if (offer.session().getTimes().size() == 2)
+            {
+                startTime = offer.session().getTimes().front().getStart();
+                stopTime = offer.session().getTimes().front().getStop();
+            }
+            IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+            SipServerDeviceInfo devuinfo;
+            list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channelId.c_str());
+            for (auto& it : chlist)
+            {
+                if (it.getStatus())
+                {
+                    devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+                    devId = devuinfo.getDeviceId();
+                    devIp = devuinfo.getIp();
+                    devPort = devuinfo.getPort();
+
+                    CDateTime staTime(startTime);
+                    CDateTime endTime(stopTime);
+                    streamId = std::str_format("%s_%s_%s_%s", devId.c_str(), channelId.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+                    break;
+                }
+            }
+            //拉流
+            bool chlOnline = makeBLeg();
+            if (!chlOnline)
+            {
+                WarningCategory warning;
+                warning.hostname() = DnsUtil::getLocalIpAddress();
+                warning.code() = 488;
+                warning.text() = "make bleg error!";
+                handle->reject(488, &warning);
+            }
+        }
+        else if (sessionName == Data("Download"))
+        {
+            //拉流
+            bool chlOnline = makeBLeg();
+            if (!chlOnline)
+            {
+                WarningCategory warning;
+                warning.hostname() = DnsUtil::getLocalIpAddress();
+                warning.code() = 488;
+                warning.text() = "make bleg error!";
+                handle->reject(488, &warning);
+            }
+        }
+        else
+        {
+            WarningCategory warning;
+            warning.hostname() = DnsUtil::getLocalIpAddress();
+            warning.code() = 488;
+            warning.text() = "sdp session name error!";
+            handle->reject(488, &warning);
+        }
+
+    }
+    else
+    {
+        //参数错误
+        WarningCategory warning;
+        warning.hostname() = DnsUtil::getLocalIpAddress();
+        warning.code() = 488;
+        warning.text() = "h_Subject parameter error";
+        handle->reject(488, &warning);
+    }
+}
+resip::InviteSessionHandle& UaClientCall::getInviteSessionHandle()
+{
+    return mInviteSessionHandle;
 }
 ////////////////////////////////////////////////////////////////////////////////
 // InviteSessionHandler      ///////////////////////////////////////////////////
@@ -270,9 +499,8 @@ UaClientCall::onNewSession(ClientInviteSessionHandle h, InviteSession::OfferAnsw
        // See comment in flowTerminated for an explanation of this logic
        ((UaClientCall*)mInviteSessionHandleReplaced->getAppDialogSet().get())->terminateCall();
    }
-   mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_GET1XX;
-   mMyUacInviteVideoInfo.mInviteSessionHandle = h->getSessionHandle();
-   mMyUacInviteVideoInfo.m_EvtUac.notify_one();
+   mUserAgent.setCallStatus(streamId, CALL_UAC_NEW_GET1XX);
+   m_CallEvt.notify_one();
    cout << "***************  ******************* 1 " << msg << endl;
 }
 
@@ -315,11 +543,12 @@ UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnsw
    {
        if (msg.isFromWire())
        {
-           mMyUasInviteVideoInfo.mInviteSessionHandle = h;
            //鉴权处理
            
        }
    }
+   mUserAgent.setCallStatus(streamId, CALL_UAS_NEW);
+   m_CallEvt.notify_one();
    cout << "***************  ******************* 2\n" << msg << endl;
 }
 
@@ -327,7 +556,7 @@ void
 UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
 {
    WarningLog(<< "onFailure: msg=" << msg.brief());
-
+   mUserAgent.setCallStatus(streamId, CALL_UAC_FAILURE);
    if (msg.isResponse()) 
    {
        //关闭自己申请的流
@@ -338,8 +567,7 @@ UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
             if(!msg.isFromWire())
             {
                // Try another flow? 
-                mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_FAILED;
-                mMyUacInviteVideoInfo.m_EvtUac.notify_one();
+                m_CallEvt.notify_one();
             }
          default:
             break;
@@ -359,7 +587,7 @@ void
 UaClientCall::onProvisional(ClientInviteSessionHandle h, const SipMessage& msg)
 {
    InfoLog(<< "onProvisional: msg=" << msg.brief());
-
+   mUserAgent.setCallStatus(streamId, CALL_UAC_GET1XX_PROV);
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -368,6 +596,7 @@ UaClientCall::onProvisional(ClientInviteSessionHandle h, const SipMessage& msg)
    }
    InfoLog(<< "onProvisional: msg=" << msg.brief());
    cout << "***************  ******************* 5\n" << msg << endl;
+   
 }
 
 void
@@ -386,8 +615,36 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
         // start call timer
         unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
         mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
-        mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_CONNECT;
-        mMyUacInviteVideoInfo.m_EvtUac.notify_one();
+
+        mUserAgent.setCallStatus(streamId, CALL_UAC_CONNECTED);
+        m_CallEvt.notify_one();
+        sipserver::SipServer* pSvr = GetServer();
+        ostringstream ss;
+        ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port="
+            << myRtpPort;
+        if (rtpType == 0)
+        {
+            ss << "&enable_tcp=0";
+        }
+        else
+        {
+            ss << "&enable_tcp=1";
+        }
+        ss << "&stream_id=" << streamId;
+        ss.flush();
+        string strReponse = GetRequest(ss.str());
+        rapidjson::Document document;
+        document.Parse((char*)strReponse.c_str());
+        if (!document.HasParseError())
+        {
+            int codeno = json_check_int32(document, "code");
+            if (codeno == 0)
+            {
+                mUserAgent.setCallStatus(streamId, CALL_MEDIA_READY);
+                return;
+            }
+        }
+        mUserAgent.setCallStatus(streamId, CALL_MEDIA_ERROR);
     }
     else
     {
@@ -406,6 +663,7 @@ UaClientCall::onConnected(InviteSessionHandle h, const SipMessage& msg)
    cout << "*************** onConnected 1 ***************************\n"
        << msg
        << "***********************************************\n" << endl;
+   //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED);
 }
 
 void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage& msg)
@@ -418,31 +676,44 @@ void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage&
         {
             /*mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), 
                 connectport.convertInt(), mUserAgent.GetAvailableRtpPort()*/
-            sipserver::SipServer* pSvr = GetServer();
-            ostringstream ss;
-            ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
-                << "rtp" << "&stream=" << mMyUasInviteVideoInfo.devId << "_" << mMyUasInviteVideoInfo.channelID
-                << "&ssrc=" << mMyUasInviteVideoInfo.ssrc << "&dst_url=" << mMyUasInviteVideoInfo.connectip << "&dst_port=" << mMyUasInviteVideoInfo.connectport
-                << "&is_udp=1&src_port=" << mUserAgent.GetAvailableRtpPort();
-            ss.flush();
-
-            string strReponse = GetRequest(ss.str());
-            rapidjson::Document document;
-            document.Parse((char*)strReponse.c_str());
-            if (document.HasParseError())
+            for (int i = 0; i < 2 * 5; i++)
             {
-                //return false;
-            }
-            if (document.HasMember("local_port") && json_check_uint32(document, "local_port") > 0)
-            {
-                cout << "startSendRtp ok local_port:" << json_check_uint32(document, "local_port") << endl;
-            }
-            else
-            {
-                if (document.HasMember("msg"))
+                resip::UaMgr::streamStatus smStatus = mUserAgent.getStreamStatus(streamId);
+                if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
                 {
-                    cout << "startSendRtp failed streamdid:" << mMyUasInviteVideoInfo.channelID << " msg:" << json_check_string(document, "msg") << endl;
+                    sipserver::SipServer* pSvr = GetServer();
+                    ostringstream ss;
+                    ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/startSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app="
+                        << "rtp" << "&stream=" << streamId
+                        << "&ssrc=" << ssrc << "&dst_url=" << remoteIp << "&dst_port=" << remotePort
+                        << "&is_udp=1&src_port=" << myRtpPort;
+                    ss.flush();
+
+                    string strReponse = GetRequest(ss.str());
+                    rapidjson::Document document;
+                    document.Parse((char*)strReponse.c_str());
+                    if (document.HasParseError())
+                    {
+                        //return false;
+                    }
+                    if (document.HasMember("local_port") && json_check_uint32(document, "local_port") > 0)
+                    {
+                        cout << "startSendRtp ok local_port:" << json_check_uint32(document, "local_port") << endl;
+                    }
+                    else
+                    {
+                        if (document.HasMember("msg"))
+                        {
+                            cout << "startSendRtp failed streamdid:" << streamId << " msg:" << json_check_string(document, "msg") << endl;
+                        }
+                    }
                 }
+                else if (smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
+                {
+                    mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
+                    break;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
         }
     }
@@ -451,6 +722,7 @@ void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage&
     cout << "*************** onConnectedConfirmed ***************************\n"
         << msg
         << "***********************************************\n" << endl;
+    //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED_CONFIRMED);
 }
 void
 UaClientCall::onStaleCallTimeout(ClientInviteSessionHandle h)
@@ -463,6 +735,14 @@ void
 UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::TerminatedReason reason, const SipMessage* msg)
 {
     cout << "***************  ******************* 10\n" << endl;
+    if (isUACConnected())
+    {
+        mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
+    }
+    else
+    {
+        //mUserAgent.setCallStatus(streamId, CALL_UAS_TERMINATED);
+    }
    Data reasonData;
    string strUrl;
    switch(reason)
@@ -472,10 +752,11 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
       {
           if (isUACConnected())
           {
+              m_CallEvt.notify_one();
           }
           else
           {
-              mUserAgent.CloseStreamStreamId(mMyUasInviteVideoInfo.channelID);
+              //mUserAgent.CloseStreamStreamId(streamId);
           }
       }
       break;
@@ -547,6 +828,7 @@ void
 UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
     cout << "***************  ******************* 12 " << msg << endl;
+    mUserAgent.setCallStatus(streamId, CALL_UAC_ANSWER_200OK);
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -564,35 +846,7 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
    //in_addr_t msgSourceAddress = sourceTuple.toGenericIPAddress().v4Address.sin_addr.s_addr;
    //call->onAnswer(this, sdp, msgSourceAddress);
    //开启一个rtpserver接收rtp数据
-   sipserver::SipServer* pSvr = GetServer();
-   ostringstream ss;
-   ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/openRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&port="
-       << mMyUacInviteVideoInfo.rtpPort;
-   if (mMyUacInviteVideoInfo.rtpType == 0)
-   {
-       ss << "&enable_tcp=0";
-   }
-   else
-   {
-       ss << "&enable_tcp=1";
-   }
-   ss << "&stream_id=" << mMyUacInviteVideoInfo.devId << "_" << mMyUacInviteVideoInfo.streamId;
-   ss.flush();
-   string strReponse = GetRequest(ss.str());
-   rapidjson::Document document;
-   document.Parse((char*)strReponse.c_str());
-   if (!document.HasParseError())
-   {
-       int codeno = json_check_int32(document, "code");
-       if (codeno == 0)
-       {
-           mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_GETSDP;
-           mMyUacInviteVideoInfo.m_EvtUac.notify_one();
-           return;
-       }
-   }
-   mMyUacInviteVideoInfo.state = UacInviteVideoInfo::_RES_FAILED;
-   mMyUacInviteVideoInfo.m_EvtUac.notify_one();
+   m_CallEvt.notify_one();
 }
 
 void
@@ -618,126 +872,8 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
        InfoLog(<< "my is uas" << msg.brief());
 
        //流存在  直接返回;不存在则申请
-
-       if (sdp.session().OtherAttrHelper().exists("y"))
-       {
-           mMyUasInviteVideoInfo.ssrc = *sdp.session().OtherAttrHelper().getValues("y").begin();
-       }
-       const Data &sessionname = sdp.session().name();
-       if (sessionname == "Play")
-       {
-           mMyUasInviteVideoInfo.app = "rtp";
-       }
-       else if (sessionname == "Playback")
-       {
-           mMyUasInviteVideoInfo.app = "rtp";
-       }
-       mMyUasInviteVideoInfo.connectip = sdp.session().origin().getAddress();
-       mMyUasInviteVideoInfo.connectport = Data((uint32_t)(*sdp.session().media().begin()).port());
-       const SdpContents::Session::MediumContainer& rmedialist = sdp.session().media();
-       for (auto& iter : rmedialist)
-       {
-           mMyUasInviteVideoInfo.connectport = Data(iter.port());
-            //tcpOrUdp = (iter.name() == "RTP/AVP" ? 0 : 1);
-            break;
-       }
-       std::vector<std::string> subjectArray;
-       if (msg.exists(h_Subject))
-       {
-           subjectArray = std::SipSubjectSplit(msg.header(h_Subject).value().c_str());
-       }
-
-       mMyUasInviteVideoInfo.AlegResSdp = sdp;
-       SdpContents::Session::MediumContainer &medialist = mMyUasInviteVideoInfo.AlegResSdp.session().media();
-       for (auto &iter : medialist)
-       {
-           if (iter.exists("recvonly"))
-           {
-               iter.clearAttribute("recvonly");
-               iter.addAttribute("sendonly");
-           }
-           iter.setPort(7000);
-           break;
-       }
-       Data strsdp = mMyUasInviteVideoInfo.AlegResSdp.getBodyData();
-       mMyUasInviteVideoInfo.AlegResSdp.session().connection().setAddress("192.168.1.38");
-       mMyUasInviteVideoInfo.AlegResSdp.session().origin().setAddress("192.168.1.38");
-
-       if (subjectArray.size() == 4)
-       {
-           mMyUasInviteVideoInfo.channelID = subjectArray[0];
-           mMyUasInviteVideoInfo.serverID = subjectArray[2];
-           mMyUasInviteVideoInfo.DataTransMoudle = subjectArray[1];
-           if (mUserAgent.getStreamStatus(subjectArray[0]) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
-           {
-               //直接回复
-               h->provideAnswer(mMyUasInviteVideoInfo.AlegResSdp);
-               ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
-               if (uas && !uas->isAccepted())
-               {
-                   uas->accept();
-               }
-           }
-           else
-           {
-               //拉流
-               bool chlOnline = makeBLeg(subjectArray[0].c_str());
-               if (chlOnline)
-               {
-                   /*h->provideAnswer(ssdp);
-                   ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
-                   if (uas && !uas->isAccepted())
-                   {
-                       uas->accept();
-                   }*/
-               }
-               else
-               {
-                   WarningCategory warning;
-                   warning.hostname() = "192.168.1.230";
-                   warning.code() = 488;
-                   warning.text() = "channel not exist";
-                   h->reject(488, &warning);
-               }
-           }
-       }
-       else
-       {
-            //参数错误
-           WarningCategory warning;
-           warning.hostname() = "192.168.1.230";
-           warning.code() = 488;
-           warning.text() = "h_Subject parameter error";
-           h->reject(488, &warning);
-       }
-       
-
-        //拉流
-       /*bool chlOnline = false;
-        if (subjectArray.size() == 4)
-        {
-            mMyUasInviteVideoInfo.channelID = subjectArray[0];
-            mMyUasInviteVideoInfo.serverID = subjectArray[2];
-            mMyUasInviteVideoInfo.DataTransMoudle = subjectArray[1];
-            chlOnline = makeBLeg(subjectArray[0].c_str());
-        }
-        if (chlOnline)
-        {
-            h->provideAnswer(ssdp);
-            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(h.get());
-            if (uas && !uas->isAccepted())
-            {
-                uas->accept();
-            }
-        }
-        else
-        {
-            WarningCategory warning;
-            warning.hostname() = "192.168.1.230";
-            warning.code() = 488;
-            warning.text() = "h_Subject parameter error";
-            h->reject(488, &warning);
-        }*/
+       //mUserAgent.setCallStatus(streamId, CALL_UAS_RECEIVE_OFFER);
+       ReceiveInviteOffRequest(h, msg, sdp);
    }
   
    cout << "*************** onOffer ***************************\n"
@@ -900,12 +1036,14 @@ UaClientCall::onMessageSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
     cout << "***************  ******************* 27\n" << msg << endl;
     mTimerExpiredCounter = 0;
+    mSessionState = msg.header(h_StatusLine).statusCode();
    InfoLog(<< "onMessageSuccess: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
 {
+    mSessionState = msg.header(h_StatusLine).statusCode();
     cout << "***************  ******************* 28\n" << msg << endl;
     mTimerExpiredCounter++;
    WarningLog(<< "onMessageFailure: msg=" << msg.brief());
@@ -931,11 +1069,10 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
     {
         if (msg.isRequest() && msg.method() == ACK)
         {
-            msg.header(h_RequestLine).uri().host() = mMyUacInviteVideoInfo.devIp.c_str();
-            msg.header(h_RequestLine).uri().port() = mMyUacInviteVideoInfo.devPort;
+            msg.header(h_RequestLine).uri().host() = devIp.c_str();
+            msg.header(h_RequestLine).uri().port() = devPort;
             msg.header(h_Contacts).front().uri() = msg.header(h_RequestLine).uri();
         }
-        mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
     }
     else
     {
@@ -943,7 +1080,6 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
     }
     
     cout << "***************  ******************* 30\n" << msgData << endl;
-    
 }
 
 void 
@@ -1123,33 +1259,177 @@ UaClientCall::onRedirectReceived(AppDialogSetHandle h, const SipMessage& msg)
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  ==================================================================== */
+RequestStreamTask::RequestStreamTask(std::string dId, std::string dIp, int dPort, std::string channelId, UaMgr& userAgent, int iRtpPort, int rtptype, UaClientCall* pAlegcall,
+    std::string sesName, unsigned long stime, unsigned long etime)
+    :devId(dId), devIp(dIp), devPort(dPort), channelId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(rtptype), pmAlegCall(pAlegcall)
+    , sessionName(sesName), startTime(stime), stopTime(etime)
+{
+    if (sessionName == "Play")
+    {
+        streamId = std::str_format("%s_%s", devId.c_str(), channelId.c_str());
+    }
+    else
+    {
+        CDateTime staTime(stime);
+        CDateTime endTime(etime);
+        streamId = std::str_format("%s_%s_%s_%s", devId.c_str(), channelId.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+    }
+}
 bool RequestStreamTask::TaskRun()
 {
-    if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
+    if (pmAlegCall)
     {
-        if (mUserAgent.RequestLiveStream(devId, devIp, devPort, streamId, rtpPort, rtpType))
+        if (pmAlegCall->sessionName == Data("Play"))
         {
-            UaClientCall* pBlegCall = mUserAgent.reTurnCallByStreamId(streamId);
-            if (pBlegCall)
+            if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
             {
-                std::mutex mtx;
-                std::unique_lock<std::mutex> lck(mtx);
-                while (pBlegCall->mMyUacInviteVideoInfo.m_EvtUac.wait_for(lck, std::chrono::seconds(5)) != std::cv_status::timeout)
+                if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType))
                 {
-                    switch (pBlegCall->mMyUacInviteVideoInfo.state)
+                    UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
+                    while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
                     {
-                    case UaClientCall::UacInviteVideoInfo::_RES_START:
-                        break;
-                    case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
-                        break;
-                    case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
-                        break;
-                    case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
-                    {
-                        if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                        state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
+                        switch (state)
                         {
-                            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
-                            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
+                        case UaClientCall::CALL_UAC_FAILURE:
+                        {
+                            if (pmAlegCall)
+                            {
+                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                {
+                                    WarningCategory warning;
+                                    warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                    warning.code() = 488;
+                                    warning.text() = "play b leg invite failure";
+                                    pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                                }
+                            }
+                            return true;
+                        }
+                        case UaClientCall::CALL_UAC_TERMINATED:
+                        {
+                            if (pmAlegCall)
+                            {
+                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                {
+                                    WarningCategory warning;
+                                    warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                    warning.code() = 488;
+                                    warning.text() = "play b leg invite time out";
+                                    pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                                }
+                            }
+                            return true;
+                        }
+                        case UaClientCall::CALL_MY_MEDIA_OK:
+                        case UaClientCall::CALL_MEDIA_READY:
+                        case UaClientCall::CALL_UAC_CONNECTED:
+                        {
+                            if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
+                                ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
+                                if (uas && !uas->isAccepted())
+                                {
+                                    uas->accept();
+                                }
+                            }
+                            return true;
+                        }
+                        case UaClientCall::CALL_MEDIA_ERROR:
+                        {
+                            if (pmAlegCall)
+                            {
+                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                {
+                                    WarningCategory warning;
+                                    warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                    warning.code() = 488;
+                                    warning.text() = "play b leg media error";
+                                    pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                                }
+                            }
+                            return true;
+                        }
+                        case UaClientCall::CALL_MEDIA_TIMEOUT:
+                        {
+                            if (pmAlegCall)
+                            {
+                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                {
+                                    WarningCategory warning;
+                                    warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                    warning.code() = 488;
+                                    warning.text() = "play b leg media timeout";
+                                    pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                                }
+                            }
+                            return true;
+                        }
+                        default:
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+            {
+                if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                {
+                    pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
+                    ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
+                    if (uas && !uas->isAccepted())
+                    {
+                        uas->accept();
+                    }
+                }
+            }
+            else
+            {
+                UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
+                while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
+                {
+                    state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
+                    switch (state)
+                    {
+                    case UaClientCall::CALL_UAC_FAILURE:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg invite failure";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_UAC_TERMINATED:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg invite time out";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_MY_MEDIA_OK:
+                    case UaClientCall::CALL_MEDIA_READY:
+                    case UaClientCall::CALL_UAC_CONNECTED:
+                    {
+                        if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                        {
+                            pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
+                            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
                             if (uas && !uas->isAccepted())
                             {
                                 uas->accept();
@@ -1157,175 +1437,181 @@ bool RequestStreamTask::TaskRun()
                         }
                         return true;
                     }
-                    case UaClientCall::UacInviteVideoInfo::_RES_ACK:
-                    {
-                        return true;
-                    }
-                    case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
+                    case UaClientCall::CALL_MEDIA_ERROR:
                     {
                         if (pmAlegCall)
                         {
-                            if (pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
                                 warning.code() = 488;
-                                warning.text() = "b leg create failed";
-                                pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
+                                warning.text() = "play b leg media error";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
                             }
                         }
-                        mUserAgent.CloseStreamStreamId(streamId);
                         return true;
                     }
-                    break;
+                    case UaClientCall::CALL_MEDIA_TIMEOUT:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg media timeout";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
                     default:
                         break;
                     }
                 }
             }
         }
-    }
-    else if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
-    {
-        if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
+        else if (pmAlegCall->sessionName == Data("Playback"))
         {
-            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
-            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
-            if (uas && !uas->isAccepted())
+            if (mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
             {
-                uas->accept();
+                UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
+                while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
+                {
+                    state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
+                    switch (state)
+                    {
+                    case UaClientCall::CALL_UAC_FAILURE:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg invite failure";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_UAC_TERMINATED:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg invite time out";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_MY_MEDIA_OK:
+                    case UaClientCall::CALL_MEDIA_READY:
+                    case UaClientCall::CALL_UAC_CONNECTED:
+                    {
+                        if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                        {
+                            pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
+                            ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
+                            if (uas && !uas->isAccepted())
+                            {
+                                uas->accept();
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_MEDIA_ERROR:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg media error";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    case UaClientCall::CALL_MEDIA_TIMEOUT:
+                    {
+                        if (pmAlegCall)
+                        {
+                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            {
+                                WarningCategory warning;
+                                warning.hostname() = DnsUtil::getLocalIpAddress();;
+                                warning.code() = 488;
+                                warning.text() = "play b leg media timeout";
+                                pmAlegCall->getInviteSessionHandle()->reject(488, &warning);
+                            }
+                        }
+                        return true;
+                    }
+                    default:
+                        break;
+                    }
+                }
             }
+        }
+        else if (pmAlegCall->sessionName == Data("Download"))
+        {
         }
     }
     else
     {
-        UaClientCall* pBlegCall = mUserAgent.reTurnCallByStreamId(streamId);
-        if (pBlegCall)
+        if (sessionName == "Play")
         {
-            std::mutex mtx;
-            std::unique_lock<std::mutex> lck(mtx);
-            while (pBlegCall->mMyUacInviteVideoInfo.m_EvtUac.wait_for(lck, std::chrono::seconds(5)) != std::cv_status::timeout)
+            if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
             {
-                switch (pBlegCall->mMyUacInviteVideoInfo.state)
+                if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType))
                 {
-                case UaClientCall::UacInviteVideoInfo::_RES_START:
-                    break;
-                case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
-                    break;
-                case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
-                    break;
-                case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
-                {
-                    if (pmAlegCall && pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
-                    {
-                        pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(pmAlegCall->mMyUasInviteVideoInfo.AlegResSdp);
-                        ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
-                        if (uas && !uas->isAccepted())
-                        {
-                            uas->accept();
-                        }
-                    }
-                    return true;
-                }
-                case UaClientCall::UacInviteVideoInfo::_RES_ACK:
-                {
-                    return true;
-                }
-                case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
-                {
-                    if (pmAlegCall)
-                    {
-                        if (pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
-                        {
-                            WarningCategory warning;
-                            warning.hostname() = DnsUtil::getLocalIpAddress();;
-                            warning.code() = 488;
-                            warning.text() = "b leg create failed";
-                            pmAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
-                        }
-                    }
-                    mUserAgent.CloseStreamStreamId(streamId);
-                    return true;
-                }
-                break;
-                default:
-                    break;
                 }
             }
+            else if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+            {
+                if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                {
+                    pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
+                    ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
+                    if (uas && !uas->isAccepted())
+                    {
+                        uas->accept();
+                    }
+                }
+            }
+            else
+            {
+                
+            }
+        }
+        else if (sessionName == "Playback")
+        {
+            if (mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
+            {
+                
+            }
+        }
+        else if (sessionName == "Download")
+        {
         }
     }
+  
     return true;
 };
+
 bool PushRtpStream::TaskRun()
 {
-    //if (mUserAgent.getStreamStatus(channelId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
-    //{
-    //    if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, rtpPort, rtpType))
-    //    {
-    //        for (int i = 0; i < 10 * 5; i++)
-    //        {
-    //            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //            UaClientCall* pClient = mUserAgent.reTurnCallByStreamId(channelId);
-    //            if (pClient)
-    //            {
-    //                switch (pClient->mMyUacInviteVideoInfo.state)
-    //                {
-    //                case UaClientCall::UacInviteVideoInfo::_RES_START:
-    //                    break;
-    //                case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
-    //                    break;
-    //                case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
-    //                    break;
-    //                case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
-    //                {
-    //                    //if (mAlegCall && mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
-    //                    //{
-    //                    //    mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->provideAnswer(mAlegCall->AlegResSdp);
-    //                    //    ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.get());
-    //                    //    if (uas && !uas->isAccepted())
-    //                    //    {
-    //                    //        uas->accept();
-    //                    //        mAlegCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_ACK;
-    //                    //        //return true;
-    //                    //    }
-    //                    //}
-    //                    return true;
-    //                }
-    //                case UaClientCall::UacInviteVideoInfo::_RES_ACK:
-    //                {
-    //                    //ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-    //                    //tPool.submitTask(std::make_shared<PushRtpStream>(mAlegCall->mMyUasInviteVideoInfo.devId, mAlegCall->mMyUasInviteVideoInfo.channelID, mAlegCall->ssrc.c_str(), mAlegCall->connectport.convertInt()));
-    //                    return true;
-    //                }
-    //                case UaClientCall::UacInviteVideoInfo::_RES_FAILED:
-    //                {
-    //                    mUserAgent.CloseStreamStreamId(channelId);
-    //                    return true;
-    //                }
-    //                break;
-    //                default:
-    //                    break;
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
-    //else
-    //{
-    //    /*if (mAlegCall)
-    //    {
-    //        if (mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle.isValid())
-    //        {
-    //            WarningCategory warning;
-    //            warning.hostname() = DnsUtil::getLocalIpAddress();;
-    //            warning.code() = 488;
-    //            warning.text() = "b leg create failed";
-    //            mAlegCall->mMyUasInviteVideoInfo.mInviteSessionHandle->reject(488, &warning);
-    //        }
-    //    }*/
-
-    //}
-    //return true;
     bool isStream = false;
     std::string app;
     std::string streamId;

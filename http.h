@@ -13,33 +13,48 @@ using namespace std;
 
 string GetRequest(const string& url);
 string PostRequest(const string& url, const string& data);
+class CHttpClient
+{
+public:
+    CHttpClient(uint64_t timeout = 15000);
+    ~CHttpClient();
+    std::string HttpGetRequest(const std::string& url);
+    std::string HttpPostRequest(const std::string& url, const std::string& PostData);
+    static void OnHttpEvent(struct mg_connection* c, int ev, void* ev_data, void* user_data);
 
+public:
+    bool bExitFlag;
+    std::string mUrl;// = "http://info.cern.ch/";
+    std::string mPostData;// = NULL;
+    uint64_t mTimeout_ms;
+    std::string mResponse;
+};
 class HttpServer
 {
 private:
-    static void HandleDefault(struct mg_connection* nc, int ev, void* ev_data);
+    static void HandleDefault(struct mg_connection* c, int ev, void* ev_data, void* fn_data);
     static void WebsocketMessageProcess(struct mg_connection* websocketC, char* message, int len);
 
-    static void DeviceOnLineState(struct mg_connection* nc, int ev, void* ev_data);
-    static void DeviceChannelList(struct mg_connection* nc, int ev, void* ev_data);
-    static void StartLive(struct mg_connection* nc, int ev, void* ev_data);
-    static void StopLive(struct mg_connection* nc, int ev, void* ev_data);
-    static void UserManager(struct mg_connection* nc, int ev, void* ev_data);
-    static void zlmHookPublish(struct mg_connection* nc, int ev, void* ev_data);
-    static void zlmHookStreamNoneReader(struct mg_connection* nc, int ev, void* ev_data);
-    static void zlmHookStreamChanged(struct mg_connection* nc, int ev, void* ev_data);
-    static void zlmHookStreamNotFound(struct mg_connection* nc, int ev, void* ev_data);
-    static void zlmHookSendRtpStopped(struct mg_connection* nc, int ev, void* ev_data);
+    static void DeviceOnLineState(const struct mg_str & body, std::string &strOut);
+    static void DeviceChannelList(const struct mg_str& body, std::string& strOut);
+    static void StartLive(const struct mg_str& body, std::string& strOut);
+    static void StopLive(const struct mg_str& body, std::string& strOut);
+    static void StartVod(const struct mg_str& body, std::string& strOut);
+    static void StopVod(const struct mg_str& body, std::string& strOut);
+    static void UserManager(const struct mg_str& body, std::string& strOut);
+    static void zlmHookPublish(const struct mg_str& body, std::string& strOut);
+    static void zlmHookStreamNoneReader(const struct mg_str& body, std::string& strOut);
+    static void zlmHookStreamChanged(const struct mg_str& body, std::string& strOut);
+    static void zlmHookStreamNotFound(const struct mg_str& body, std::string& strOut);
+    static void zlmHookSendRtpStopped(const struct mg_str& body, std::string& strOut);
 
     bool init(const string& rootpath = "./", const string& indexfile = "index");
 private:
     std::string m_address;
     std::string m_doc_root;
     int m_run_status;
-    mutex m_mutex;
 
     struct mg_mgr m_mgr;
-    struct mg_connection* httpcon;
 
     thread mTLoop;
 public:

@@ -38,6 +38,7 @@
 #include "SipServerConfig.h"
 #include "SipServer.h"
 #include "tools/ownString.h"
+#include "tools/m_Time.h"
 
 using namespace resip;
 using namespace std;
@@ -111,9 +112,9 @@ public:
                 // Fill in IP and Port from source
                 //sdp->session().connection().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
                 //sdp->session().origin().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
+                sipserver::SipServer* pSvr = GetServer();
                 if (msg.isRequest())
                 {
-                    sipserver::SipServer* pSvr = GetServer();
                     if (pSvr)
                     {
                         sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
@@ -122,8 +123,11 @@ public:
                 }
                 else if (msg.isResponse())
                 {
-                    //sdp->session().connection().setAddress("192.168.1.232");
-                    //sdp->session().origin().setAddress("192.168.1.232");
+                    if (pSvr)
+                    {
+                        sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
+                        sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
+                    }
                 }
                 Data sourceip = Tuple::inet_ntop(source);
                 Data destip = Tuple::inet_ntop(destination);
@@ -581,7 +585,7 @@ void UaMgr::CheckRegistState()
         }
     }
 }
-bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, int sdpPort, int rtpType)
+bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort, std::string channelId, std::string streamId, int sdpPort, int rtpType)
 {
     Uri mCallTarget;
     mCallTarget.user() = channelId.c_str();
@@ -589,19 +593,48 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
     mCallTarget.port() = devPort;
 
     UaClientCall* newCall = new UaClientCall(*this);
-    newCall->mMyUacInviteVideoInfo.devId = devId;
-    newCall->mMyUacInviteVideoInfo.devIp = devIp;
-    newCall->mMyUacInviteVideoInfo.devPort = devPort;
-    newCall->mMyUacInviteVideoInfo.streamId = channelId;
-    newCall->mMyUacInviteVideoInfo.rtpPort = sdpPort;
-    newCall->mMyUacInviteVideoInfo.rtpType = rtpType;
-    newCall->mMyUacInviteVideoInfo.sdpIp = DnsUtil::getLocalIpAddress().c_str();
-    newCall->mMyUacInviteVideoInfo.ssrc = CreateSSRC("Play", channelId);
-    newCall->mMyUacInviteVideoInfo.sessionName = "Play";
-    newCall->mMyUacInviteVideoInfo.state = UaClientCall::UacInviteVideoInfo::_RES_START;
+    newCall->devId = devId;
+    newCall->devIp = devIp;
+    newCall->devPort = devPort;
+    newCall->channelId = channelId;
+    newCall->myRtpPort = sdpPort;
+    newCall->rtpType = rtpType;
+    newCall->mySdpIp = DnsUtil::getLocalIpAddress().c_str();
+    newCall->ssrc = CreateSSRC("Play", channelId).c_str();
+    newCall->sessionName = "Play";
+    newCall->streamId = streamId;
     {
         CUSTORLOCKGUARD locker(mapStreamMtx);
-        m_StreamInfoMap[channelId] = newCall;
+        m_StreamInfoMap[streamId] = UaClientCall::CALL_UAC_RES_START;
+    }
+    newCall->initiateCall(mCallTarget, mProfile);
+    return true;
+}
+bool UaMgr::RequestVodStream(std::string devId, std::string devIp, int devPort, std::string channelId, std::string streamId, int sdpPort, int rtpType, unsigned long stime, unsigned long etime)
+{
+    Uri mCallTarget;
+    mCallTarget.user() = channelId.c_str();
+    mCallTarget.host() = devIp.c_str();
+    mCallTarget.port() = devPort;
+
+    UaClientCall* newCall = new UaClientCall(*this);
+    newCall->devId = devId;
+    newCall->devIp = devIp;
+    newCall->devPort = devPort;
+    newCall->channelId = channelId;
+    newCall->myRtpPort = sdpPort;
+    newCall->rtpType = rtpType;
+    newCall->mySdpIp = DnsUtil::getLocalIpAddress().c_str();
+    newCall->ssrc = CreateSSRC("Playback", channelId).c_str();
+    newCall->sessionName = "Playback";
+    newCall->startTime = stime;
+    newCall->stopTime = etime;
+    CDateTime startTime(stime);
+    CDateTime stopTime(etime);
+    newCall->streamId = streamId;
+    {
+        CUSTORLOCKGUARD locker(mapStreamMtx);
+        m_StreamInfoMap[streamId] = UaClientCall::CALL_UAC_RES_START;
     }
     newCall->initiateCall(mCallTarget, mProfile);
     return true;
@@ -610,34 +643,59 @@ UaMgr::streamStatus UaMgr::getStreamStatus(std::string channelId)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(channelId);
-    if (iter != m_StreamInfoMap.end() && iter->second != NULL)
+    if (iter != m_StreamInfoMap.end())
     {
-        switch (iter->second->mMyUacInviteVideoInfo.state)
+        switch (iter->second)
         {
-        case UaClientCall::UacInviteVideoInfo::_RES_CONNECT:
-        case UaClientCall::UacInviteVideoInfo::_RES_ACK:
-        case UaClientCall::UacInviteVideoInfo::_RES_OK:
+        case UaClientCall::CALL_MEDIA_READY:
+        case UaClientCall::CALL_MY_MEDIA_OK:
             return _UERAGERNT_STREAM_OK;
-        case UaClientCall::UacInviteVideoInfo::_RES_START:
-        case UaClientCall::UacInviteVideoInfo::_RES_GET1XX:
-        case UaClientCall::UacInviteVideoInfo::_RES_GETSDP:
+        case UaClientCall::CALL_UAC_CONNECTED:
+            return _UERAGERNT_CALL_OK;
+        case UaClientCall::CALL_UAC_RES_START:
+        case UaClientCall::CALL_UAC_NEW_GET1XX:
+        case UaClientCall::CALL_UAC_GET1XX_PROV:
+        case UaClientCall::CALL_UAC_ANSWER_200OK:
             return _UERAGERNT_STREAM_PENDING;
+        case UaClientCall::CALL_UAC_FAILURE:
+        case UaClientCall::CALL_UAC_TERMINATED:
+        case UaClientCall::CALL_MEDIA_ERROR:
+        case UaClientCall::CALL_MEDIA_TIMEOUT:
         default:
             return _UERAGERNT_NOT_STREAM;
         }
     }
     return _UERAGERNT_NOT_STREAM;
 }
-UaClientCall* UaMgr::reTurnCallByStreamId(std::string streamId)
+void UaMgr::setCallStatus(std::string streamId, int status)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(streamId);
-    if (iter != m_StreamInfoMap.end() && iter->second != NULL)
+    if (iter != m_StreamInfoMap.end())
+    {
+        iter->second = status;
+    }
+}
+int UaMgr::getCallStatus(std::string streamId)
+{
+    CUSTORLOCKGUARD locker(mapStreamMtx);
+    auto iter = m_StreamInfoMap.find(streamId);
+    if (iter != m_StreamInfoMap.end())
     {
         return iter->second;
     }
-    return NULL;
+    return UaClientCall::CALL_NOT_FOUND;
 }
+//UaClientCall* UaMgr::reTurnCallByStreamId(std::string streamId)
+//{
+//    CUSTORLOCKGUARD locker(mapStreamMtx);
+//    auto iter = m_StreamInfoMap.find(streamId);
+//    if (iter != m_StreamInfoMap.end() && iter->second != NULL)
+//    {
+//        return iter->second;
+//    }
+//    return NULL;
+//}
 bool UaMgr::CloseStreamStreamId(std::string channelId)
 {
     /*ostringstream ss;
@@ -652,6 +710,50 @@ bool UaMgr::CloseStreamStreamId(std::string channelId)
     }
     return true;
 }
+//UaMgr::streamStatus UaMgr::getPlaybackStatus(std::string streamId)
+//{
+//    CUSTORLOCKGUARD locker(mapPbMtx);
+//    auto iter = m_PbInfoMap.find(streamId);
+//    if (iter != m_PbInfoMap.end() && iter->second != NULL)
+//    {
+//        switch (iter->second->callState)
+//        {
+//        case UaClientCall::CALL_MEDIA_READY:
+//        case UaClientCall::CALL_MY_MEDIA_OK:
+//            return _UERAGERNT_STREAM_OK;
+//        case UaClientCall::CALL_UAC_CONNECTED:
+//            return _UERAGERNT_CALL_OK;
+//        case UaClientCall::CALL_UAC_RES_START:
+//        case UaClientCall::CALL_UAC_NEW_GET1XX:
+//        case UaClientCall::CALL_UAC_GET1XX_PROV:
+//        case UaClientCall::CALL_UAC_ANSWER_200OK:
+//            return _UERAGERNT_STREAM_PENDING;
+//        default:
+//            return _UERAGERNT_NOT_STREAM;
+//        }
+//    }
+//    return _UERAGERNT_NOT_STREAM;
+//}
+//UaClientCall* UaMgr::reTurnCallByPlaybackStreamId(std::string streamId)
+//{
+//    CUSTORLOCKGUARD locker(mapPbMtx);
+//    auto iter = m_PbInfoMap.find(streamId);
+//    if (iter != m_PbInfoMap.end() && iter->second != NULL)
+//    {
+//        return iter->second;
+//    }
+//    return NULL;
+//}
+//bool UaMgr::CloseStreamByPlaybackStreamId(std::string streamId)
+//{
+//    CUSTORLOCKGUARD locker(mapPbMtx);
+//    auto it = m_PbInfoMap.find(streamId);
+//    if (it != m_PbInfoMap.end())
+//    {
+//        m_PbInfoMap.erase(streamId);
+//    }
+//    return true;
+//}
 unsigned int UaMgr::GetAvailableRtpPort()
 {
     return mRtpPortMngr.allocateRTPPort();
