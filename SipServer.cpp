@@ -420,19 +420,30 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-    getQDCCTVNodeInfo();
+    std::string upID, upHost, upPassword;
+    int upPort = 5060;
+    Data passwd("12345");
+#ifdef QINGDONG_CCTC
+    getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
+#endif
 
     Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
+#ifdef QINGDONG_CCTC
+    target.user() = upID.c_str();
+    target.host() = upHost.c_str();
+    target.port() = upPort;
+    passwd = upPassword.c_str();
+#else
     Data upId("34020000002000000002");
     target.user() = mProxyConfig->getConfigData("UPID", upId);
     Data uphost("192.168.1.223");
     target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
     target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
+    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
+#endif
     //Uri target("sip:34021000002000000001@192.168.1.138:5060");
     
     Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
-    Data passwd("12345");
-    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
     mUserAgent->DoRegist(target, fromUri, passwd);
     mRunning = true;
 
@@ -1986,7 +1997,7 @@ SipServer* GetServer()
     return SipServer::Instance();
 }
 
-int SipServer::getQDCCTVNodeInfo()
+int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword)
 {
     Data httpUrl("http:");
 
@@ -2109,6 +2120,20 @@ int SipServer::getQDCCTVNodeInfo()
                     }
 
                 }
+            }
+
+            /*"CCTV": {
+                "third.gb28181.server.id": "37028806002001207783",
+                    "third.gb28181.server.ip" : "10.62.23.10",
+                    "third.gb28181.server.port" : "9700"
+            }*/
+            if (body.HasMember("CCTV") && body["CCTV"].IsObject())
+            {
+                rapidjson::Value& cctvBody = body["CCTV"];
+                upID = json_check_string(cctvBody, "third.gb28181.server.id");
+                upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
+                upPort = json_check_int32(cctvBody, "third.gb28181.server.port");
+                upPassword = json_check_string(cctvBody, "third.gb28181.server.passwd");
             }
             return count;
         }

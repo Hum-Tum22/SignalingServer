@@ -151,7 +151,7 @@ public:
 	resip::UaMgr* GetUaManager() { return mUserAgent; };
 	CUserMessageMrg* GetMsgManager() { return mMessageMgr; };
 
-	int getQDCCTVNodeInfo();
+	int getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword);
 public:
 
 	std::string zlmHost;
