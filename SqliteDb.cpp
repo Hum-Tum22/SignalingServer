@@ -11,8 +11,8 @@
 //#include "repro/AbstractDb.hxx"
 #include "SqliteDb.h"
 #include "rutil/WinLeakCheck.hxx"
-#include "SipServer/UserStore.hxx"
-#include "SipServer/TlsPeerIdentityStore.hxx"
+#include "RegistrarServer/UserStore.hxx"
+#include "RegistrarServer/TlsPeerIdentityStore.hxx"
 
 #include <sstream>
 
@@ -21,6 +21,7 @@
 using namespace resip;
 using namespace repro;
 using namespace std;
+using namespace regist;
 
 #define RESIPROCATE_SUBSYSTEM Subsystem::TEST
 //#define USE_DBENV   // Required for transaction support

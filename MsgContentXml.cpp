@@ -37,7 +37,7 @@ bool CreateKeepAliveMsg(const char* user, const uint32_t& sn, string &outstr)
 	}
 	return false;
 }
-bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, string& outstr)
+bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, string& outstr)
 {
 	try
 	{
@@ -241,6 +241,80 @@ void AddIPCInfoToCatalog(XMLDocument& doc, XMLElement* Element, const CatalogIte
 		XMLElement* SVCTimeSupportModeElement = doc.NewElement("SVCTimeSupportMode");
 		SVCTimeSupportModeElement->InsertEndChild(doc.NewText(to_string(expand->SVCTimeSupportMode).c_str()));
 		InfoElement->InsertEndChild(SVCTimeSupportModeElement);
+	}
+	catch (...)
+	{
+	}
+}
+bool CreateVirtualOrganizationCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<VirtualOrganization> Items, string& outstr)
+{
+	try
+	{
+		XMLDocument doc;
+		doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\" encoding=\"GB2312\""));
+		XMLElement* ResponseElement = doc.NewElement("Response");
+		doc.InsertEndChild(ResponseElement);
+
+		XMLElement* CmdTypeElement = doc.NewElement("CmdType");
+		CmdTypeElement->InsertEndChild(doc.NewText("Catalog"));
+		ResponseElement->InsertEndChild(CmdTypeElement);
+
+		XMLElement* SNElement = doc.NewElement("SN");
+		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
+		ResponseElement->InsertEndChild(SNElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		DeviceIDElement->InsertEndChild(doc.NewText(user));
+		ResponseElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* SumNumElement = doc.NewElement("SumNum");
+		SumNumElement->InsertEndChild(doc.NewText(to_string(SumNum).c_str()));
+		ResponseElement->InsertEndChild(SumNumElement);
+
+		XMLElement* DeviceListElement = doc.NewElement("DeviceList");
+		DeviceListElement->SetAttribute("Num", Items.size());			//item num
+		ResponseElement->InsertEndChild(DeviceListElement);
+
+		//add item
+		for (unsigned int i = 0; i < Items.size(); i++)
+		{
+			AddVirtualOrganizationToCatalog(doc, DeviceListElement, Items[i]);
+		}
+
+		XMLPrinter printer;
+		doc.Print(&printer);
+		outstr = printer.CStr();
+		return true;
+	}
+	catch (...)
+	{
+	}
+
+	
+	return false;
+}
+void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const VirtualOrganization& item)
+{
+	try
+	{
+		XMLElement* ItemElement = doc.NewElement("Item");
+		DeviceListElement->InsertEndChild(ItemElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
+		DeviceIDElement->InsertEndChild(doc.NewText(item.DeviceID.c_str()));
+		ItemElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* NameElement = doc.NewElement("Name");
+		NameElement->InsertEndChild(doc.NewText(ownCodeCvt::Utf8ToGbk(item.Name).c_str()));
+		ItemElement->InsertEndChild(NameElement);
+
+		XMLElement* ParentIDElement = doc.NewElement("ParentID");
+		ParentIDElement->InsertEndChild(doc.NewText(item.ParentID.c_str()));
+		ItemElement->InsertEndChild(ParentIDElement);
+
+		XMLElement* GroupIDElement = doc.NewElement("BusinessGroupID");
+		GroupIDElement->InsertEndChild(doc.NewText(item.BusinessGroupID.c_str()));
+		ItemElement->InsertEndChild(GroupIDElement);
 	}
 	catch (...)
 	{

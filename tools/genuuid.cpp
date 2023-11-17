@@ -149,3 +149,26 @@ char* uuidgen(void)
 	return src;
 }
 }
+#include <string>
+#include <random>
+#include <sstream>
+#include <iomanip>
+#include <chrono>
+std::string generateUUID()
+{
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(0, 15);
+	int64_t curTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	const char* uuid_chars = "0123456789abcdef";
+	std::stringstream ss;
+	for (int i = 0; i < 32; ++i) {
+		int nibble = dis(gen);
+		char c = uuid_chars[nibble];
+		if (i == 8 || i == 12 || i == 16 || i == 20) {
+			ss << "-";
+		}
+		ss << c;
+	}
+	return ss.str();
+}

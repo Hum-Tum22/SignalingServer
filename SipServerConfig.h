@@ -1,17 +1,17 @@
 #ifndef SIP_SERVER_CONFIG_H_
 #define SIP_SERVER_CONFIG_H_
-#include "SipServer/ProxyConfig.hxx"
-#include "SipServer/AbstractDb.hxx"
+#include "RegistrarServer/ProxyConfig.hxx"
+#include "RegistrarServer/AbstractDb.hxx"
 
-class MyServerConfig : public repro::ProxyConfig
+class MyServerConfig : public regist::ProxyConfig
 {
-    repro::AbstractDb* mAbstractDb;
+    regist::AbstractDb* mAbstractDb;
 public:
     MyServerConfig();
-    repro::AbstractDb* getDatabase(int configIndex);
-    repro::AbstractDb* CreateDatabase();
+    regist::AbstractDb* getDatabase(int configIndex);
+    regist::AbstractDb* CreateDatabase();
 };
 
 MyServerConfig& GetSipServerConfig();
-repro::AbstractDb* getCurDatabase();
+regist::AbstractDb* getCurDatabase();
 #endif

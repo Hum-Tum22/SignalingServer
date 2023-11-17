@@ -154,7 +154,7 @@ public:
         if (sendRtpPortRange.empty()) {
             return sendRtpItem;
         }
-        std::vector<std::string> portRangeStrArray = std::vStringSplit(serverItem.getSendRtpPortRange(), ",");
+        std::vector<std::string> portRangeStrArray;// = std::vStringSplit(serverItem.getSendRtpPortRange(), ",");
         int localPort = -1; 
         std::set<int> usedFreelist;
         if (portRangeStrArray.size() != 2) {
@@ -198,7 +198,7 @@ public:
         if (sendRtpPortRange.empty()) {
             return sendRtpItem;
         }
-        std::vector<std::string> portRangeStrArray = std::vStringSplit(serverItem.getSendRtpPortRange(), ",");
+        std::vector<std::string> portRangeStrArray;// = std::vStringSplit(serverItem.getSendRtpPortRange(), ",");
         int localPort = -1;
         std::set<int> usedFreelist;
         if (portRangeStrArray.size() != 2) {

@@ -1,6 +1,6 @@
 #pragma once
 #include "resip/stack/SipMessage.hxx"
-#include "../SipServer/ReproServerAuthManager.hxx"
+#include "../RegistrarServer/RegistrarServerAuthManager.hxx"
 #include "resip/stack/Dispatcher.hxx"
 #include "resip/stack/Helper.hxx"
 
@@ -12,7 +12,7 @@ class SipServerAuthManager : public resip::ServerAuthManager
 public:
 	SipServerAuthManager(resip::DialogUsageManager& dum,
 		resip::Dispatcher* authRequestDispatcher,
-		AclStore& aclDb,
+		regist::AclStore& aclDb,
 		bool useAuthInt,
 		bool rejectBadNonces,
 		bool challengeThirdParties,
@@ -22,7 +22,7 @@ public:
 
 	SipServerAuthManager(resip::DialogUsageManager& dum,
 		resip::Dispatcher* authRequestDispatcher,
-		AclStore& aclDb,
+		regist::AclStore& aclDb,
 		bool useAuthInt,
 		bool rejectBadNonces,
 		bool challengeThirdParties,

@@ -16,9 +16,6 @@
     <Filter Include="ConfigFile">
       <UniqueIdentifier>{627b4282-a60b-4f34-b7c9-bef348ff1b43}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SipServer">
-      <UniqueIdentifier>{d208c6af-cb9b-4782-b1f3-531ad2c6c90f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="device">
       <UniqueIdentifier>{8df2516c-56f1-4baf-b05d-a607c3a9c97c}</UniqueIdentifier>
     </Filter>
@@ -40,52 +37,25 @@
     <Filter Include="SqlDbManager">
       <UniqueIdentifier>{ec10a54a-26ac-4fed-a4d5-b3f69dc81249}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RegistrarServer">
+      <UniqueIdentifier>{66090ed1-ea67-45b7-96da-70e2a0f79d5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UserAgent">
+      <UniqueIdentifier>{f007153f-b985-40c5-943a-1d9c43376c77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="media">
+      <UniqueIdentifier>{15e489a5-06ba-4a40-b058-3878251b96a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="plugin">
+      <UniqueIdentifier>{240bb03b-a537-4629-85d0-eff21b3936e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="deviceMng">
+      <UniqueIdentifier>{d3589576-a4d1-474d-b2d5-f9b13bda9911}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\Registrar.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\UserAuthGrabber.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\AbstractDb.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\AclStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\Store.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ConfigStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\FilterStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\RouteStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\SiloStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\SqlDb.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\StaticRegStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\TlsPeerIdentityStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\UserStore.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\Processor.cxx">
-      <Filter>SipServer</Filter>
     </ClCompile>
     <ClCompile Include="MySqlDb.cxx">
       <Filter>源文件</Filter>
@@ -97,15 +67,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tinyxml2.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="UaClientCall.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="UaMessageMgr.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="UserAgentMgr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="XmlMsgAnalysis.cpp">
@@ -120,64 +81,7 @@
     <ClCompile Include="sqlite3.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="SipServer\ReproAuthenticatorFactory.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ReproServerAuthManager.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ReproRADIUSServerAuthManager.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ReproTlsPeerAuthManager.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\CertificateAuthenticator.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\DigestAuthenticator.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\RADIUSAuthenticator.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ProxyConfig.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\BasicWsConnectionValidator.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\IsTrustedNode.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\RequestContext.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ResponseContext.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\Proxy.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\ProcessorChain.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\Target.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\RRDecorator.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\AccountingCollector.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
-    <ClCompile Include="SipServer\PersistentMessageQueue.cxx">
-      <Filter>SipServer</Filter>
-    </ClCompile>
     <ClCompile Include="mongoose.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="RegistServer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="SipServerConfig.cpp">
@@ -219,9 +123,6 @@
     <ClCompile Include="mySipServer\MyClientRegistHandler.cpp">
       <Filter>mySipServer</Filter>
     </ClCompile>
-    <ClCompile Include="mySipServer\SipServerAuthManager.cpp">
-      <Filter>mySipServer</Filter>
-    </ClCompile>
     <ClCompile Include="Ualink.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -246,62 +147,194 @@
     <ClCompile Include="RtpPortManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="RegistrarServer\AbstractDb.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\AccountingCollector.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\AclStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\BasicWsConnectionValidator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\CertificateAuthenticator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\ConfigStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\DigestAuthenticator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\FilterStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\IsTrustedNode.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\MyMessageDecorator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\PersistentMessageQueue.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\Processor.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\ProcessorChain.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\Proxy.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\ProxyConfig.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RADIUSAuthenticator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RegistRADIUSServerAuthManager.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\Registrar.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RegistrarServerAuthManager.cpp">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RegistServer.cpp">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RegistServerAuthenticatorFactory.cpp">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RegistTlsPeerAuthManager.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RequestContext.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\ResponseContext.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RouteStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\RRDecorator.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\SiloStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\SqlDb.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\StaticRegStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\Store.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\Target.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\TlsPeerIdentityStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\UserAuthGrabber.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="RegistrarServer\UserStore.cxx">
+      <Filter>RegistrarServer</Filter>
+    </ClCompile>
+    <ClCompile Include="UserAgent\UaClientCall.cpp">
+      <Filter>UserAgent</Filter>
+    </ClCompile>
+    <ClCompile Include="UserAgent\UaMessageMgr.cpp">
+      <Filter>UserAgent</Filter>
+    </ClCompile>
+    <ClCompile Include="UserAgent\UserAgentMgr.cpp">
+      <Filter>UserAgent</Filter>
+    </ClCompile>
+    <ClCompile Include="media\rtp\receiver_rtp.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\rtp\send_rtp.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\ps-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\h264-file-reader.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\rtp-udp-transport.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="Plugin\vsk\x86Nvr\jsonSdkInterface.cpp">
+      <Filter>plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="media\avpacket-queue.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\ffmpeg-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\ffmpeg-live-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\h264-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\h265-file-reader.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\h265-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\mp4-file-reader.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\mp4-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\pcm-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\vod-file-source.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\base64.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\ThreadPool.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\lineBuf.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="deviceMng\JsonDevice.cpp">
+      <Filter>deviceMng</Filter>
+    </ClCompile>
+    <ClCompile Include="deviceMng\deviceMng.cpp">
+      <Filter>deviceMng</Filter>
+    </ClCompile>
+    <ClCompile Include="tools\memPool.cpp">
+      <Filter>tools</Filter>
+    </ClCompile>
+    <ClCompile Include="media\MediaMng.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\MediaStream.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\mediaIn\JsonStream.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SipServer\Registrar.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AuthenticatorFactory.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\UserAuthGrabber.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AbstractDb.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AclStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\Store.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ConfigStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\FilterStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\RouteStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\SiloStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\SqlDb.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\StaticRegStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\TlsPeerIdentityStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\UserStore.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\UserInfoMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ProcessorMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\Processor.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\TlsPeerIdentityInfo.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
     <ClInclude Include="MySqlDb.hxx">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -314,16 +347,7 @@
     <ClInclude Include="tinyxml2.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="UaClientCall.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="uainfo.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="UaMessageMgr.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="UserAgentMgr.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="XmlMsgAnalysis.h">
@@ -341,73 +365,7 @@
     <ClInclude Include="sqlite3ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="SipServer\ReproAuthenticatorFactory.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ReproServerAuthManager.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ReproRADIUSServerAuthManager.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ReproTlsPeerAuthManager.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\CertificateAuthenticator.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\DigestAuthenticator.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\RADIUSAuthenticator.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ProxyConfig.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\BasicWsConnectionValidator.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\IsTrustedNode.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\RequestContext.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ResponseContext.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\Proxy.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ProcessorChain.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\Target.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\Ack200DoneMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\RRDecorator.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\TimerCMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\ForkControlMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AccountingCollector.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\PersistentMessageQueue.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
     <ClInclude Include="mongoose.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="RegistServer.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="SipServerConfig.h">
@@ -458,20 +416,8 @@
     <ClInclude Include="tools\CodeConvert.h">
       <Filter>tools</Filter>
     </ClInclude>
-    <ClInclude Include="SipServer\AsyncProcessor.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AsyncProcessorMessage.hxx">
-      <Filter>SipServer</Filter>
-    </ClInclude>
     <ClInclude Include="mySipServer\MyClientRegistHandler.h">
       <Filter>mySipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="mySipServer\SipServerAuthManager.h">
-      <Filter>mySipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\AsyncProcessorWorker.hxx">
-      <Filter>SipServer</Filter>
     </ClInclude>
     <ClInclude Include="Ualink.h">
       <Filter>头文件</Filter>
@@ -524,21 +470,6 @@
     <ClInclude Include="localMediaServer\MediaConfig.h">
       <Filter>localMediaServer</Filter>
     </ClInclude>
-    <ClInclude Include="SipServer\ConversationManager.h">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\BridgeMixer.h">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\HandleTypes.h">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\MediaEvent.h">
-      <Filter>SipServer</Filter>
-    </ClInclude>
-    <ClInclude Include="SipServer\MediaResourceCache.h">
-      <Filter>SipServer</Filter>
-    </ClInclude>
     <ClInclude Include="device\ParentPlatformDbManager.h">
       <Filter>device</Filter>
     </ClInclude>
@@ -550,6 +481,264 @@
     </ClInclude>
     <ClInclude Include="RtpPortManager.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AbstractDb.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AccountingCollector.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Ack200DoneMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AclStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AsyncProcessor.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AsyncProcessorMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AsyncProcessorWorker.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\AuthenticatorFactory.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\BasicWsConnectionValidator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\BridgeMixer.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\CertificateAuthenticator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ConfigStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ConversationManager.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\DigestAuthenticator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\FilterStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ForkControlMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\HandleTypes.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\IsTrustedNode.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\MediaEvent.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\MediaResourceCache.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\MyMessageDecorator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\PersistentMessageQueue.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Processor.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ProcessorChain.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ProcessorMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Proxy.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ProxyConfig.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RADIUSAuthenticator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RegistRADIUSServerAuthManager.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Registrar.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RegistrarServerAuthManager.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RegistServer.h">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RegistServerAuthenticatorFactory.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RegistTlsPeerAuthManager.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RequestContext.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\ResponseContext.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RouteStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\RRDecorator.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\SiloStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\SqlDb.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\StaticRegStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Store.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\Target.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\TimerCMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\TlsPeerIdentityInfo.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\TlsPeerIdentityStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\UserAuthGrabber.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\UserInfoMessage.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="RegistrarServer\UserStore.hxx">
+      <Filter>RegistrarServer</Filter>
+    </ClInclude>
+    <ClInclude Include="UserAgent\UaClientCall.h">
+      <Filter>UserAgent</Filter>
+    </ClInclude>
+    <ClInclude Include="UserAgent\UaMessageMgr.h">
+      <Filter>UserAgent</Filter>
+    </ClInclude>
+    <ClInclude Include="UserAgent\UserAgentMgr.h">
+      <Filter>UserAgent</Filter>
+    </ClInclude>
+    <ClInclude Include="media\rtp\receiver_rtp.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\rtp\send_rtp.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\media-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\ps-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\h264-file-reader.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\rtp-tcp-transport.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\rtp-udp-transport.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="Plugin\vsk\x86Nvr\jsonSdkInterface.h">
+      <Filter>plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="media\avpacket-queue.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\ffmpeg-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\ffmpeg-live-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\h264-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\h265-file-reader.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\h265-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\mp4-file-reader.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\mp4-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\pcm-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\vod-file-source.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\base64.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\ThreadPool.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\lineBuf.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\SafeQueue.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceMng\BaseDevice.h">
+      <Filter>deviceMng</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceMng\JsonDevice.h">
+      <Filter>deviceMng</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceMng\deviceMng.h">
+      <Filter>deviceMng</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceMng\VirtualOrganization.h">
+      <Filter>deviceMng</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceMng\BaseMediaIn.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\memPool.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="media\mediaIn\Stream.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\MediaMng.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\MediaStream.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="media\mediaIn\JsonStream.h">
+      <Filter>media</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\unLockQueue.h">
+      <Filter>tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Plugin\PluginInterface.h">
+      <Filter>plugin</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

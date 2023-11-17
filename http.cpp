@@ -8,7 +8,7 @@
 #include "device/DeviceManager.h"
 #include <iostream>
 #include <sstream>
-#include "UaClientCall.h"
+#include "UserAgent/UaClientCall.h"
 #include "SipServer.h"
 #include "tools/ownString.h"
 #include "tools/m_Time.h"
@@ -28,6 +28,8 @@ size_t getUrlResponse(char* buffer, size_t size, size_t count, string* response)
 }
 string GetRequest(const string& url)
 {
+	if (url.empty())
+		return "";
 	CHttpClient cHttpClient;
 	return cHttpClient.HttpGetRequest(url);
 	string response;
@@ -709,7 +711,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 					deviceId = devuinfo.getDeviceId();
 					if (stream_Id.empty())
 					{
-						stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+						//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
 					}
 					//≈–∂œ¡˜¥Ê‘⁄
 					ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
@@ -785,7 +787,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 				deviceId = devuinfo.getDeviceId();
 				if (stream_Id.empty())
 				{
-					stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+					//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
 				}
 			}
 		}
@@ -799,11 +801,11 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 			writer.Key("channelId"); writer.String(channel.c_str());
 			writer.Key("deviceID"); writer.String(deviceId.c_str());
 			writer.Key("host"); writer.String(pSvr->zlmHost.c_str());
-			std::string url = std::str_format("http://%s:%d/rtp/%s.live.mp4", pSvr->zlmHost.c_str(), pSvr->zlmHttpPort, stream_Id.c_str());
+			std::string url;// = std::str_format("http://%s:%d/rtp/%s.live.mp4", pSvr->zlmHost.c_str(), pSvr->zlmHttpPort, stream_Id.c_str());
 			writer.Key("fmp4"); writer.String(url.c_str());
-			std::string rtcUrl = 
-				std::str_format("https://%s:443/index/api/webrtc?app=rtp&stream=%s&type=play",
-					pSvr->zlmHost.c_str(), stream_Id.c_str());
+			std::string rtcUrl;// =
+				//std::str_format("https://%s:443/index/api/webrtc?app=rtp&stream=%s&type=play",
+					//pSvr->zlmHost.c_str(), stream_Id.c_str());
 			writer.Key("rtc"); writer.String(rtcUrl.c_str());
 			//writer.Key("mediainfo"); writer.String(GetMediaConfigInfo().c_str());
 			std::string mediaInfo = GetMediaConfigInfo();
@@ -817,7 +819,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 	{
 		writer.StartObject();
 		writer.Key("code"); writer.Int(1);
-		writer.Key("msg"); writer.String(std::GbkToUtf8("≤•∑≈ ß∞‹").c_str());
+		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("≤•∑≈ ß∞‹").c_str()*/);
 		writer.EndObject();
 	}
 	strOut = std::string(response.GetString(), response.GetSize());
@@ -910,7 +912,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 					{
 						CDateTime staTime(stime);
 						CDateTime endTime(etime);
-						stream_Id = std::str_format("%s_%s_%s_%s", deviceId.c_str(), channel.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+						//stream_Id = std::str_format("%s_%s_%s_%s", deviceId.c_str(), channel.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
 					}
 					//≈–∂œ¡˜¥Ê‘⁄
 					ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
@@ -988,7 +990,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 				deviceId = devuinfo.getDeviceId();
 				if (stream_Id.empty())
 				{
-					stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+					//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
 				}
 			}
 		}
@@ -1002,11 +1004,11 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 		writer.Key("channelId"); writer.String(channel.c_str());
 		writer.Key("deviceID"); writer.String(deviceId.c_str());
 		writer.Key("host"); writer.String(pSvr->zlmHost.c_str());
-		std::string url = std::str_format("http://%s:%d/rtp/%s.live.mp4", pSvr->zlmHost.c_str(), pSvr->zlmHttpPort, stream_Id.c_str());
+		std::string url;// = std::str_format("http://%s:%d/rtp/%s.live.mp4", pSvr->zlmHost.c_str(), pSvr->zlmHttpPort, stream_Id.c_str());
 		writer.Key("fmp4"); writer.String(url.c_str());
-		std::string rtcUrl =
-			std::str_format("https://%s:443/index/api/webrtc?app=rtp&stream=%s&type=play",
-				pSvr->zlmHost.c_str(), stream_Id.c_str());
+		std::string rtcUrl;// =
+			//std::str_format("https://%s:443/index/api/webrtc?app=rtp&stream=%s&type=play",
+				//pSvr->zlmHost.c_str(), stream_Id.c_str());
 		writer.Key("rtc"); writer.String(rtcUrl.c_str());
 		//writer.Key("mediainfo"); writer.String(GetMediaConfigInfo().c_str());
 		std::string mediaInfo = GetMediaConfigInfo();
@@ -1019,7 +1021,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 	{
 		writer.StartObject();
 		writer.Key("code"); writer.Int(1);
-		writer.Key("msg"); writer.String(std::GbkToUtf8("≤•∑≈ ß∞‹").c_str());
+		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("≤•∑≈ ß∞‹").c_str()*/);
 		writer.EndObject();
 	}
 	strOut = std::string(response.GetString(), response.GetSize());

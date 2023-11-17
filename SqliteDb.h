@@ -4,8 +4,8 @@
 
 #include "sqlite3.h"
 #include "rutil/Data.hxx"
-#include "SipServer/AbstractDb.hxx"
-#include "SipServer/SqlDb.hxx"
+#include "RegistrarServer/AbstractDb.hxx"
+#include "RegistrarServer/SqlDb.hxx"
 #include <list>
 #include "device/DeviceInfo.h"
 #include "device/DeviceChannel.h"

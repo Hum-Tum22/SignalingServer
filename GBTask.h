@@ -3,7 +3,7 @@
 #include "tools/iThreadPool.h"
 #include "MsgContentXml.h"
 #include "SipServer.h"
-#include "UserAgentMgr.h"
+#include "UserAgent/UserAgentMgr.h"
 
 class GBDeviceOnlineTask : public ownTask::CTask
 {

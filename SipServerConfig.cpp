@@ -8,6 +8,7 @@
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::TEST
 using namespace resip;
 using namespace repro;
+using namespace regist;
 
 MyServerConfig::MyServerConfig() :mAbstractDb(0)
 {
@@ -93,7 +94,7 @@ AbstractDb* MyServerConfig::getDatabase(int configIndex)
     }
     return 0;
 }
-repro::AbstractDb* MyServerConfig::CreateDatabase()
+regist::AbstractDb* MyServerConfig::CreateDatabase()
 {
     if (mAbstractDb)
         return mAbstractDb;

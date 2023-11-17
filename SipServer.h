@@ -8,13 +8,13 @@
 #include "resip/stack/DomainMatcher.hxx"
 #include <memory>
 
-#include "SipServer/AuthenticatorFactory.hxx"
+#include "RegistrarServer/AuthenticatorFactory.hxx"
 //#include "repro/Plugin.hxx"
-#include "SipServer/Registrar.hxx"
-#include "UaMessageMgr.h"
+#include "RegistrarServer/Registrar.hxx"
+#include "UserAgent/UaMessageMgr.h"
 
 
-using namespace repro;
+using namespace regist;
 namespace resip
 {
 	class TransactionUser;
@@ -29,7 +29,7 @@ namespace resip
 	class CongestionManager;
 	class UaMgr;
 }
-namespace repro
+namespace regist
 {
 class ProxyConfig;
 class ProcessorChain;
@@ -82,12 +82,11 @@ protected:
 	virtual bool createProxy();
 	virtual void populateRegistrations();
 	virtual bool createWebAdmin();
-	virtual void createAuthenticatorFactory();
-	virtual void createDialogUsageManager();//´´½¨×¢²áserver dum  SipServerAuthManager
 	virtual void createRegSync();
 	virtual void createCommandServer();
 
 	virtual bool createRegistServer();
+	virtual bool createRegistServerEx();
 
 	virtual void initDomainMatcher();
 	virtual void addDomains(resip::TransactionUser& tu);
@@ -116,7 +115,6 @@ protected:
 	AbstractDb* mRuntimeAbstractDb;
 	resip::RegistrationPersistenceManager* mRegistrationPersistenceManager;
 	resip::PublicationPersistenceManager* mPublicationPersistenceManager;
-	AuthenticatorFactory* mAuthFactory;
 	resip::Dispatcher* mAsyncProcessorDispatcher;
 	ProcessorChain* mMonkeys;
 	ProcessorChain* mLemurs;
@@ -152,6 +150,8 @@ private:
 public:
 	resip::UaMgr* GetUaManager() { return mUserAgent; };
 	CUserMessageMrg* GetMsgManager() { return mMessageMgr; };
+
+	int getQDCCTVNodeInfo();
 public:
 
 	std::string zlmHost;
