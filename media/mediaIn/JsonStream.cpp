@@ -24,11 +24,11 @@ void JsonStream::setDevice(JsonNvrDevic::Ptr nvr)
 void __stdcall JsonStream::NvrRtPreDataCb(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)
 {
 }
-void __stdcall JsonStream::VskX86NvrRtPreDataCb(uint32_t PlayHandle, uint8_t* pBuffer, uint32_t BufferSize, uint32_t DateType, time_t systime, uint32_t TimeSpace, void* pUser)
+void __stdcall JsonStream::VskX86NvrRtPreDataCb(unsigned int PlayHandle,unsigned int DateType,unsigned char *pBuffer,unsigned int BufferSize,void* pUser)
 {
 	JsonStream* pThis = (JsonStream*)pUser;
 	if (pThis)
 	{
-		pThis->OnMediaStream(DateType, pBuffer, BufferSize);
+		pThis->OnMediaStream(DateType, (uint8_t*)pBuffer, (size_t)BufferSize);
 	}
 }

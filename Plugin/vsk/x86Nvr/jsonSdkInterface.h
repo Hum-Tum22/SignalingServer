@@ -1,8 +1,5 @@
 #pragma once
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
 
 #include "include/VskClientSdkJson.h"
 #include "../../PluginInterface.h";
@@ -12,7 +9,7 @@
 class JsonSdkInterface : public PluginInter
 {
 public:
-	using DWORD = unsigned long;
+	//using DWORD = unsigned long;
 	JsonSdkInterface();
 	~JsonSdkInterface();
 
@@ -86,14 +83,18 @@ public:
 		JSON_PTZCOMMAND_LIGHT_CLOSE = 19,
 		JSON_PTZCOMMAND_WIPER_OPEN = 20,
 		JSON_PTZCOMMAND_WIPER_CLOSE = 21,
-		JSON_PTZCOMMAND_CALL_PRESET = 22,        //调用预设点
-		JSON_PTZCOMMAND_SAVE_PRESET = 23,        //设置预设点
+		JSON_PTZCOMMAND_CALL_PRESET = 22,        //閿熸枻鎷烽敓鏂ゆ嫹棰勯敓鏂ゆ嫹閿燂拷
+		JSON_PTZCOMMAND_SAVE_PRESET = 23,        //閿熸枻鎷烽敓鏂ゆ嫹棰勯敓鏂ゆ嫹閿燂拷
 		JSON_PTZCOMMAND_BUTT,
 	};
 	typedef int (CALLBACK* Sdk_PTZCtrl)(DWORD UserID, UINT Channel, UINT PTZCommand, UINT Argument);
 	typedef int (CALLBACK* Sdk_ListIPC)(DWORD UserID, char* pIPCServerList, UINT* pIPCServerListSize);
 private:
+#ifdef _WIN32
 	HMODULE  m_hDll;
+#else
+	void *m_hDll;
+#endif
 	bool IsInit;
 
 

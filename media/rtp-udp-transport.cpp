@@ -26,7 +26,7 @@ int RTPUdpTransport::Init(unsigned short localport[2], const char* ip, unsigned 
 	return 1;
 }
 
-int RTPUdpTransport::Init(SOCKET socket[2], const char* peer, unsigned short port[2])
+int RTPUdpTransport::Init(int socket[2], const char* peer, unsigned short port[2])
 {
 	/*int r1 = socket_addr_from(&m_addr[0], &m_addrlen[0], peer, port[0]);
 	int r2 = socket_addr_from(&m_addr[1], &m_addrlen[1], peer, port[1]);

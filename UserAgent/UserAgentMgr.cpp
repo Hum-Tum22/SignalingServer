@@ -687,7 +687,7 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                 if (chl >= 0)
                 {
                     JsonStream::Ptr streamIn = std::make_shared<JsonStream>(channelId.c_str());
-                    ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, JsonStream::VskX86NvrRtPreDataCb, (void*)streamIn.get(), err);
+                    ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, (void*)JsonStream::VskX86NvrRtPreDataCb, (void*)streamIn.get(), err);
                     if (err == 0)
                     {
                         //parent->streamStatus = UaClientCall::CALL_MY_MEDIA_OK;

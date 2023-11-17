@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <list>
+#include <stdint.h>
 //#include "ctypedef.h"
 
 class H265FileReader

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <queue>
+#include <stdio.h>
 
 template <typename T>
 class unLockQueue
@@ -10,12 +11,12 @@ class unLockQueue
 	size_t MAX_SIZE, write, read;
 	bool dump()
 	{
-		//»º³åÖĞ»¹ÓĞÊı¾İ
+		//ç¼“å†²ä¸­è¿˜æœ‰æ•°æ®
 		while (!cacheQueue.empty())
 		{
 			if ((write + 1) % MAX_SIZE == read)
 				return true;
-			// ÓÅÏÈ½«»º³åÖĞµÄÊı¾İĞ´Èëµ½¶ÓÁĞ
+			// ä¼˜å…ˆå°†ç¼“å†²ä¸­çš„æ•°æ®å†™å…¥åˆ°é˜Ÿåˆ—
 			mVector[write] = cacheQueue.front();
 			write = ++write % MAX_SIZE;
 			cacheQueue.pop();
@@ -89,7 +90,7 @@ public:
 		else
 		{
 			read = (read + 1) % MAX_SIZE;
-			//Èç¹û¶ÓÁĞÂúÁË£¬ÔòĞ´Èë»º³å
+			//å¦‚æœé˜Ÿåˆ—æ»¡äº†ï¼Œåˆ™å†™å…¥ç¼“å†²
 			cacheQueue.push(frame);
 		}
 		return true;

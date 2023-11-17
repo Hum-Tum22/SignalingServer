@@ -24,7 +24,11 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 	DownloadFun = NULL;
 	StopDownloadFun = NULL;
 	PtzCtrlFun = NULL;
+#ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
+#else
+	m_hDll = dlopen("sdkJson.so", RTLD_LOCAL);
+#endif
 }
 JsonSdkInterface::~JsonSdkInterface()
 {
@@ -34,7 +38,11 @@ JsonSdkInterface::~JsonSdkInterface()
 		SdkClear(err);
 		if (err == 0)
 		{
+#ifdef _WIN32
 			FreeLibrary(m_hDll);
+#else
+			dlclose(m_hDll);
+#endif
 			m_hDll = NULL;
 		}
 	}
@@ -50,7 +58,7 @@ void JsonSdkInterface::InitSdk(int& err)
 	{
 		if (!InitFun)
 		{
-			InitFun = (Sdk_Initate)GetProcAddress(m_hDll, "JsonSdk_Initate");
+			InitFun = (Sdk_Initate)LoadSharedLibFun(m_hDll, "JsonSdk_Initate");
 		}
 		if (InitFun)
 		{
@@ -81,7 +89,7 @@ void JsonSdkInterface::SdkClear(int& err)
 	{
 		if (!ClearFun)
 		{
-			ClearFun = (Sdk_Clear)GetProcAddress(m_hDll, "JsonSdk_Clear");
+			ClearFun = (Sdk_Clear)LoadSharedLibFun(m_hDll, "JsonSdk_Clear");
 		}
 		if (ClearFun)
 		{
@@ -109,7 +117,7 @@ DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const 
 	{
 		if (!LoginFun)
 		{
-			LoginFun = (Sdk_Login)GetProcAddress(m_hDll, "JsonSdk_Login");
+			LoginFun = (Sdk_Login)LoadSharedLibFun(m_hDll, "JsonSdk_Login");
 		}
 		if (LoginFun)
 		{
@@ -156,7 +164,7 @@ void JsonSdkInterface::LogOut(DWORD loginId, int& err)
 	{
 		if (!LogOutFun)
 		{
-			LogOutFun = (Sdk_Logout)GetProcAddress(m_hDll, "JsonSdk_Logout");
+			LogOutFun = (Sdk_Logout)LoadSharedLibFun(m_hDll, "JsonSdk_Logout");
 		}
 		if (LogOutFun && loginId)
 		{
@@ -182,7 +190,7 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 	{
 		if (!PreviewFun)
 		{
-			PreviewFun = (Sdk_Preview)GetProcAddress(m_hDll, "JsonSdk_VideoTranspondStartWithoutViskhead");
+			PreviewFun = (Sdk_Preview)LoadSharedLibFun(m_hDll, "JsonSdk_VideoTranspondStartWithoutViskhead");
 		}
 		if (UserID && PreviewFun)
 		{
@@ -225,7 +233,7 @@ void JsonSdkInterface::StopPreview(DWORD UserID, int& err)
 	{
 		if (!StopPreviewFun)
 		{
-			StopPreviewFun = (Sdk_StopPreview)GetProcAddress(m_hDll, "JsonSdk_VideoTranspondStop");
+			StopPreviewFun = (Sdk_StopPreview)LoadSharedLibFun(m_hDll, "JsonSdk_VideoTranspondStop");
 		}
 		if (UserID && StopPreviewFun)
 		{
@@ -250,7 +258,7 @@ DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end
 	{
 		if (!PlayBackFun)
 		{
-			PlayBackFun = (Sdk_PlayBackStartByTime)GetProcAddress(m_hDll, "JsonSdk_PlayBackStartByTime");
+			PlayBackFun = (Sdk_PlayBackStartByTime)LoadSharedLibFun(m_hDll, "JsonSdk_PlayBackStartByTime");
 		}
 		if (UserID && PlayBackFun)
 		{
@@ -294,7 +302,7 @@ void JsonSdkInterface::StopPlayBack(DWORD UserID, int& err)
 	{
 		if (!StopPlayBackFun)
 		{
-			StopPlayBackFun = (Sdk_PlayBackStop)GetProcAddress(m_hDll, "JsonSdk_PlayBackStop");
+			StopPlayBackFun = (Sdk_PlayBackStop)LoadSharedLibFun(m_hDll, "JsonSdk_PlayBackStop");
 		}
 		if (UserID && StopPlayBackFun)
 		{
@@ -320,7 +328,7 @@ DWORD JsonSdkInterface::Download(DWORD UserID, int channel, long start, long end
 	{
 		if (!DownloadFun)
 		{
-			DownloadFun = (Sdk_Download)GetProcAddress(m_hDll, "JsonSdk_DownloadStartByTime");
+			DownloadFun = (Sdk_Download)LoadSharedLibFun(m_hDll, "JsonSdk_DownloadStartByTime");
 		}
 		if (UserID && DownloadFun)
 		{
@@ -364,7 +372,7 @@ void JsonSdkInterface::StopDownload(DWORD UserID, int& err)
 	{
 		if (!StopDownloadFun)
 		{
-			StopDownloadFun = (Sdk_DownloadStop)GetProcAddress(m_hDll, "JsonSdk_DownloadStop");
+			StopDownloadFun = (Sdk_DownloadStop)LoadSharedLibFun(m_hDll, "JsonSdk_DownloadStop");
 		}
 		if (UserID && StopDownloadFun)
 		{
@@ -389,7 +397,7 @@ void JsonSdkInterface::PTZCtrl(DWORD UserID, uint32_t Channel, uint32_t PTZComma
 	{
 		if (!PtzCtrlFun)
 		{
-			PtzCtrlFun = (Sdk_PTZCtrl)GetProcAddress(m_hDll, "JsonSdk_PTZCtrl");
+			PtzCtrlFun = (Sdk_PTZCtrl)LoadSharedLibFun(m_hDll, "JsonSdk_PTZCtrl");
 		}
 		if (UserID && PtzCtrlFun)
 		{
@@ -414,7 +422,7 @@ void JsonSdkInterface::ListIPC(DWORD UserID, char* pIPCServerList, UINT* pIPCSer
 	{
 		if (!ListIPCFun)
 		{
-			ListIPCFun = (Sdk_ListIPC)GetProcAddress(m_hDll, "JsonSdk_ListIPC");
+			ListIPCFun = (Sdk_ListIPC)LoadSharedLibFun(m_hDll, "JsonSdk_ListIPC");
 		}
 		if (UserID && ListIPCFun)
 		{

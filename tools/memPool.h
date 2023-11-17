@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include <vector>
 #include <queue>
 
@@ -15,7 +17,7 @@ public:
 	MemPool(/*size_t count = 128,*/ size_t size = 0) :/*mQueue(count),*/ buf(NULL), bm_ptr(NULL), curBuf(NULL)
 		,bufSize(size), readPtr(NULL),readSize(0)
 	{
-		//6M Kbps  =>11M »º´æ15s
+		//6M Kbps  =>11M ç¼“å­˜15s
 		if (bufSize == 0)
 		{
 			//bufsize = 11796480;
@@ -120,7 +122,7 @@ protected:
 	size_t bufSize;
 	size_t rPos, wPos, frPos, fwPos;
 
-	//¿É¶ÁÊı¾İ¿ªÊ¼Ö¸Õë¡¢ÓĞĞ§Êı¾İ³¤¶È
+	//å¯è¯»æ•°æ®å¼€å§‹æŒ‡é’ˆã€æœ‰æ•ˆæ•°æ®é•¿åº¦
 	const uint8_t* readPtr;
 	size_t readSize;
 

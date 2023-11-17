@@ -265,7 +265,6 @@ SipServer::run(int argc, char** argv)
         mArgc = argc;
         mArgv = argv;
     }
-    getQDCCTVNodeInfo();
     // Parse command line and configuration file
     resip_assert(!mProxyConfig);
     Data defaultConfigFilename("repro.config");
@@ -420,11 +419,20 @@ SipServer::run(int argc, char** argv)
     {
         mRegSyncServerAMQP->getThread()->run();
     }*/
-    Uri target("sip:34020000002000000002@192.168.2.140:5060");
+
+    getQDCCTVNodeInfo();
+
+    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
+    Data upId("34020000002000000002");
+    target.user() = mProxyConfig->getConfigData("UPID", upId);
+    Data uphost("192.168.1.223");
+    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
+    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
     //Uri target("sip:34021000002000000001@192.168.1.138:5060");
     
     Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
     Data passwd("12345");
+    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
     mUserAgent->DoRegist(target, fromUri, passwd);
     mRunning = true;
 
@@ -1980,7 +1988,17 @@ SipServer* GetServer()
 
 int SipServer::getQDCCTVNodeInfo()
 {
-    std::string dirstr = GetRequest("http://192.168.1.223:20010/device/gbInfo");
+    Data httpUrl("http:");
+
+    Data httphost("192.168.1.223");
+    httphost = mProxyConfig->getConfigData("CCTVHOST", httphost);
+    int port = mProxyConfig->getConfigInt("CCTVPORT", 8080);
+    httpUrl += httphost;
+    httpUrl += Data(":");
+    httpUrl += Data(port);
+    httpUrl += Data("/device/gbInfo");
+
+    std::string dirstr = GetRequest(httpUrl.c_str());
 
     rapidjson::Document document;
     document.Parse((char*)dirstr.c_str());

@@ -1,6 +1,6 @@
 #include "PresenceSubscriptionHandler.hxx"
 #include "PresenceServer.hxx"
-#include "SipServer/AbstractDb.hxx"
+#include "RegistrarServer/AbstractDb.hxx"
 #include "resip/stack/Dispatcher.hxx"
 
 #include <resip/dum/DialogUsageManager.hxx>

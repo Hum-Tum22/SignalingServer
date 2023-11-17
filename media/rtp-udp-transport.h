@@ -20,7 +20,7 @@ public:
 
 public:
 	int Init(unsigned short localport[2], const char* ip, unsigned short port[2]);
-	int Init(SOCKET socket[2], const char* peer, unsigned short port[2]);
+	int Init(int socket[2], const char* peer, unsigned short port[2]);
 
 private:
 	asio::io_service io_service;

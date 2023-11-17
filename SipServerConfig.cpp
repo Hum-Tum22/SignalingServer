@@ -133,12 +133,11 @@ regist::AbstractDb* MyServerConfig::CreateDatabase()
     }
     return mAbstractDb;
 }
-static MyServerConfig *g_pServerConfig = NULL;
+
 MyServerConfig& GetSipServerConfig()
 {
-    if (g_pServerConfig == NULL)
-        g_pServerConfig = new MyServerConfig();
-    return *g_pServerConfig;
+    static MyServerConfig g_pServerConfig;
+    return g_pServerConfig;
 }
 AbstractDb* g_mAbstractDb = NULL;
 AbstractDb* getCurDatabase()
