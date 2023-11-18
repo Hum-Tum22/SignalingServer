@@ -27,7 +27,7 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 #ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
 #else
-	m_hDll = dlopen("sdkJson.so", RTLD_LOCAL);
+	m_hDll = dlopen("libsdkJson.so", RTLD_LOCAL);
 #endif
 }
 JsonSdkInterface::~JsonSdkInterface()
