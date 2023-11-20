@@ -288,6 +288,9 @@ SipServer::run(int argc, char** argv)
     zlmHttpPort = mProxyConfig->getConfigInt("zlmhttpport", 8080);
     gbHttpPort = mProxyConfig->getConfigInt("HttpPort", 8090);
     zlmHost = mProxyConfig->getConfigData("zlmhost", "127.0.0.1", true).c_str();
+
+    localHost = mProxyConfig->getConfigData("localHost", "");
+    localPort = mProxyConfig->getConfigInt("localPort", 0);
     // Non-Windows server process stuff
     if (!mRestarting)
     {
@@ -420,7 +423,7 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-    std::string upID, upHost, upPassword;
+    std::string upID, upHost, upPassword("12345");
     int upPort = 5060;
     Data passwd("12345");
 #ifdef QINGDONG_CCTC
@@ -442,9 +445,12 @@ SipServer::run(int argc, char** argv)
     passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
 #endif
     //Uri target("sip:34021000002000000001@192.168.1.138:5060");
-    
+    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
     Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
-    mUserAgent->DoRegist(target, fromUri, passwd);
+    if(!(target.user().empty() || target.user().size() < 20))
+    {
+        mUserAgent->DoRegist(target, fromUri, passwd);
+    }
     mRunning = true;
 
     return true;
@@ -1999,7 +2005,7 @@ SipServer* GetServer()
 
 int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword)
 {
-    Data httpUrl("http:");
+    Data httpUrl("http://");
 
     Data httphost("192.168.1.223");
     httphost = mProxyConfig->getConfigData("CCTVHOST", httphost);
@@ -2009,7 +2015,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
     httpUrl += Data(port);
     httpUrl += Data("/device/gbInfo");
 
-    std::string dirstr = GetRequest(httpUrl.c_str());
+    std::string dirstr("");// = GetRequest(httpUrl.c_str());
 
     rapidjson::Document document;
     document.Parse((char*)dirstr.c_str());
@@ -2132,8 +2138,9 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                 rapidjson::Value& cctvBody = body["CCTV"];
                 upID = json_check_string(cctvBody, "third.gb28181.server.id");
                 upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
-                upPort = json_check_int32(cctvBody, "third.gb28181.server.port");
-                upPassword = json_check_string(cctvBody, "third.gb28181.server.passwd");
+                std::string port  = json_check_string(cctvBody, "third.gb28181.server.port");
+                upPort = std::stoi(port);
+                //upPassword = json_check_string(cctvBody, "third.gb28181.server.passwd");
             }
             return count;
         }

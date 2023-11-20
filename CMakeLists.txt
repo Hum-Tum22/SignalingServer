@@ -5,8 +5,8 @@ PROJECT(GB28181App)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 #add_definitions(-std=c++11 -Wall -O0 -g -fPIC -DWITH_OPENSSL -rdynamic)
-#add_definitions(-std=c++11 -Wall -O0 -g -fPIC -rdynamic)
-add_definitions(-std=c++11 -Wall -O2 -fPIC -rdynamic -DQINGDONG_CCTC)
+add_definitions(-std=c++11 -Wall -O0 -g -fPIC -rdynamic -DQINGDONG_CCTC)
+#add_definitions(-std=c++11 -Wall -O2 -fPIC -rdynamic -DQINGDONG_CCTC)
 
 IF(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
@@ -83,11 +83,11 @@ link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/media)
 
-link_libraries(libdum.a)
-link_libraries(libresip.a)
-link_libraries(libresipares.a)
-link_libraries(librutil.a)
-link_libraries(libcurl.a)
+#link_libraries(libdum.a)
+#link_libraries(libresip.a)
+#link_libraries(libresipares.a)
+#link_libraries(librutil.a)
+#link_libraries(libcurl.a)
 
 SET(LIBS
 	-Wl,--start-group

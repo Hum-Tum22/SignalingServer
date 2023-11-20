@@ -157,6 +157,9 @@ public:
 	std::string zlmHost;
 	int zlmHttpPort;
 	int gbHttpPort;
+
+	Data localHost;
+	int localPort;
 };
 }
 sipserver::SipServer* GetServer();

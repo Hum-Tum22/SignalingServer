@@ -45,7 +45,7 @@
 #include "../media/mediaIn/JsonStream.h"
 
 #include <memory>
-
+#include <string.h>
 #include "myjsondef.h"
 #include "writer.h"
 #include "stringbuffer.h"
@@ -128,17 +128,17 @@ public:
                 {
                     if (pSvr)
                     {
-                        pSvr->zlmHost = "192.168.1.230";
-                        sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
-                        sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
+                        //pSvr->zlmHost = "192.168.1.230";
+                        //sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
+                        //sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
                     }
                 }
                 else if (msg.isResponse())
                 {
                     if (pSvr)
                     {
-                        sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
-                        sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
+                        //sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
+                        //sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
                     }
                 }
                 Data sourceip = Tuple::inet_ntop(source);
@@ -161,7 +161,20 @@ public:
         {
             Data destip = Tuple::inet_ntop(destination);
         }
-        
+        if (msg.isRequest())
+	{
+	    sipserver::SipServer* pSvr = GetServer();
+    	    if (pSvr && !pSvr->localHost.empty())
+    	    {
+        	msg.header(h_Vias).front().sentHost() = pSvr->localHost;
+	        msg.header(h_Contacts).front().uri().host() = pSvr->localHost;
+    	    }
+    	    if (pSvr && !pSvr->localPort != 0)
+    	    {
+	        msg.header(h_Vias).front().sentPort() = pSvr->localPort;
+        	msg.header(h_Contacts).front().uri().port() = pSvr->localPort;
+    	    }
+	}
         InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
     }
     virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
@@ -208,7 +221,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     {
         AresDns::enableHostFileLookupOnlyMode(true);
     }
-
+    
     // Disable Statistics Manager
     mStack.statisticsManagerEnabled() = false;
 
@@ -394,6 +407,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 
     mDum->registerForConnectionTermination(this);
 
+	
     /*mRegHandle = new CUacRegistHandler(*mDum);
     if (mRegHandle)
         mRegHandle->RegistCallBackRegistState(RegistStateCallBack, this);*/
@@ -405,11 +419,10 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     }
 
     mDumThread = new DumThread(*mDum);
-
-    MyServerConfig& SvrCfg = GetSipServerConfig();
-    mDevCfg.HeartBeatCount = SvrCfg.getConfigInt("keepaliveTimeOutNum", 3);
-    mDevCfg.HeartBeatInterval = SvrCfg.getConfigInt("keepaliveInterval", 3);
-    mDevCfg.Expires = SvrCfg.getConfigInt("Expires", 3);
+    
+    mDevCfg.HeartBeatCount =svrCfgi.getConfigInt("keepaliveTimeOutNum", 3);
+    mDevCfg.HeartBeatInterval = svrCfgi.getConfigInt("keepaliveInterval", 3);
+    mDevCfg.Expires = svrCfgi.getConfigInt("Expires", 3);
     StateThread = std::thread(checkStateThread, this);
 }
 UaMgr::~UaMgr()
@@ -453,7 +466,7 @@ void UaMgr::Regist(shared_ptr<UaSessionInfo> ua)
             mProfile->getDefaultFrom().uri().host(), mProfile->getDefaultFrom().uri().user(), ua->passwd);
 #endif
         Uri tUri = ua->toUri;
-        tUri.host() = tUri.user().substr(0, 10);
+        //tUri.host() = tUri.user().substr(0, 10);
         regMessage->header(h_RequestLine).uri().user() = tUri.user();// Uri(tUri.getAorNoReally());
         Uri tmpUri = ua->fromUri;
         tmpUri.host() = tmpUri.user().substr(0, 10);

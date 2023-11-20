@@ -7,7 +7,8 @@
 #include "media-source.h"
 #include "../tools/memPool.h"
 #include "../tools/lineBuf.h"
-#include "Plugin/PluginInterface.h"
+#include "../Plugin/PluginInterface.h"
+#include "../tools/unLockQueue.h"
 
 struct vframe_t
 {

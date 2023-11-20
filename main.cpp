@@ -39,6 +39,7 @@ int main(int argc, char** argv)
     repro.mainLoop();
 
     repro.shutdown();*/
+    Data name("keepaliveTimeOutNum");
     SipServer* pSipSvr = GetServer();
     if (pSipSvr)
     {
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
             cerr << "Failed to start repro, exiting..." << endl;
             exit(-1);
         }
-        HttpServer httpSv(pSipSvr->gbHttpPort);
+        //HttpServer httpSv(pSipSvr->gbHttpPort);
         pSipSvr->mainLoop();
 
         pSipSvr->shutdown();

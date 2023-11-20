@@ -4,7 +4,7 @@
 #include "../../../lib/rapidjson/stringbuffer.h"
 #include "../../../lib/rapidjson/writer.h"
 #include "include/base64.h"
-#include "include/base64.cpp"
+//#include "include/base64.cpp"
 
 JsonSdkInterface& JsonSdkInterface::Instance()
 {

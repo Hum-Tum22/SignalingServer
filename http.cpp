@@ -138,13 +138,15 @@ void CHttpClient::OnHttpEvent(struct mg_connection* c, int ev, void* ev_data, vo
 	if (ev == MG_EV_OPEN)
 	{
 		// Connection created. Store connect expiration time in c->label
-		*(uint64_t*)c->label = mg_millis() + pThis->mTimeout_ms;
+		*(uint64_t*)c->data = mg_millis() + pThis->mTimeout_ms;
 	}
 	else if (ev == MG_EV_POLL)
 	{
-		if (mg_millis() > *(uint64_t*)c->label && (c->is_connecting || c->is_resolving))
+		if (mg_millis() > *(uint64_t*)c->data && (c->is_connecting || c->is_resolving))
 		{
 			mg_error(c, "Connect timeout");
+			c->is_draining = 1;
+			pThis->bExitFlag = true;
 		}
 	}
 	else if (ev == MG_EV_CONNECT)
@@ -176,11 +178,17 @@ void CHttpClient::OnHttpEvent(struct mg_connection* c, int ev, void* ev_data, vo
 		struct mg_http_message* hm = (struct mg_http_message*)ev_data;
 		//printf("%.*s", (int) hm->body.len, hm->body.ptr);
 		pThis->mResponse = std::string(hm->body.ptr, hm->body.len);
-		c->is_closing = 1;
+		c->is_draining = 1;
 		pThis->bExitFlag = true;
 	}
 	else if (ev == MG_EV_ERROR)
 	{
+		c->is_draining = 1;
+		pThis->bExitFlag = true;
+	}
+	else if(ev == MG_EV_CLOSE)
+	{
+		c->is_draining = 1;
 		pThis->bExitFlag = true;
 	}
 }

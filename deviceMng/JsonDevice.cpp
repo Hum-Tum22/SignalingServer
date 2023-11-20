@@ -1,4 +1,3 @@
-
 #include "JsonDevice.h"
 #include "../media/mediaIn/JsonStream.h"
 
