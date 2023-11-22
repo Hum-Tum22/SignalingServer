@@ -66,7 +66,7 @@ public:
 			{
 				frPos = rPos;
 				fwPos = wPos;
-				printf("------- wPos:%u rPos:%u error\n", wPos, rPos);
+				printf("------- wPos:%lu rPos:%lu error\n", wPos, rPos);
 			}
 			wPos = rPos = 0;
 			if (curBuf == buf)
