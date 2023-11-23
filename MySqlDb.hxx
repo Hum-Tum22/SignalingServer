@@ -8,7 +8,7 @@
 #endif
 
 #include "rutil/Data.hxx"
-#include "SipServer/SqlDb.hxx"
+#include "RegistrarServer/SqlDb.hxx"
 
 namespace resip
 {

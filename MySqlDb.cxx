@@ -18,15 +18,16 @@
 #include "rutil/Logger.hxx"
 #include "rutil/ParseBuffer.hxx"
 
-#include "SipServer/AbstractDb.hxx"
+#include "RegistrarServer/AbstractDb.hxx"
 #include "MySqlDb.hxx"
-#include "SipServer/UserStore.hxx"
+#include "RegistrarServer/UserStore.hxx"
 
-#include "SipServer/TlsPeerIdentityStore.hxx"
+#include "RegistrarServer/TlsPeerIdentityStore.hxx"
 
 
 using namespace resip;
 using namespace repro;
+using namespace regist;
 using namespace std;
 
 #define RESIPROCATE_SUBSYSTEM Subsystem::REPRO
