@@ -34,7 +34,6 @@
 //#include "device/DeviceManager.h"
 //#include "tools/m_Time.h"
 //#include "tools/ownString.h"
-#include "../tools/iThreadPool.h"
 #include "../UserAgent/UaClientCall.h"
 
 

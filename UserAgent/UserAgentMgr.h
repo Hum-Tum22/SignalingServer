@@ -21,7 +21,6 @@
 #include <resip/dum/PublicationHandler.hxx>
 
 #include "UaMessageMgr.h"
-#include "../localMediaServer/StreamInfo.h"
 #include "../RtpPortManager.h"
 #include "../deviceMng/deviceMng.h"
 

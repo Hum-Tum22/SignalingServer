@@ -2,7 +2,6 @@
 #define DEVICE_MANAGER_H_
 #include "DeviceInfo.h"
 #include "DeviceDbManager.h"
-#include "../tools/iThreadPool.h"
 #include "DeviceInterface.h"
 #include <list>
 #include <map>

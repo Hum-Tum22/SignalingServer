@@ -2,7 +2,6 @@
 #include "DeviceManager.h"
 #include "../tools/genuuid.h"
 #include "../tools/m_Time.h"
-#include "../tools/iThreadPool.h"
 #include "CatalogData.h"
 #include "../GBTask.h"
 
@@ -74,14 +73,14 @@ void IDeviceMngrSvr::online(Device *device)
         //std::cout << "ownAny::Any_cast<std::string>(taskResult.get()) :" << ownAny::Any_cast<std::string>(taskResult.get()) << std::endl;
         if (deviceInfo)
         {
-            ownThreadPool::myThreadPool& thdpool = ownThreadPool::GetThreadPool();
+            //ownThreadPool::myThreadPool& thdpool = ownThreadPool::GetThreadPool();
             Uri target;
             target.user() = deviceInfo->getDeviceId().c_str();
             target.host() = deviceInfo->getIp().c_str();
             target.port() = deviceInfo->getPort();
             task = std::make_shared<GBDeviceOnlineTask>(deviceInfo->getDeviceId(), target);
             //GBDeviceOnlineTask* ttask = new GBDeviceOnlineTask(pGBDev->getDeviceId(), target);
-            bool taskResult = thdpool.submitTask(task);
+            //bool taskResult = thdpool.submitTask(task);
             SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
         }
     }

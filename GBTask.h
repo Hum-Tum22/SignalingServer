@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tools/iThreadPool.h"
 #include "MsgContentXml.h"
 #include "SipServer.h"
 #include "UserAgent/UserAgentMgr.h"
+#include "tools/CTask.h"
 
 class GBDeviceOnlineTask : public ownTask::CTask
 {

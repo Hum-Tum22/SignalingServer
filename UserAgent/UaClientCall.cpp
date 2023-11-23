@@ -26,7 +26,6 @@
 #include <time.h>
 #include "http.h"
 #include "../device/DeviceManager.h"
-#include "../tools/iThreadPool.h"
 #include "../tools/m_Time.h"
 
 #include "myjsondef.h"
@@ -325,17 +324,7 @@ void UaClientCall::closeMediaStream()
 }
 bool UaClientCall::makeBLeg()
 {
-
     return mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, mUserAgent.GetAvailableRtpPort(), 0, this);
-    
-    return false;
-    if (!devId.empty())
-    {
-        ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-        tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devId, devIp, devPort, channelId, mUserAgent, mUserAgent.GetAvailableRtpPort(), 0, this));
-        return true;
-    }
-    return false;
 }
 void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer)
 {
