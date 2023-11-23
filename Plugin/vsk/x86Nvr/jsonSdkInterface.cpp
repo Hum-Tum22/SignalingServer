@@ -4,12 +4,14 @@
 #include "../../../lib/rapidjson/stringbuffer.h"
 #include "../../../lib/rapidjson/writer.h"
 #include "include/base64.h"
+#include <errno.h>
+#include <dlfcn.h>
 //#include "include/base64.cpp"
 
 JsonSdkInterface& JsonSdkInterface::Instance()
 {
-	static JsonSdkInterface g_JsonSdkInterface;
-	return g_JsonSdkInterface;
+	static JsonSdkInterface *g_JsonSdkInterface = new JsonSdkInterface();
+	return *g_JsonSdkInterface;
 }
 JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll(NULL), IsInit(false)
 {
@@ -27,7 +29,11 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 #ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
 #else
-	m_hDll = dlopen("libsdkJson.so", RTLD_LOCAL);
+	m_hDll = dlopen("./libsdkJson.so", RTLD_LAZY);
+	if (!m_hDll)
+	{
+		printf("sdkJson.so load err:%s\n", dlerror());
+	}
 #endif
 }
 JsonSdkInterface::~JsonSdkInterface()
@@ -211,7 +217,7 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 
 			std::string strJsonReq = buffer.GetString();
 			DWORD hHandle = 0;
-			int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), NULL, pUser, &hHandle);
+			int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
 				return hHandle;
