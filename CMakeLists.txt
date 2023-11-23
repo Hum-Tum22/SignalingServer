@@ -4,14 +4,17 @@ PROJECT(GB28181App)
 
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-#add_definitions(-std=c++11 -Wall -O0 -g -fPIC -DWITH_OPENSSL -rdynamic)
-add_definitions(-std=c++11 -Wall -O0 -g -fPIC -rdynamic -DQINGDONG_CCTC)
-#add_definitions(-std=c++11 -Wall -O2 -fPIC -rdynamic -DQINGDONG_CCTC)
+add_definitions(-std=c++11 -DQINGDONG_CCTC)
 
 IF(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2  -Wall")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
 ENDIF()
+
 MESSAGE("BUILD TYPE:" ${CMAKE_BUILD_TYPE})
+MESSAGE("CMAKE_CXX_FLAGS:" ${CMAKE_CXX_FLAGS})
+MESSAGE("CMAKE_C_FLAGS:" ${CMAKE_C_FLAGS})
 
 #SET(CMAKE_C_COMPLITER "GCC")
 
@@ -23,7 +26,6 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/resip/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/libcurl/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/rapidjson)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/device)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/localMediaServer)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/SqlDbManager)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/tools)
 
@@ -55,7 +57,6 @@ endif()
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/SipServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/device/ SRC_LIST)
-AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/localMediaServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/SqlDbManager/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/tools/ SRC_LIST)
 
@@ -64,6 +65,7 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/mediaIn/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/rtp/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/x86Nvr/ SRC_LIST)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/x86Nvr/include SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/RegistrarServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/UserAgent/ SRC_LIST)
 
@@ -83,11 +85,11 @@ link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/media)
 
-#link_libraries(libdum.a)
-#link_libraries(libresip.a)
-#link_libraries(libresipares.a)
-#link_libraries(librutil.a)
-#link_libraries(libcurl.a)
+link_libraries(libdum.a)
+link_libraries(libresip.a)
+link_libraries(libresipares.a)
+link_libraries(librutil.a)
+link_libraries(libcurl.a)
 
 SET(LIBS
 	-Wl,--start-group
@@ -96,6 +98,7 @@ SET(LIBS
 	libresipares.a
 	librutil.a
 	libcurl.a
+	libmysqlclient.a
 
 	librtp.a
 	libmpeg.a
@@ -105,7 +108,7 @@ SET(LIBS
 )
 if (USE_MYSQL)
 SET(LIBS ${LIBS}
-	libmysql.a
+	libmysqlclient.a
 )
 endif()
 
@@ -124,12 +127,7 @@ link_libraries(pthread)
 #link_libraries(m)
 link_libraries(dl)
 link_libraries(stdc++)
-#link_libraries("libAICore_Face_SDK.so")
-#link_libraries("libfacenet.so")
-#link_libraries("libgomp.so")
 
-#ADD_LIBRARY(DecoderLib STATIC ${DECODERLIB_SOURCES})
 
-#add_library(GB28181 SHARED ${DECODERLIB_SOURCES})
 add_executable(GB28181App ${SRC_LIST})
 TARGET_LINK_LIBRARIES(GB28181App ${LIBS})
