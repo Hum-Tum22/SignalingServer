@@ -3,8 +3,8 @@
 
 MediaMng& MediaMng::GetInstance()
 {
-	static MediaMng g_MediaMng;
-	return g_MediaMng;
+	static MediaMng *g_MediaMng = new MediaMng();
+	return *g_MediaMng;
 }
 MediaMng::MediaMng()
 {

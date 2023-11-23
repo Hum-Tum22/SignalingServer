@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     repro.mainLoop();
 
     repro.shutdown();*/
-    Data name("keepaliveTimeOutNum");
+
     SipServer* pSipSvr = GetServer();
     if (pSipSvr)
     {
