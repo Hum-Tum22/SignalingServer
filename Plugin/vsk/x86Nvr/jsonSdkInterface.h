@@ -2,7 +2,7 @@
 
 
 #include "include/VskClientSdkJson.h"
-#include "../../PluginInterface.h";
+#include "../../PluginInterface.h"
 
 
 

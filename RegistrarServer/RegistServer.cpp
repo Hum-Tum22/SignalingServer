@@ -238,8 +238,8 @@ bool CRegistServer::createDatastore()
             cleanupRegistServerObjects();
             return false;
         }
-        SqliteDb* pdb = dynamic_cast<SqliteDb*>(mAbstractDb);
-        MyServerConfig m = GetSipServerConfig();
+        //SqliteDb* pdb = dynamic_cast<SqliteDb*>(mAbstractDb);
+        //MyServerConfig &m = GetSipServerConfig();
         printf("****************\n");
     }
     else     // Try legacy configuration parameter names
@@ -1116,9 +1116,6 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
     DateCategory now(resip::TmType::GB28181Date);
     success.header(h_Date) = now;
     sr->accept(success);
-
-
-    //RequestStreamTask(mAor.user().c_str(), mAor.host().c_str(), mAor.port());
     return false;
     return true;
     /*SipMessage success;
@@ -1306,9 +1303,4 @@ resip::Uri MyRegistrarHandler::GetSrcUri(const resip::SipMessage& reg)
     Aor.host() = resip::Tuple::inet_ntop(tu);
     Aor.port() = tu.getPort();
     return Aor;
-}
-#include "../SipServer.h"
-void MyRegistrarHandler::RequestStreamTask(std::string Id, std::string ip, int port)
-{
-    //GetServer()->GetUaManager()->RequestLiveStream(Id, ip, port, Id, "0", 30000, 0);
 }
