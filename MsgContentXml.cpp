@@ -1,5 +1,5 @@
 #include "MsgContentXml.h"
-#include "tools/CodeConvert.h"
+#include "tools/CodeConversion.h"
 #include <string>
 
 
@@ -93,12 +93,13 @@ void AddDeviceItemToCatalog(XMLDocument& doc, XMLElement* DeviceListElement, con
 		XMLElement* ItemElement = doc.NewElement("Item");
 		DeviceListElement->InsertEndChild(ItemElement);
 
+		//printf("xml gbid %s\n", item.DeviceID.c_str());
 		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
 		DeviceIDElement->InsertEndChild(doc.NewText(item.DeviceID.c_str()));
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(ownCodeCvt::Utf8ToGbk(item.Name).c_str()));
+		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
@@ -305,7 +306,7 @@ void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* Dev
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(ownCodeCvt::Utf8ToGbk(item.Name).c_str()));
+		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* ParentIDElement = doc.NewElement("ParentID");
