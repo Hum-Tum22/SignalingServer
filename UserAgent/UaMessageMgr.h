@@ -45,11 +45,7 @@ public:
 	CatalogDateQuery* GetCatalogQuery(string deviceId);
 	void PopCatalogQuery(string deviceId);
 
-	std::string GetDeviceList();
-	int parseDeviceList(std::string devline, std::vector<VirtualOrganization> voVc, std::vector<CatalogItem> &devList);
-	void QDCCTVCatalogResponse(const Uri& target, const char* user, const uint32_t& sn, const NameAddrs& Routlist);
-
-	void QueryCatalogTask(const Uri& target, const char* user, const uint32_t& sn, const NameAddrs& Routlist);
+	void QueryCatalogTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist);
 public:
 	void RegistPageMsgCallBack(RegistPageMsgStateCallBack fun, void* pUser);
 	void RegistArrivedMsgCallBack(RegistArrivedMsgCallBackFun fun, void* pUser);

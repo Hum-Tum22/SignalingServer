@@ -100,6 +100,7 @@
 #include "http.h"
 #include "deviceMng/deviceMng.h"
 #include "deviceMng/JsonDevice.h"
+#include "MySqlDb.hxx"
 
 #include "myjsondef.h"
 #include "writer.h"
@@ -155,7 +156,7 @@ public:
         return true;
     }
 };
-ReproLogger g_ReproLogger;
+//ReproLogger g_ReproLogger;
 
 class ReproSipMessageLoggingHandler : public Transport::SipMessageLoggingHandler
 {
@@ -213,6 +214,7 @@ SipServer::SipServer()
     , mRuntimeAbstractDb(0)
     , mRegistrationPersistenceManager(0)
     , mPublicationPersistenceManager(0)
+    , mAuthFactory(0)
     , mAsyncProcessorDispatcher(0)
     , mMonkeys(0)
     , mLemurs(0)
@@ -243,13 +245,9 @@ SipServer::~SipServer()
     if (mRunning) shutdown();
 }
 
-SipServer* SipServer::g_server = NULL;
+SipServer* SipServer::g_server = new SipServer();;
 SipServer* SipServer::Instance()
 {
-    if (!g_server)
-    {
-        g_server = new SipServer();
-    }
     return g_server;
 }
 bool
@@ -284,7 +282,7 @@ SipServer::run(int argc, char** argv)
 #endif
         return false;
     }
-    //其它初始化
+    //
     zlmHttpPort = mProxyConfig->getConfigInt("zlmhttpport", 8080);
     gbHttpPort = mProxyConfig->getConfigInt("HttpPort", 8090);
     zlmHost = mProxyConfig->getConfigData("zlmhost", "127.0.0.1", true).c_str();
@@ -354,6 +352,9 @@ SipServer::run(int argc, char** argv)
     //// Create DialogUsageManager that handles ServerRegistration,
     //// and potentially certificate subscription server
     //createDialogUsageManager();
+
+    char* test = new char[20];
+    delete test;
     if (!createRegistServer())
     {
         return false;
@@ -423,7 +424,7 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-    std::string upID, upHost, upPassword("12345");
+    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("admin123");
     int upPort = 5060;
     Data passwd("12345");
 #ifdef QINGDONG_CCTC
@@ -592,6 +593,7 @@ SipServer::cleanupObjects()
     //delete mBaboons; mBaboons = 0;
     //delete mLemurs; mLemurs = 0;
     //delete mMonkeys; mMonkeys = 0;
+    delete mAuthFactory; mAuthFactory = 0;
     delete mAsyncProcessorDispatcher; mAsyncProcessorDispatcher = 0;
     if (!mRestarting)
     {
@@ -615,68 +617,14 @@ SipServer::loadPlugins()
     std::vector<Data> pluginNames;
     mProxyConfig->getConfigValue("LoadPlugins", pluginNames);
 
-#ifdef REPRO_DSO_PLUGINS
-    if (pluginNames.empty())
-    {
-        DebugLog(<< "LoadPlugins not specified, not attempting to load any plugins");
-        return true;
-    }
-
-    const Data& pluginDirectory = mProxyConfig->getConfigData("PluginDirectory", REPRO_DSO_PLUGIN_DIR_DEFAULT, true);
-    if (pluginDirectory.empty())
-    {
-        ErrLog(<< "LoadPlugins specified but PluginDirectory not specified, can't load plugins");
-        return false;
-    }
-    for (std::vector<Data>::iterator it = pluginNames.begin(); it != pluginNames.end(); it++)
-    {
-        void* dlib;
-        // FIXME:
-        // - not all platforms use the .so extension
-        // - detect and use correct directory separator charactor
-        // - do we need to support relative paths here?
-        // - should we use the filename prefix 'lib', 'mod' or something else?
-        Data name = pluginDirectory + '/' + "lib" + *it + ".so";
-        dlib = dlopen(name.c_str(), RTLD_NOW | RTLD_GLOBAL);
-        if (!dlib)
-        {
-            ErrLog(<< "Failed to load plugin " << *it << " (" << name << "): " << dlerror());
-            return false;
-        }
-        ReproPluginDescriptor* desc = (ReproPluginDescriptor*)dlsym(dlib, "reproPluginDesc");
-        if (!desc)
-        {
-            ErrLog(<< "Failed to find reproPluginDesc in plugin " << *it << " (" << name << "): " << dlerror());
-            return false;
-        }
-        if (!(desc->mPluginApiVersion == REPRO_DSO_PLUGIN_API_VERSION))
-        {
-            ErrLog(<< "Failed to load plugin " << *it << " (" << name << "): found version " << desc->mPluginApiVersion << ", expecting version " << REPRO_DSO_PLUGIN_API_VERSION);
-        }
-        DebugLog(<< "Trying to instantiate plugin " << *it);
-        // Instantiate the plugin object and add it to our runtime environment
-        Plugin* plugin = desc->creationFunc();
-        if (!plugin)
-        {
-            ErrLog(<< "Failed to instantiate plugin " << *it << " (" << name << ")");
-            return false;
-        }
-        if (!plugin->init(*mSipStack, mProxyConfig))
-        {
-            ErrLog(<< "Failed to initialize plugin " << *it << " (" << name << ")");
-            return false;
-        }
-        mPlugins.push_back(plugin);
-    }
-    return true;
+#ifdef DSO_PLUGINS
+    mPluginManager.reset(new ReproPluginManager(*mSipStack, mProxyConfig));
+    return mPluginManager->loadPlugins(pluginNames);
 #else
-    if (!pluginNames.empty())
-    {
-        ErrLog(<< "LoadPlugins specified but repro not compiled with plugin DSO support");
-        return false;
-    }
-    DebugLog(<< "Not compiled with plugin DSO support");
-    return true;
+    if (pluginNames.empty()) return true;
+
+    CritLog(<< "LoadPlugins is specified in the configuration but repro was compiled without plugin support");
+    return false;
 #endif
 }
 
@@ -1061,6 +1009,156 @@ SipServer::createDatastore()
     return true;
 }
 
+void
+SipServer::createAuthenticatorFactory()
+{
+    // TODO: let a plugin supply an instance of AuthenticatorFactory
+    // instead of our builtin ReproAuthenticatorFactory
+    //mAuthFactory = new ReproAuthenticatorFactory(*mProxyConfig, *mSipStack, mDum);
+}
+
+void
+SipServer::createDialogUsageManager()
+{
+    // Create Profile settings for DUM Instance that handles ServerRegistration,
+    // and potentially certificate subscription server
+    auto profile = std::make_shared<MasterProfile>();
+    profile->setRportEnabled(InteropHelper::getRportEnabled());
+    profile->clearSupportedMethods();
+    profile->addSupportedMethod(resip::REGISTER);
+#ifdef USE_SSL
+    profile->addSupportedScheme(Symbols::Sips);
+#endif
+    if (InteropHelper::getOutboundSupported())
+    {
+        profile->addSupportedOptionTag(Token(Symbols::Outbound));
+    }
+    profile->addSupportedOptionTag(Token(Symbols::Path));
+    if (mProxyConfig->getConfigBool("AllowBadReg", false))
+    {
+        profile->allowBadRegistrationEnabled() = true;
+    }
+#ifdef PACKAGE_VERSION
+    Data serverText(mProxyConfig->getConfigData("ServerText", "repro " PACKAGE_VERSION));
+#else
+    Data serverText(mProxyConfig->getConfigData("ServerText", Data::Empty));
+#endif
+    if (!serverText.empty())
+    {
+        profile->setUserAgent(serverText);
+    }
+
+    // Create DialogeUsageManager if Registrar or Certificate Server are enabled
+    resip_assert(!mRegistrar);
+    resip_assert(!mDum);
+    resip_assert(!mDumThread);
+    mRegistrar = new Registrar;
+    resip::MessageFilterRuleList ruleList;
+    bool registrarEnabled = !mProxyConfig->getConfigBool("DisableRegistrar", false);
+    bool certServerEnabled = mProxyConfig->getConfigBool("EnableCertServer", false);
+    bool presenceEnabled = mProxyConfig->getConfigBool("EnablePresenceServer", false);
+    if (registrarEnabled || certServerEnabled || presenceEnabled)
+    {
+        mDum = new DialogUsageManager(*mSipStack);
+        mDum->setMasterProfile(profile);
+        addDomains(*mDum);
+    }
+
+    // If registrar is enabled, configure DUM to handle REGISTER requests
+    if (registrarEnabled)
+    {
+        resip_assert(mDum);
+        resip_assert(mRegistrationPersistenceManager);
+        mDum->setServerRegistrationHandler(mRegistrar);
+        mDum->setRegistrationPersistenceManager(mRegistrationPersistenceManager);
+
+        // Install rules so that the registrar only gets REGISTERs
+        resip::MessageFilterRule::MethodList methodList;
+        methodList.push_back(resip::REGISTER);
+        ruleList.push_back(MessageFilterRule(resip::MessageFilterRule::SchemeList(),
+            resip::MessageFilterRule::DomainIsMe,
+            methodList));
+    }
+
+    // If Certificate Server is enabled, configure DUM to handle SUBSCRIBE and 
+    // PUBLISH requests for events: credential and certificate
+    resip_assert(!mCertServer);
+    if (certServerEnabled)
+    {
+#if defined(USE_SSL)
+        mCertServer = new CertServer(*mDum);
+
+        // Install rules so that the cert server receives SUBSCRIBEs and PUBLISHs
+        resip::MessageFilterRule::MethodList methodList;
+        resip::MessageFilterRule::EventList eventList;
+        methodList.push_back(resip::SUBSCRIBE);
+        methodList.push_back(resip::PUBLISH);
+        eventList.push_back(resip::Symbols::Credential);
+        eventList.push_back(resip::Symbols::Certificate);
+        ruleList.push_back(MessageFilterRule(resip::MessageFilterRule::SchemeList(),
+            resip::MessageFilterRule::DomainIsMe,
+            methodList,
+            eventList));
+#endif
+    }
+
+    if (presenceEnabled)
+    {
+        resip_assert(mDum);
+        resip_assert(mPublicationPersistenceManager);
+
+        // Set the publication persistence manager in dum
+        mDum->setPublicationPersistenceManager(mPublicationPersistenceManager);
+
+        // Configure DUM to handle SUBSCRIBE and PUBLISH requests for presence
+        /*mPresenceServer = new PresenceServer(*mDum, mAuthFactory->getDispatcher(),
+            mProxyConfig->getConfigBool("PresenceUsesRegistrationState", true),
+            mProxyConfig->getConfigBool("PresenceNotifyClosedStateForNonPublishedUsers", true));*/
+
+        // Install rules so that the cert server receives SUBSCRIBEs and PUBLISHs
+        MessageFilterRule::MethodList methodList;
+        MessageFilterRule::EventList eventList;
+        methodList.push_back(SUBSCRIBE);
+        methodList.push_back(PUBLISH);
+        eventList.push_back(Symbols::Presence);
+        ruleList.push_back(MessageFilterRule(MessageFilterRule::SchemeList(),
+            MessageFilterRule::DomainIsMe,
+            methodList,
+            eventList));
+    }
+
+    if (mDum)
+    {
+        resip_assert(mAuthFactory);
+        mAuthFactory->setDum(mDum);
+
+        if (mAuthFactory->certificateAuthEnabled())
+        {
+            // TODO: perhaps this should be initialised from the trusted node
+            // monkey?  Or should the list of trusted TLS peers be independent
+            // from the trusted node list?
+            mDum->addIncomingFeature(mAuthFactory->getCertificateAuthManager());
+        }
+
+        Data wsCookieAuthSharedSecret = mProxyConfig->getConfigData("WSCookieAuthSharedSecret", Data::Empty);
+        if (!mAuthFactory->digestAuthEnabled() && !wsCookieAuthSharedSecret.empty())
+        {
+            auto cookieAuth = std::make_shared<WsCookieAuthManager>(*mDum, mDum->dumIncomingTarget());
+            mDum->addIncomingFeature(std::move(cookieAuth));
+        }
+
+        // If Authentication is enabled, then configure DUM to authenticate requests
+        if (mAuthFactory->digestAuthEnabled())
+        {
+            //SipServerAuthManager == mAuthFactory->getServerAuthManager()
+            mDum->setServerAuthManager(mAuthFactory->getServerAuthManager());
+        }
+
+        // Set the MessageFilterRuleList on DUM and create a thread to run DUM in
+        mDum->setMessageFilterRuleList(ruleList);
+        mDumThread = new DumThread(*mDum);
+    }
+}
 bool SipServer::createRegistServer()
 {
     if (!mRegistSv)
@@ -1068,76 +1166,6 @@ bool SipServer::createRegistServer()
         mRegistSv = new CRegistServer(mProxyConfig, *mSipStack);
     }
     return mRegistSv->InitRegistServer();
-}
-bool SipServer::createRegistServerEx()
-{
-    //resip::InteropHelper::setRRTokenHackEnabled(args.mEnableFlowTokenHack);
-    //resip::InteropHelper::setOutboundSupported(true);
-    //resip::InteropHelper::setOutboundVersion(5626); // RFC 5626
-
-    ////mProxy.addDomain("localhost");
-
-    //// !bwc! TODO Once we have something we _do_ support, put that here.
-    ////mProxy.addSupportedOption("p-fakeoption");
-    //mSipStack->addAlias("localhost", 5060);
-    //mSipStack->addAlias("localhost", 5061);
-
-    //std::list<resip::Data> domains;
-    //domains.push_back("127.0.0.1");
-    //domains.push_back("localhost");
-
-
-    //std::vector<Data> enumSuffixes;
-    //enumSuffixes.push_back(args.mEnumSuffix);
-    //mSipStack->setEnumSuffixes(enumSuffixes);
-
-
-    //mProfile->clearSupportedMethods();
-    //mProfile->addSupportedMethod(resip::REGISTER);
-    //mProfile->addSupportedScheme(Symbols::Sips);
-
-    //mDum->setMasterProfile(mProfile);
-    //mDum->setServerRegistrationHandler(&mRegistrar);
-    //mDum->setRegistrationPersistenceManager(&mRegData);
-    //mDum->addDomain(host);
-
-    //// Install rules so that the registrar only gets REGISTERs
-    //resip::MessageFilterRule::MethodList methodList;
-    //methodList.push_back(resip::REGISTER);
-
-    //resip::MessageFilterRuleList ruleList;
-    //ruleList.push_back(MessageFilterRule(resip::MessageFilterRule::SchemeList(),
-    //    resip::MessageFilterRule::Any,
-    //    methodList));
-    //mDum->setMessageFilterRuleList(ruleList);
-
-    //auto authMgr = std::make_shared<ReproServerAuthManager>(*mDum,
-    //    mAuthRequestDispatcher,
-    //    mConfig.getDataStore()->mAclStore,
-    //    true,
-    //    false,
-    //    true);
-    //mDum->setServerAuthManager(authMgr);
-
-    //mStack->registerTransactionUser(mProxy);
-
-    //if (args.mUseCongestionManager)
-    //{
-    //    mCongestionManager = std::unique_ptr<GeneralCongestionManager>(new GeneralCongestionManager(
-    //        GeneralCongestionManager::WAIT_TIME,
-    //        200));
-    //    mStack->setCongestionManager(mCongestionManager.get());
-    //}
-
-    //if (args.mThreadedStack)
-    //{
-    //    mStack->run();
-    //}
-
-    //mStackThread->run();
-    //mProxy.run();
-    //mDumThread->run();
-    return false;
 }
 bool
 SipServer::createProxy()
@@ -2014,8 +2042,8 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
     httpUrl += Data(":");
     httpUrl += Data(port);
     httpUrl += Data("/device/gbInfo");
-
-    std::string dirstr("");// = GetRequest(httpUrl.c_str());
+    ////"http://192.168.1.223:20010/device/gbInfo"
+    std::string dirstr = GetRequest(httpUrl.c_str());
 
     rapidjson::Document document;
     document.Parse((char*)dirstr.c_str());
@@ -2033,12 +2061,13 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                     VirtualOrganization voTop;
                     voTop.Name = json_check_string(msbody[i], "Title");
                     voTop.DeviceID = json_check_string(msbody[i], "GBId");
+                    //printf("gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
                     DeviceMng::Instance().addVirtualOrganization(voTop);
 
                     int port = json_check_int32(msbody[i], "ManagePort");
                     //port = 7000;
-                    std::string user = "admin";// json_check_string(msbody[i], "ManageUser");
-                    std::string pass = "12345";// json_check_string(msbody[i], "ManagePass");
+                    std::string user = json_check_string(msbody[i], "ManageUser");
+                    std::string pass = json_check_string(msbody[i], "ManagePass");
                     std::string nvrIp = json_check_string(msbody[i], "ManageIp");
                     std::string nvrId = json_check_string(msbody[i], "nvrDid");
                     int nvrStatus = json_check_int32(msbody[i], "status");
@@ -2052,6 +2081,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         subVo.Name = json_check_string(upbody, "Title");
                         subVo.DeviceID = json_check_string(upbody, "GBId");
                         subVo.ParentID = voTop.DeviceID;
+                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
                         DeviceMng::Instance().addVirtualOrganization(subVo);
                         
                         if (upbody.HasMember("Data") && upbody["Data"].IsArray())
@@ -2061,6 +2091,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                             {
                                 std::string name = json_check_string(ipcbody[j], "ipc");
                                 std::string childId = json_check_string(ipcbody[j], "GBId");
+                                printf("gbid name:%s %s\n", childId.c_str(), name.c_str());
                                 int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
                                 ipcStatus = ipcStatus ? 0 : 1;
                                 auto childDev = new JsonChildDevic(childId.c_str());
@@ -2079,6 +2110,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         subVo.Name = json_check_string(downbody, "Title");
                         subVo.DeviceID = json_check_string(downbody, "GBId");
                         subVo.ParentID = voTop.DeviceID;
+                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
                         DeviceMng::Instance().addVirtualOrganization(subVo);
                         if (downbody.HasMember("Data") && downbody["Data"].IsArray())
                         {
@@ -2087,6 +2119,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                             {
                                 std::string childName = json_check_string(ipcbody[j], "ipc");
                                 std::string childId = json_check_string(ipcbody[j], "GBId");
+                                printf("gbid name:%s %s\n", childId.c_str(), childName.c_str());
                                 int ipcStatus = json_check_int32(ipcbody[j], "status");
                                 ipcStatus = ipcStatus ? 0 : 1;
                                 auto childDev = new JsonChildDevic(childId.c_str());
@@ -2105,6 +2138,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         subVo.Name = json_check_string(kkbody, "Title");
                         subVo.DeviceID = json_check_string(kkbody, "GBId");
                         subVo.ParentID = voTop.DeviceID;
+                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
                         DeviceMng::Instance().addVirtualOrganization(subVo);
                         if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
                         {
@@ -2113,6 +2147,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                             {
                                 std::string childName = json_check_string(ipcbody[j], "ipc");
                                 std::string childId = json_check_string(ipcbody[j], "GBId");
+                                printf("gbid name:%s %s\n", childId.c_str(), childName.c_str());
                                 int ipcStatus = json_check_int32(ipcbody[j], "status");
                                 ipcStatus = ipcStatus ? 0 : 1;
                                 auto childDev = new JsonChildDevic(childId.c_str());

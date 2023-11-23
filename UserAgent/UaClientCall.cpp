@@ -358,7 +358,8 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         {
             ssrc = smSsrc[2].str().c_str();
         }
-
+        std::cout << "sdp:" << sdpline << std::endl;
+        std::cout << "ssrc:" << ssrc <<  "\n" << std::endl;
     }
 
     remoteIp = offer.session().origin().getAddress();
@@ -430,7 +431,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             channelId = subjectArray[0];
 
             //channelId = "37028806251320111559";
-            channelId = "37028806251320111506";
+            //channelId = "37028806251320111506";
             
             remoteId = subjectArray[2];
             streamId = channelId;

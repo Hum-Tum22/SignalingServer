@@ -1,6 +1,7 @@
 
 #include "SipServerConfig.h"
 #include "SqliteDb.h"
+#include "MySqlDb.hxx"
 #include "rutil/Data.hxx"
 #include "rutil/Log.hxx"
 #include "rutil/Logger.hxx"
@@ -12,6 +13,7 @@ using namespace regist;
 
 MyServerConfig::MyServerConfig() :mAbstractDb(0)
 {
+    printf("--- MyServerConfig  --- new\n");
     Data defaultConfigFilename("repro.config");
     try
     {
@@ -28,10 +30,15 @@ MyServerConfig::MyServerConfig() :mAbstractDb(0)
     }
     return;
 }
+MyServerConfig::~MyServerConfig()
+{
+    printf("--- MyServerConfig  --- delete\n");
+}
 AbstractDb* MyServerConfig::getDatabase(int configIndex)
 {
     if (mAbstractDb)
         return mAbstractDb;
+    printf("--- getDatabase  --- new\n");
     ConfigParse::NestedConfigMap m = getConfigNested("Database");
     ConfigParse::NestedConfigMap::iterator it = m.find(configIndex);
     if (it == m.end())
@@ -44,7 +51,7 @@ AbstractDb* MyServerConfig::getDatabase(int configIndex)
     dbType.lowercase();
     if (dbType == "sqlite")
     {
-        Data path = dbConfig.getConfigData("Path", getConfigData("DatabasePath", "./", true), true);
+        Data path = dbConfig.getConfigData("Path", getConfigData("DatabasePath", ".", true), true);
         Data dbName = "sipserver";
         mAbstractDb = new SqliteDb(dbConfig, path, dbName);
         return mAbstractDb;
@@ -113,7 +120,7 @@ regist::AbstractDb* MyServerConfig::CreateDatabase()
     {
 #ifdef USE_MYSQL
         Data mySQLServer;
-        mProxyConfig->getConfigValue("MySQLServer", mySQLServer);
+        getConfigValue("MySQLServer", mySQLServer);
         if (!mySQLServer.empty())
         {
             WarningLog(<< "Using deprecated parameter MySQLServer, please update to indexed Database definitions.");

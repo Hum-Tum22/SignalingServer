@@ -11,8 +11,8 @@
 
 class IDeviceMngrSvr : public IDeviceMngrInterface
 {
-    mutex mMapMutex;
-    map<string, std::shared_ptr<Device>> mDeviceMap;
+    std::mutex mMapMutex;
+    std::map<string, std::shared_ptr<Device>> mDeviceMap;
     GBDeviceMapper mGBDeviceMapper;
     //map<string, IDeviceMngr*> mIDevMngrMap;
     //std::shared_ptr<GBDeviceOnlineTask> task;

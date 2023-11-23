@@ -4,7 +4,7 @@
 #include "../XmlMsgAnalysis.h"
 #include "../device/DeviceManager.h"
 #include "../tools/genuuid.h"
-#include "../tools/CodeConvert.h"
+#include "../tools/CodeConversion.h"
 #include "../tools/ThreadPool.h"
 
 #include "../http.h"
@@ -102,7 +102,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
             {
                 //青岛
                 {
-                    ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::QueryCatalogTask, this, fromuser, "", XmlMsg.sn, routelist));
+                    ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::QueryCatalogTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
                 }
                 list<std::shared_ptr<Device>> devlist;
                 devmng.GetAllDeviceList(devlist);
@@ -607,142 +607,7 @@ void CUserMessageMrg::PopCatalogQuery(string deviceId)
     }
     return;
 }
-std::string CUserMessageMrg::GetDeviceList()
-{
-    return GetRequest("http://192.168.1.21:8080/device/gbInfo");
-    //return PostRequest("http://192.168.1.21:8080/device/gbInfo", "");
-}
-int CUserMessageMrg::parseDeviceList(std::string devline, std::vector<VirtualOrganization> voVc, std::vector<CatalogItem>& devList)
-{
-    if (devline.empty())
-        return 0;
-    int count = 0;
-    rapidjson::Document document;
-    document.Parse((char*)devline.c_str());
-    if (!document.HasParseError())
-    {
-        if (document.HasMember("data") && document["data"].IsObject())
-        {
-            rapidjson::Value& body = document["data"];
-            count = json_check_int32(body, "Count");
-            if (body.HasMember("Data") && body["Data"].IsArray())
-            {
-                rapidjson::Value& msbody = body["Data"];
-                for (size_t i = 0; i < msbody.Size(); i++)
-                {
-                    VirtualOrganization vo;
-                    vo.Name = json_check_string(msbody[i], "Title");
-                    vo.DeviceID = json_check_string(msbody[i], "GBId");
-                    int port = json_check_int32(msbody[i], "ManagePort");
-                    std::string user = json_check_string(msbody[i], "ManageUser");
-                    std::string pass = json_check_string(msbody[i], "ManagePass");
-                    std::string devIp = json_check_string(msbody[i], "ManageIp");
-                    voVc.push_back(vo);
-                    if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
-                    {
-                        rapidjson::Value& upbody = msbody[i]["Upward"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(upbody, "Title");
-                        subVo.DeviceID = json_check_string(upbody, "GBId");
-                        subVo.ParentID = vo.DeviceID;
-                        voVc.push_back(subVo);
-                        if (upbody.HasMember("Data") && upbody["Data"].IsArray())
-                        {
-                            rapidjson::Value& ipcbody = upbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                CatalogItem item;
-                                item.Name = json_check_string(ipcbody[j], "ipc");
-                                item.DeviceID = json_check_string(ipcbody[j], "GBId");
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");
-                                item.Status = (ipcStatus ? "OFF" : "ON");
-                                item.ParentID = subVo.DeviceID;
-                                devList.push_back(item);
-                            }
-                        }
-                    }
-                    if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
-                    {
-                        rapidjson::Value& downbody = msbody[i]["Downward"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(downbody, "Title");
-                        subVo.DeviceID = json_check_string(downbody, "GBId");
-                        subVo.ParentID = vo.DeviceID;
-                        voVc.push_back(subVo);
-                        if (downbody.HasMember("Data") && downbody["Data"].IsArray())
-                        {
-                            rapidjson::Value& ipcbody = downbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                CatalogItem item;
-                                item.Name = json_check_string(ipcbody[j], "ipc");
-                                item.DeviceID = json_check_string(ipcbody[j], "GBId");
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");
-                                item.Status = (ipcStatus ? "OFF" : "ON");
-                                item.ParentID = subVo.DeviceID;
-                                devList.push_back(item);
-                            }
-                        }
-                    }
-                    if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
-                    {
-                        rapidjson::Value& kkbody = msbody[i]["KKIpc"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(kkbody, "Title");
-                        subVo.DeviceID = json_check_string(kkbody, "GBId");
-                        subVo.ParentID = vo.DeviceID;
-                        voVc.push_back(subVo);
-                        if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
-                        {
-                            rapidjson::Value& ipcbody = kkbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                CatalogItem item;
-                                item.Name = json_check_string(ipcbody[j], "ipc");
-                                item.DeviceID = json_check_string(ipcbody[j], "GBId");
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");
-                                item.Status = (ipcStatus ? "OFF" : "ON");
-                                item.ParentID = subVo.DeviceID;
-                                devList.push_back(item);
-                            }
-                        }
-                    }
 
-                }
-            }
-        }
-        return count;
-    }
-    return 0;
-}
-void CUserMessageMrg::QDCCTVCatalogResponse(const Uri& target, const char* user, const uint32_t& sn, const NameAddrs& Routlist)
-{
-    std::string dirstr = GetDeviceList();
-    std::list<std::shared_ptr<Device>> devlist;
-    std::vector<VirtualOrganization> voList;
-    std::vector<CatalogItem> voItem;
-    int SumNum = parseDeviceList(dirstr, voList, voItem);
-    //ok->setBody();
-    if (SumNum > 0)
-    {
-        auto vbegin = voList.begin();
-        for (; vbegin != voList.end();)
-        {
-            std::vector<VirtualOrganization> vov(vbegin, ++vbegin);
-            std::string outStr;
-            CreateVirtualOrganizationCatalogResponse(user, sn, SumNum, vov, outStr);
-            SendResponsePageMsg(target, outStr, MsgCmdType_Catalog, Routlist);
-        }
-        auto vcbegin = voItem.begin();
-        for (; vcbegin != voItem.end();)
-        {
-            std::vector<CatalogItem> vov(vcbegin, ++vcbegin);
-            std::string outStr;
-            CreateCatalogResponse(user, sn, SumNum, vov, NULL, outStr);
-            SendResponsePageMsg(target, outStr, MsgCmdType_Catalog, Routlist);
-        }
-    }
-}
 void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, NameAddrs& Routlist)
 {
     if (outgoing.exists(h_RecordRoutes) && !outgoing.const_header(h_RecordRoutes).empty())
@@ -764,21 +629,23 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
         }
     }
 }
-void CUserMessageMrg::QueryCatalogTask(const Uri& target, const char* user, const uint32_t& sn, const NameAddrs& Routlist)
+void CUserMessageMrg::QueryCatalogTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
 {
     std::vector<VirtualOrganization> vcList;
     std::vector<BaseChildDevice*> vChildList;
-#ifdef QINGDONG_CCTC
-    DeviceMng::Instance().getVirtualOrganization("", vcList);
-    DeviceMng::Instance().getChildDevice("", vChildList);
-#endif
-    int sumnum = vcList.size() + vChildList.size();
+
+    DeviceMng::Instance().getVirtualOrganization(user, vcList);
+    DeviceMng::Instance().getChildDevice(user, vChildList);
+
+    int voSize = vcList.size();
+    int childSize = vChildList.size();
+    int sumnum = voSize + childSize;
     if (sumnum > 0)
     {
         std::vector<std::string> sendMsgVc;
         uint32_t itemNum = 1, senderNum = 0;
         std::vector<VirtualOrganization> vov;
-        for (uint32_t i = 0; i < vcList.size(); i++)
+        for (uint32_t i = 0; i < voSize; i++)
         {
             if (senderNum <= 10)
             {
@@ -786,7 +653,7 @@ void CUserMessageMrg::QueryCatalogTask(const Uri& target, const char* user, cons
                 vov.push_back(vcList[i]);
                 if (vov.size() >= itemNum)
                 {
-                    CreateVirtualOrganizationCatalogResponse(user, sn, sumnum, vov, outStr);
+                    CreateVirtualOrganizationCatalogResponse(user.c_str(), sn, sumnum, vov, outStr);
                     sendMsgVc.push_back(outStr);
                     vov.clear();
                 }
@@ -797,14 +664,21 @@ void CUserMessageMrg::QueryCatalogTask(const Uri& target, const char* user, cons
                 if (vov.size() > 2 * itemNum)
                 {
                     std::string outStr;
-                    CreateVirtualOrganizationCatalogResponse(user, sn, sumnum, vov, outStr);
+                    CreateVirtualOrganizationCatalogResponse(user.c_str(), sn, sumnum, vov, outStr);
+                    sendMsgVc.push_back(outStr);
+                    vov.clear();
+                }
+                else if(voSize - i < 2 * itemNum)
+                {
+                    std::string outStr;
+                    CreateVirtualOrganizationCatalogResponse(user.c_str(), sn, sumnum, vov, outStr);
                     sendMsgVc.push_back(outStr);
                     vov.clear();
                 }
             }
         }
         std::vector<CatalogItem> ChildTtems;
-        for (uint32_t i = 0; i < vChildList.size(); i++)
+        for (uint32_t i = 0; i < childSize; i++)
         {
             BaseDevice::Ptr baseDev = vChildList[i]->getParentDev();
             if (baseDev && vChildList[i] && baseDev->devType == BaseDevice::JSON_NVR)
@@ -815,7 +689,7 @@ void CUserMessageMrg::QueryCatalogTask(const Uri& target, const char* user, cons
                     CatalogItem item;
                     item.DeviceID = pChildDev->getDeviceId();
                     item.ParentID = pChildDev->getParentId();
-                    item.Name = ownCodeCvt::Utf8ToGbk(pChildDev->getName());
+                    item.Name = Utf8ToGbk(pChildDev->getName());
 
                     item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
                     item.Model = "";//当为设备时,设备型号(必选)
@@ -843,7 +717,14 @@ void CUserMessageMrg::QueryCatalogTask(const Uri& target, const char* user, cons
             if (ChildTtems.size() > 2 * itemNum)
             {
                 std::string outStr;
-                CreateCatalogResponse(user, sn, sumnum, ChildTtems, NULL, outStr);
+                CreateCatalogResponse(user.c_str(), sn, sumnum, ChildTtems, NULL, outStr);
+                sendMsgVc.push_back(outStr);
+                ChildTtems.clear();
+            }
+            else if(childSize - i < 2 * itemNum)
+            {
+                std::string outStr;
+                CreateCatalogResponse(user.c_str(), sn, sumnum, ChildTtems, NULL, outStr);
                 sendMsgVc.push_back(outStr);
                 ChildTtems.clear();
             }

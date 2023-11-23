@@ -10,7 +10,7 @@
 #include <sstream>
 #include "UserAgent/UaClientCall.h"
 #include "SipServer.h"
-#include "tools/ownString.h"
+#include "tools/CodeConversion.h"
 #include "tools/m_Time.h"
 
 using namespace std;
@@ -703,34 +703,34 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 			resip::UaMgr::streamStatus smStatus = pUaMgr->getStreamStatus(stream_Id);
 			if (smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
 			{
-				IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-				SipServerDeviceInfo devuinfo;
-				list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
-				for (auto& it : chlist)
-				{
-					if (it.getStatus())
-					{
-						devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-						break;
-					}
-				}
-				if (!devuinfo.getDeviceId().empty())
-				{
-					deviceId = devuinfo.getDeviceId();
-					if (stream_Id.empty())
-					{
-						//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
-					}
-					//判断流存在
-					ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-					tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), 
-						devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, pUaMgr->GetAvailableRtpPort(), 0
-						, (UaClientCall*)NULL, "Play"));
-				}
-				else
-				{
-					std::cout << "******************* channel:" << channel << " not found" << std::endl;
-				}
+				//IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+				//SipServerDeviceInfo devuinfo;
+				//list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+				//for (auto& it : chlist)
+				//{
+				//	if (it.getStatus())
+				//	{
+				//		devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+				//		break;
+				//	}
+				//}
+				//if (!devuinfo.getDeviceId().empty())
+				//{
+				//	deviceId = devuinfo.getDeviceId();
+				//	if (stream_Id.empty())
+				//	{
+				//		//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+				//	}
+				//	//判断流存在
+				//	ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+				//	tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), 
+				//		devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, pUaMgr->GetAvailableRtpPort(), 0
+				//		, (UaClientCall*)NULL, "Play"));
+				//}
+				//else
+				//{
+				//	std::cout << "******************* channel:" << channel << " not found" << std::endl;
+				//}
 			}
 			else if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
 			{
@@ -779,25 +779,25 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 	{
 		if (stream_Id.empty())
 		{
-			IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-			SipServerDeviceInfo devuinfo;
-			list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
-			for (auto& it : chlist)
-			{
-				if (it.getStatus())
-				{
-					devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-					break;
-				}
-			}
-			if (!devuinfo.getDeviceId().empty())
-			{
-				deviceId = devuinfo.getDeviceId();
-				if (stream_Id.empty())
-				{
-					//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
-				}
-			}
+			//IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+			//SipServerDeviceInfo devuinfo;
+			//list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+			//for (auto& it : chlist)
+			//{
+			//	if (it.getStatus())
+			//	{
+			//		devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+			//		break;
+			//	}
+			//}
+			//if (!devuinfo.getDeviceId().empty())
+			//{
+			//	deviceId = devuinfo.getDeviceId();
+			//	if (stream_Id.empty())
+			//	{
+			//		//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+			//	}
+			//}
 		}
 		writer.StartObject();
 		writer.Key("code"); writer.Int(0);
@@ -902,37 +902,37 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 			resip::UaMgr::streamStatus smStatus = pUaMgr->getStreamStatus(stream_Id);
 			if (smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
 			{
-				IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-				SipServerDeviceInfo devuinfo;
-				list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
-				for (auto& it : chlist)
-				{
-					if (it.getStatus())
-					{
-						devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-						break;
-					}
-				}
-				if (!devuinfo.getDeviceId().empty())
-				{
-					deviceId = devuinfo.getDeviceId();
-					if (stream_Id.empty())
-					{
-						CDateTime staTime(stime);
-						CDateTime endTime(etime);
-						//stream_Id = std::str_format("%s_%s_%s_%s", deviceId.c_str(), channel.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
-					}
-					//判断流存在
-					ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
-					tPool.submitTask(
-						std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(),devuinfo.getIp(), devuinfo.getPort(), channel,
-							*pUaMgr, pUaMgr->GetAvailableRtpPort(), 0, (UaClientCall*)NULL, std::string("Playback"), stime, etime)
-					);
-				}
-				else
-				{
-					std::cout << "******************* channel:" << channel << " not found" << std::endl;
-				}
+				//IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+				//SipServerDeviceInfo devuinfo;
+				//list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+				//for (auto& it : chlist)
+				//{
+				//	if (it.getStatus())
+				//	{
+				//		devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+				//		break;
+				//	}
+				//}
+				//if (!devuinfo.getDeviceId().empty())
+				//{
+				//	deviceId = devuinfo.getDeviceId();
+				//	if (stream_Id.empty())
+				//	{
+				//		CDateTime staTime(stime);
+				//		CDateTime endTime(etime);
+				//		//stream_Id = std::str_format("%s_%s_%s_%s", deviceId.c_str(), channel.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+				//	}
+				//	//判断流存在
+				//	ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
+				//	tPool.submitTask(
+				//		std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(),devuinfo.getIp(), devuinfo.getPort(), channel,
+				//			*pUaMgr, pUaMgr->GetAvailableRtpPort(), 0, (UaClientCall*)NULL, std::string("Playback"), stime, etime)
+				//	);
+				//}
+				//else
+				//{
+				//	std::cout << "******************* channel:" << channel << " not found" << std::endl;
+				//}
 			}
 			else if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
 			{
@@ -982,25 +982,25 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 	{
 		if (stream_Id.empty())
 		{
-			IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-			SipServerDeviceInfo devuinfo;
-			list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
-			for (auto& it : chlist)
-			{
-				if (it.getStatus())
-				{
-					devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-					break;
-				}
-			}
-			if (!devuinfo.getDeviceId().empty())
-			{
-				deviceId = devuinfo.getDeviceId();
-				if (stream_Id.empty())
-				{
-					//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
-				}
-			}
+			//IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+			//SipServerDeviceInfo devuinfo;
+			//list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channel);
+			//for (auto& it : chlist)
+			//{
+			//	if (it.getStatus())
+			//	{
+			//		devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+			//		break;
+			//	}
+			//}
+			//if (!devuinfo.getDeviceId().empty())
+			//{
+			//	deviceId = devuinfo.getDeviceId();
+			//	if (stream_Id.empty())
+			//	{
+			//		//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
+			//	}
+			//}
 		}
 		writer.StartObject();
 		writer.Key("code"); writer.Int(0);

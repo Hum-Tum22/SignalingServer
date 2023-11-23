@@ -1,5 +1,5 @@
 #include "XmlMsgAnalysis.h"
-#include "tools/CodeConvert.h"
+#include "tools/CodeConversion.h"
 
 GB28181XmlMsg::GB28181XmlMsg()
 {
@@ -243,7 +243,7 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 						if (nodeElement)
 						{
 							pText = nodeElement->GetText();
-							cataitem.Name = ownCodeCvt::GbkToUtf8(pText ? pText : "");
+							cataitem.Name = GbkToUtf8(pText ? pText : "");
 						}
 						nodeElement = ItemElement->FirstChildElement("Manufacturer");
 						if (nodeElement)

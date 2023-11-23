@@ -14,10 +14,12 @@
 
 #include <iostream>
 
+#ifdef _WIN32
 #pragma comment(lib,"librtp")
 #pragma comment(lib,"libmpeg")
 #pragma comment(lib,"libflv")
 #pragma comment(lib,"libmov")
+#endif
 
 
 send_rtp::send_rtp(short localport, const char* peerIp, short peerPort):

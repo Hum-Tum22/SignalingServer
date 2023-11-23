@@ -14,6 +14,7 @@ public:
 	~DeviceMng();
 
 	static DeviceMng& Instance();
+	void setSelfId(const std::string &myId);
 
 	void addDevice(BaseDevice::Ptr);
 	void removeDevice(std::string);
@@ -22,13 +23,14 @@ public:
 	void addChildDevice(BaseChildDevice*);
 	void removeChildDevice(std::string);
 	BaseChildDevice* findChildDevice(std::string Id);
-	void getChildDevice(std::string Id, std::vector<BaseChildDevice*> &vcList);
+	void getChildDevice(const std::string &Id, std::vector<BaseChildDevice*> &vcList);
 
 	void addVirtualOrganization(VirtualOrganization);
 	void removeVirtualOrganization(std::string);
 	VirtualOrganization* findVirtualOrganization(std::string Id);
-	void getVirtualOrganization(std::string Id, std::vector<VirtualOrganization> &vcList);
+	void getVirtualOrganization(const std::string &Id, std::vector<VirtualOrganization> &vcList);
 private:
+	std::string selfId;
 	std::mutex devMtx;
 	std::map<std::string, BaseDevice::Ptr> mDeviceMap;
 	std::mutex childMtx;

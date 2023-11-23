@@ -162,19 +162,19 @@ public:
             Data destip = Tuple::inet_ntop(destination);
         }
         if (msg.isRequest())
-	{
-	    sipserver::SipServer* pSvr = GetServer();
+	    {
+	        /*sipserver::SipServer* pSvr = GetServer();
     	    if (pSvr && !pSvr->localHost.empty())
     	    {
-        	msg.header(h_Vias).front().sentHost() = pSvr->localHost;
-	        msg.header(h_Contacts).front().uri().host() = pSvr->localHost;
+        	    msg.header(h_Vias).front().sentHost() = pSvr->localHost;
+	            msg.header(h_Contacts).front().uri().host() = pSvr->localHost;
     	    }
     	    if (pSvr && !pSvr->localPort != 0)
     	    {
-	        msg.header(h_Vias).front().sentPort() = pSvr->localPort;
-        	msg.header(h_Contacts).front().uri().port() = pSvr->localPort;
-    	    }
-	}
+	            msg.header(h_Vias).front().sentPort() = pSvr->localPort;
+        	    msg.header(h_Contacts).front().uri().port() = pSvr->localPort;
+    	    }*/
+	    }
         InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
     }
     virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
@@ -310,7 +310,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mProfile->setOutboundDecorator(std::make_shared<SdpMessageDecorator>());
 
     // Other Profile Settings
-    mProfile->setUserAgent("basicClient/1.0");
+    mProfile->setUserAgent("vsk");
     mProfile->setDefaultRegistrationTime(mRegisterDuration);
     mProfile->setDefaultRegistrationRetryTime(120);
 
@@ -338,6 +338,8 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     defaultFrom.host() = DnsUtil::getLocalIpAddress();
     defaultFrom.port() = svrCfgi.getConfigInt("UDPPort", 5060);
     mProfile->setDefaultFrom(NameAddr(defaultFrom));
+
+    DeviceMng::Instance().setSelfId(defaultFrom.user().c_str());
 
     // Generate InstanceId appropriate for testing only.  Should be UUID that persists 
     // across machine re-starts and is unique to this applicaiton instance.  The one used 
@@ -419,10 +421,11 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     }
 
     mDumThread = new DumThread(*mDum);
-    
-    mDevCfg.HeartBeatCount =svrCfgi.getConfigInt("keepaliveTimeOutNum", 3);
-    mDevCfg.HeartBeatInterval = svrCfgi.getConfigInt("keepaliveInterval", 3);
-    mDevCfg.Expires = svrCfgi.getConfigInt("Expires", 3);
+
+    MyServerConfig& SvrCfg = GetSipServerConfig();
+    mDevCfg.HeartBeatCount = SvrCfg.getConfigInt("keepaliveTimeOutNum", 3);
+    mDevCfg.HeartBeatInterval = SvrCfg.getConfigInt("keepaliveInterval", 3);
+    mDevCfg.Expires = SvrCfg.getConfigInt("Expires", 3);
     StateThread = std::thread(checkStateThread, this);
 }
 UaMgr::~UaMgr()
@@ -641,17 +644,23 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
             }
             else
             {
+                printf("%s child device not found\n", channelId.c_str());
                 return false;
             }
         }
         else
         {
+            printf("channelId is null\n");
             return false;
         }
     }
     else
     {
-
+        parentDev = DeviceMng::Instance().findDevice(devId);
+        if (!parentDev)
+        {
+            printf("%s device not found\n", devId.c_str());
+        }
     }
     
     if (parentDev)
@@ -690,12 +699,24 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                                             std::string Id = json_check_string(body[i], "device_id");
                                             chl = child;
                                         }
+                                        else
+                                        {
+                                            printf("%s %s child device offline\n", channelId.c_str(), devNum.c_str());
+                                        }
+                                    }
+                                    else
+                                    {
+                                        printf("%s %s child device enable_flag :%d\n", channelId.c_str(), devNum.c_str(), enable_flag);
                                     }
                                     break;
                                 }
                             }
                         }
                     }
+                }
+                else
+                {
+                    printf("%s get channel info err: %d\n", channelId.c_str(), err);
                 }
                 if (chl >= 0)
                 {
@@ -705,6 +726,7 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                     {
                         //parent->streamStatus = UaClientCall::CALL_MY_MEDIA_OK;
                         //create mediain
+                        printf("%s child device pull stream ok\n", channelId.c_str());
                         streamIn->setStreamHandle(playhandle);
                         MediaMng::GetInstance().addStream(streamIn);
                         return true;
@@ -712,8 +734,13 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                     else
                     {
                         //delete streamIn; streamIn = NULL;
+                        printf("%s child device pull stream failed err:%d\n", channelId.c_str(), err);
                         return false;
                     }
+                }
+                else
+                {
+                    printf("%s child device channel not found\n", channelId.c_str());
                 }
             }
         }

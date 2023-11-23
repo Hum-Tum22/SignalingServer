@@ -2,8 +2,8 @@
 
 DeviceMng& DeviceMng::Instance()
 {
-	static DeviceMng g_DeviceMng;
-	return g_DeviceMng;
+	static DeviceMng *g_DeviceMng = new DeviceMng();
+	return *g_DeviceMng;
 }
 DeviceMng::~DeviceMng()
 {
@@ -26,6 +26,10 @@ DeviceMng::~DeviceMng()
 		mDeviceMap.clear();
 	}
 	
+}
+void DeviceMng::setSelfId(const std::string& myId)
+{
+	selfId = myId;
 }
 void DeviceMng::addDevice(BaseDevice::Ptr dev)
 {
@@ -68,7 +72,7 @@ BaseChildDevice* DeviceMng::findChildDevice(std::string Id)
 	}
 	return NULL;
 }
-void DeviceMng::getChildDevice(std::string Id, std::vector<BaseChildDevice*> &vcList)
+void DeviceMng::getChildDevice(const std::string &Id, std::vector<BaseChildDevice*> &vcList)
 {
 	if (Id.empty())
 	{
@@ -80,17 +84,24 @@ void DeviceMng::getChildDevice(std::string Id, std::vector<BaseChildDevice*> &vc
 	}
 	else
 	{
-		std::map<std::string, BaseChildDevice*> ChildMap;
+		if (selfId == Id)
 		{
-			GMUTEX lock(childMtx);
-			ChildMap = mChildMap;
+			getChildDevice("", vcList);
 		}
-		for (auto& it : ChildMap)
+		else
 		{
-			if (it.second && it.second->getParentDev()->deviceId == Id)
+			std::map<std::string, BaseChildDevice*> ChildMap;
 			{
-				vcList.push_back(it.second);
-				getChildDevice(it.second->getDeviceId(), vcList);
+				GMUTEX lock(childMtx);
+				ChildMap = mChildMap;
+			}
+			for (auto& it : ChildMap)
+			{
+				if (it.second && it.second->getParentDev()->deviceId == Id)
+				{
+					vcList.push_back(it.second);
+					getChildDevice(it.second->getDeviceId(), vcList);
+				}
 			}
 		}
 	}
@@ -116,7 +127,7 @@ VirtualOrganization* DeviceMng::findVirtualOrganization(std::string Id)
 	}
 	return NULL;
 }
-void DeviceMng::getVirtualOrganization(std::string Id, std::vector<VirtualOrganization> &vcList)
+void DeviceMng::getVirtualOrganization(const std::string &Id, std::vector<VirtualOrganization> &vcList)
 {
 	if (Id.empty())
 	{
@@ -128,13 +139,20 @@ void DeviceMng::getVirtualOrganization(std::string Id, std::vector<VirtualOrgani
 	}
 	else
 	{
-		GMUTEX lock(childMtx);
-		for (auto& it : mVoMap)
+		if (selfId == Id)
 		{
-			if (it.second.ParentID == Id)
+			getVirtualOrganization("", vcList);
+		}
+		else
+		{
+			GMUTEX lock(childMtx);
+			for (auto& it : mVoMap)
 			{
-				vcList.push_back(it.second);
-				getVirtualOrganization(it.second.DeviceID, vcList);
+				if (it.second.ParentID == Id)
+				{
+					vcList.push_back(it.second);
+					getVirtualOrganization(it.second.DeviceID, vcList);
+				}
 			}
 		}
 	}

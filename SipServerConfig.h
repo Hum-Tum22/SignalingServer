@@ -8,6 +8,7 @@ class MyServerConfig : public regist::ProxyConfig
     regist::AbstractDb* mAbstractDb;
 public:
     MyServerConfig();
+    ~MyServerConfig();
     regist::AbstractDb* getDatabase(int configIndex);
     regist::AbstractDb* CreateDatabase();
 };

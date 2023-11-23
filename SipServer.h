@@ -82,11 +82,12 @@ protected:
 	virtual bool createProxy();
 	virtual void populateRegistrations();
 	virtual bool createWebAdmin();
+	virtual void createAuthenticatorFactory();
+	virtual void createDialogUsageManager();//¡ä¡ä?¡§¡Á¡é2¨¢server dum  SipServerAuthManager
 	virtual void createRegSync();
 	virtual void createCommandServer();
 
 	virtual bool createRegistServer();
-	virtual bool createRegistServerEx();
 
 	virtual void initDomainMatcher();
 	virtual void addDomains(resip::TransactionUser& tu);
@@ -115,6 +116,7 @@ protected:
 	AbstractDb* mRuntimeAbstractDb;
 	resip::RegistrationPersistenceManager* mRegistrationPersistenceManager;
 	resip::PublicationPersistenceManager* mPublicationPersistenceManager;
+	AuthenticatorFactory* mAuthFactory;
 	resip::Dispatcher* mAsyncProcessorDispatcher;
 	ProcessorChain* mMonkeys;
 	ProcessorChain* mLemurs;

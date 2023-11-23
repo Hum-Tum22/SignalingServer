@@ -6,7 +6,7 @@
 #include <vector>
 #include "DeviceChannel.h"
 
-using namespace std;
+//using namespace std;
 class Device
 {
 public:
@@ -14,8 +14,8 @@ public:
 	{
 		DEV_ACCESS_GB28181,
 	};
-	virtual string getUuId();
-	virtual void setUuId(string uid);
+	virtual std::string getUuId();
+	virtual void setUuId(std::string uid);
 	virtual int getChannelCount();
 	virtual void setChannelCount(int chlcount);
 	virtual int getOnline();
@@ -23,18 +23,18 @@ public:
 	//friend class SipServerDeviceInfo;
 	virtual protocal getDevAccessProtocal();
 	virtual void setDevAccessProtocal(protocal pro);
-	virtual string getDeviceId();
-	virtual void setDeviceId(const string& devid);
+	virtual std::string getDeviceId();
+	virtual void setDeviceId(const std::string& devid);
 protected:
 	//唯Id
-	string uuid;
-	string deviceId;
+	std::string uuid;
+	std::string deviceId;
 	// 通道个数
 	int channelCount;
 	// 在线
 	int online;
 	protocal proType;
-	list<std::shared_ptr<IDeviceChannel>> mChannelList;
+	std::list<std::shared_ptr<IDeviceChannel>> mChannelList;
 };
 class SipServerDeviceInfo :public Device
 {
@@ -44,43 +44,43 @@ public:
 	};
 private:
 	//设备名
-	string name;
+	std::string name;
 	// 生产厂商
-	string manufacturer;
+	std::string manufacturer;
 	// 型号
-	string model;
+	std::string model;
 	// 固件版本
-	string firmware;
+	std::string firmware;
 	// 传输协议
 	// UDP/TCP
-	string transport;
+	std::string transport;
 	/**
 	* 数据流传输模式
 	* UDP:udp传输
 	* TCP-ACTIVE：tcp主动模式
 	* TCP-PASSIVE：tcp被动模式
 	*/
-	string streamMode;
+	std::string streamMode;
 	// wan地址_ip
-	string  ip;
+	std::string  ip;
 	// wan地址_port
 	int port;
 	// wan地址
-	string  hostAddress;
+	std::string  hostAddress;
 	// 注册时间
-	string registerTime;
+	std::string registerTime;
 	//心跳时间
-	string keepaliveTime;
+	std::string keepaliveTime;
 	// 注册有效期
 	int expires;
 	// 创建时间
-	string createTime;
+	std::string createTime;
 	// 更新时间
-	string updateTime;
+	std::string updateTime;
 	// 设备使用的媒体id, 默认为null
-	string mediaServerId;
+	std::string mediaServerId;
 	// 字符集, 支持 UTF-8 与 GB2312
-	string charset;
+	std::string charset;
 	// 目录订阅周期，0为不订阅
 	int subscribeCycleForCatalog;
 	// 移动设备位置订阅周期，0为不订阅
@@ -90,67 +90,67 @@ private:
 	// 报警订阅周期，0为不订阅
 	int subscribeCycleForAlarm;
 	// 是否开启ssrc校验，默认关闭，开启可以防止串流
-	string ssrcCheck;
+	std::string ssrcCheck;
 
 	//list<GBDeviceChannel> mChannelList;
 
 	int mSn; // 命令序列号
 	int mTotal;
 	int mCurCount;
-	string mLastTime;
-	string mErrorMsg;
+	std::string mLastTime;
+	std::string mErrorMsg;
 	CatalogDataStatus mCatalogStatus;
 public:
 	SipServerDeviceInfo();
 	SipServerDeviceInfo(const SipServerDeviceInfo& devobj);
 
-	string getName();
-	void setName(string nm);
+	std::string getName();
+	void setName(std::string nm);
 
-	string getManufacturer();
-	void setManufacturer(string manuf);
+	std::string getManufacturer();
+	void setManufacturer(std::string manuf);
 
-	string getModel();
-	void setModel(string mod);
+	std::string getModel();
+	void setModel(std::string mod);
 
-	string getFirmware();
-	void setFirmware(string firm);
+	std::string getFirmware();
+	void setFirmware(std::string firm);
 
-	string getTransport();
-	void setTransport(string trans);
+	std::string getTransport();
+	void setTransport(std::string trans);
 
-	string getStreamMode();
-	void setStreamMode(string strammode);
+	std::string getStreamMode();
+	void setStreamMode(std::string strammode);
 
-	string getIp();
-	void setIp(string strip);
+	std::string getIp();
+	void setIp(std::string strip);
 
 	int getPort();
 	void setPort(int iport);
 
-	string getHostAddress();
-	void setHostAddress(string haddress);
+	std::string getHostAddress();
+	void setHostAddress(std::string haddress);
 
-	string getRegisterTime();
-	void setRegisterTime(string regtime);
+	std::string getRegisterTime();
+	void setRegisterTime(std::string regtime);
 
-	string getKeepaliveTime();
-	void setKeepaliveTime(string keeptime);
+	std::string getKeepaliveTime();
+	void setKeepaliveTime(std::string keeptime);
 
 	int getExpires();
 	void setExpires(int iexpires);
 
-	string getCreateTime();
-	void setCreateTime(string ctreattime);
+	std::string getCreateTime();
+	void setCreateTime(std::string ctreattime);
 
-	string getUpdateTime();
-	void setUpdateTime(string updatetm);
+	std::string getUpdateTime();
+	void setUpdateTime(std::string updatetm);
 
-	string getMediaServerId();
-	void setMediaServerId(string mediaSvId);
+	std::string getMediaServerId();
+	void setMediaServerId(std::string mediaSvId);
 
-	string getCharset();
-	void setCharset(string chars);
+	std::string getCharset();
+	void setCharset(std::string chars);
 
 	int getSubscribeCycleForCatalog();
 	void setSubscribeCycleForCatalog(int subcatalog);
@@ -164,13 +164,13 @@ public:
 	int getSubscribeCycleForAlarm();
 	void setSubscribeCycleForAlarm(int subalarm);
 
-	string isSsrcCheck();
-	void setSsrcCheck(string isssrc);
+	std::string isSsrcCheck();
+	void setSsrcCheck(std::string isssrc);
 
-	list<std::shared_ptr<IDeviceChannel>> getChannelList();
-	void setChannelList(list<std::shared_ptr<IDeviceChannel>> channelList);
+	std::list<std::shared_ptr<IDeviceChannel>> getChannelList();
+	void setChannelList(std::list<std::shared_ptr<IDeviceChannel>> channelList);
 
-	void updateChannelList(list<GBDeviceChannel*> channelList);
+	void updateChannelList(std::list<GBDeviceChannel*> channelList);
 
 	int getSn();
 	void setSn(int sn);
@@ -178,11 +178,11 @@ public:
 	int getTotal();
 	void setTotal(int total);
 
-	string getLastTime();
-	void setLastTime(string lastTime);
+	std::string getLastTime();
+	void setLastTime(std::string lastTime);
 
-	string getErrorMsg();
-	void setErrorMsg(string errorMsg);
+	std::string getErrorMsg();
+	void setErrorMsg(std::string errorMsg);
 
 	CatalogDataStatus getCatalogStatus();
 	void setCatalogStatus(CatalogDataStatus status);
@@ -191,7 +191,7 @@ public:
 	void ResponseUpdateCatalog(GBDeviceChannel* channel);
 
 	int getCatalogNum();
-	std::shared_ptr<IDeviceChannel> GetGBChannel(string channelId);
+	std::shared_ptr<IDeviceChannel> GetGBChannel(std::string channelId);
 };
 class OnvifDeviceInfo :public Device
 {
@@ -200,18 +200,18 @@ public:
 };
 typedef struct
 {
-	string DeviceID;
+	std::string DeviceID;
 }CatalogQueryMsg;
 typedef struct
 {
-	string DeviceID;
-	string status;
+	std::string DeviceID;
+	std::string status;
 }KeepAliveMsg;
 typedef struct
 {
-	string DeviceID;
-	string StartTime;
-	string EndTime;
+	std::string DeviceID;
+	std::string StartTime;
+	std::string EndTime;
 }CatalogSubscriptionMsg;
 
 typedef struct _ResponseCatalogMsg
@@ -229,26 +229,26 @@ typedef struct _ResponseCatalogMsg
 		Longitude = 0;
 		Latitude = 0;
 	}
-	string  DeviceID;
-	string  Name;
-	string  Manufacturer;
-	string  Model;
-	string  Owner;
-	string  CivilCode;
-	string  Block;
-	string  Address;
+	std::string  DeviceID;
+	std::string  Name;
+	std::string  Manufacturer;
+	std::string  Model;
+	std::string  Owner;
+	std::string  CivilCode;
+	std::string  Block;
+	std::string  Address;
 	int	    Parental;
-	string  ParentID;
+	std::string  ParentID;
 	int	    SafetyWay;
 	int     RegisterWay;
-	string  CertNum;
+	std::string  CertNum;
 	int     Certifiable;
 	int     ErrCode;
-	string  EndTime;
+	std::string  EndTime;
 	int     Secrecy;
-	string  IPAddress;
+	std::string  IPAddress;
 	int		Port;
-	string  Password;
+	std::string  Password;
 	int		Status;
 	double  Longitude;
 	double  Latitude;
@@ -258,7 +258,7 @@ struct ResponseCatalogList
 	unsigned int allnum;
 	std::string   fatherdevid;
 	int catalogtype;//0:组织机构 1:nvr 2:ipc 3:业务分组 4:系统信息
-	vector<ResponseCatalogMsg> m_devVect;
+	std::vector<ResponseCatalogMsg> m_devVect;
 	///std::vector<Organization> m_OrgVect;
 	//std::vector<BusinessGroupItem> m_GroupVect;
 	//CatalogSystemItem sysinfo;
