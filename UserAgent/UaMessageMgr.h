@@ -12,6 +12,7 @@
 #include "../uainfo.h"
 #include "../device/CatalogData.h"
 #include "../deviceMng/VirtualOrganization.h"
+#include "GB28181Msg.h"
 
 
 
@@ -45,6 +46,9 @@ public:
 	CatalogDateQuery* GetCatalogQuery(string deviceId);
 	void PopCatalogQuery(string deviceId);
 
+	void PtzControlResponseTask(const char * deviceId, PTZCMDType ptzCmd, int ControlPriority);
+	void CatalogQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist);
+	void DeviceInfoQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist);
 	void QueryCatalogTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist);
 public:
 	void RegistPageMsgCallBack(RegistPageMsgStateCallBack fun, void* pUser);

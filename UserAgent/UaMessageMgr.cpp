@@ -70,7 +70,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         h->send(ok);
         return;
     }
-    shared_ptr<SipMessage> ok;
+    std::shared_ptr<SipMessage> ok;
     GB28181XmlMsg XmlMsg;
     if (AnalyzeReceivedSipMsg(body->getBodyData().c_str(), XmlMsg))
     {
@@ -89,345 +89,221 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
     NameAddrs routelist;
     GetAndReFormateRecordRoute(message, routelist);
 
-    if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
+    //XML_CMD_NAME_CONTROL,//表示一个控制的动作
+    //XML_CMD_NAME_QUERY,//表示一个查询的动作
+    //XML_CMD_NAME_NOTIFY,//表示一个通知的动作
+    ////应答命令
+    //XML_CMD_NAME_RESPONSE,//表示一个请求动作的应答
+    if (XmlMsg.cmdname == XML_CMD_NAME_CONTROL)
     {
-        if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_CATALOG)
+        if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_CONTROL)//DeviceControl 设备控制
         {
-            //�ൺ
-
-            //QDCCTVCatalogResponse(fromuser, XmlMsg.DeviceID.c_str(), XmlMsg.sn, routelist);
-            
-            IDeviceMngrSvr& devmng = GetIDeviceMngr();
-            if (Data(XmlMsg.DeviceID) == mDum.getMasterUserProfile()->getDefaultFrom().uri().user())
-            {
-                //�ൺ
-                {
-                    ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::QueryCatalogTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
-                }
-                list<std::shared_ptr<Device>> devlist;
-                devmng.GetAllDeviceList(devlist);
-                int sumnum = devlist.size();
-                for (auto& it : devlist)
-                {
-                    SipServerDeviceInfo* devinfo = dynamic_cast<SipServerDeviceInfo*>(it.get());
-                    if (devinfo)
-                    {
-                        sumnum += devinfo->getChannelCount();
-                    }
-                }
-#ifdef SENDONLY_CHANNEL_CATALOG
-                for (auto& it : devlist)
-                {
-                    SipServerDeviceInfo* devinfo = dynamic_cast<SipServerDeviceInfo*>(it);
-                    if (devinfo)
-                    {
-                        list<GBDeviceChannel*> chllist = devinfo->getChannelList();
-                        for (auto& it : chllist)
-                        {
-                            vector<CatalogItem> items;
-                            CatalogItem item;
-                            item.DeviceID = it->getChannelId();
-                            item.ParentID = it->getDeviceId();
-                            item.Name = "ipc";
-                            item.Status = "ON";
-
-                            item.DeviceID = it->getChannelId();
-                            item.ParentID = it->getDeviceId();
-                            item.Name = it->getChannelId();
-                            item.Manufacturer = it->getManufacture();
-                            item.Model = it->getModel();
-                            item.Owner = it->getOwner();
-                            item.CivilCode = it->getChannelId().substr(0, 10);
-                            item.Block = it->getBlock();
-                            item.Address = it->getAddress();
-                            item.Parental = 0;
-                            item.SafetyWay = 0;
-                            item.RegisterWay = 1;
-                            item.CertNum = 0;
-                            item.Certifiable = 0;
-                            item.ErrCode = 0;
-                            item.EndTime = "";
-                            item.Secrecy = 0;
-                            item.IPAddress = it->getIpAddress();
-                            item.Port = it->getPort();
-                            item.Password = "";
-                            item.Status = "ON";
-                            item.Longitude = 0;
-                            item.Latitude = 0;
-                            items.push_back(item);
-                            string outStr;
-                            CreateCatalogResponse(XmlMsg.DeviceID.c_str(), XmlMsg.sn, sumnum, items, NULL, outStr);
-                            unique_ptr<Contents> content(new PlainContents(outStr.c_str(), Mime("Application", "MANSCDP+xml")));
-                            //h->send
-                            SendResponsePageMsg(fromuser, outStr, MsgCmdType_Catalog, routelist);
-                        }
-                    }
-                }
-#else
-                for (auto& it : devlist)
-                {
-                    SipServerDeviceInfo* devinfo = dynamic_cast<SipServerDeviceInfo*>(it.get());
-                    if (devinfo)
-                    {
-                        vector<CatalogItem> items;
-                        CatalogItem item;
-                        item.DeviceID = devinfo->getDeviceId();
-                        item.ParentID = mDum.getMasterUserProfile()->getDefaultFrom().uri().user().c_str();
-                        item.Name = devinfo->getDeviceId();
-                        item.Manufacturer = devinfo->getManufacturer();
-                        item.Model = devinfo->getModel();
-                        item.Owner = "";
-                        item.CivilCode = devinfo->getDeviceId().substr(0, 10);
-                        item.Block = "";
-                        item.Address = "";
-                        item.Parental = devinfo->getChannelCount() ? 1 : 0;
-                        item.SafetyWay = 0;
-                        item.RegisterWay = 1;
-                        item.CertNum = 0;
-                        item.Certifiable = 0;
-                        item.ErrCode = 0;
-                        item.EndTime = "";
-                        item.Secrecy = 0;
-                        item.IPAddress = devinfo->getIp();
-                        item.Port = devinfo->getPort();
-                        item.Password = "";
-                        item.Status = "ON";
-                        item.Longitude = 0;
-                        item.Latitude = 0;
-                        items.push_back(item);
-                        string outStr;
-                        CreateCatalogResponse(XmlMsg.DeviceID.c_str(), XmlMsg.sn, sumnum, items, NULL, outStr);
-                        unique_ptr<Contents> content(new PlainContents(outStr.c_str(), Mime("Application", "MANSCDP+xml")));
-                        //h->send
-                        SendResponsePageMsg(fromuser, outStr, MsgCmdType_Catalog, routelist);
-                        list<std::shared_ptr<IDeviceChannel>> chllist = devinfo->getChannelList();
-                        for (auto& iter : chllist)
-                        {
-                            std::shared_ptr<GBDeviceChannel> chlinfo = std::static_pointer_cast<GBDeviceChannel>(iter);
-                            if (chlinfo)
-                            {
-                                vector<CatalogItem> items;
-                                CatalogItem item;
-                                item.DeviceID = chlinfo->getChannelId();
-                                item.ParentID = chlinfo->getDeviceId();
-                                item.Name = "ipc";
-                                item.Status = "ON";
-
-                                item.DeviceID = chlinfo->getChannelId();
-                                item.ParentID = chlinfo->getDeviceId();
-                                item.Name = chlinfo->getChannelId();
-                                item.Manufacturer = chlinfo->getManufacture();
-                                item.Model = chlinfo->getModel();
-                                item.Owner = chlinfo->getOwner();
-                                item.CivilCode = chlinfo->getChannelId().substr(0, 10);
-                                item.Block = chlinfo->getBlock();
-                                item.Address = chlinfo->getAddress();
-                                item.Parental = 0;
-                                item.SafetyWay = 0;
-                                item.RegisterWay = 1;
-                                item.CertNum = 0;
-                                item.Certifiable = 0;
-                                item.ErrCode = 0;
-                                item.EndTime = "";
-                                item.Secrecy = 0;
-                                item.IPAddress = chlinfo->getIpAddress();
-                                item.Port = chlinfo->getPort();
-                                item.Password = "";
-                                item.Status = "ON";
-                                item.Longitude = 0;
-                                item.Latitude = 0;
-                                items.push_back(item);
-                                string outStr;
-                                CreateCatalogResponse(XmlMsg.DeviceID.c_str(), XmlMsg.sn, sumnum, items, NULL, outStr);
-                                unique_ptr<Contents> content(new PlainContents(outStr.c_str(), Mime("Application", "MANSCDP+xml")));
-                                //h->send
-                                SendResponsePageMsg(fromuser, outStr, MsgCmdType_Catalog, routelist);
-                            }
-                        }
-                    }
-                }
-#endif
-                
-            }
-            else
-            {
-                std::shared_ptr<Device> pDev = devmng.queryDevice(XmlMsg.DeviceID);
-                if (pDev)
-                {
-                    SipServerDeviceInfo* devinfo = dynamic_cast<SipServerDeviceInfo*>(pDev.get());
-                    if (devinfo)
-                    {
-                        list<std::shared_ptr<IDeviceChannel>> chllist = devinfo->getChannelList();
-                        int sumnum = chllist.size();
-                        for (auto& it : chllist)
-                        {
-                            std::shared_ptr<GBDeviceChannel> chlInfo = std::static_pointer_cast<GBDeviceChannel>(it);
-                            if (chlInfo)
-                            {
-                                vector<CatalogItem> items;
-                                CatalogItem item;
-                                item.DeviceID = chlInfo->getChannelId();
-                                item.ParentID = chlInfo->getDeviceId();
-                                item.Name = "ipc";
-                                item.Status = "ON";
-
-                                item.DeviceID = chlInfo->getChannelId();
-                                item.ParentID = chlInfo->getDeviceId();
-                                item.Name = chlInfo->getChannelId();
-                                item.Manufacturer = chlInfo->getManufacture();
-                                item.Model = chlInfo->getModel();
-                                item.Owner = chlInfo->getOwner();
-                                item.CivilCode = chlInfo->getChannelId().substr(0, 10);
-                                item.Block = chlInfo->getBlock();
-                                item.Address = chlInfo->getAddress();
-                                item.Parental = 0;
-                                item.SafetyWay = 0;
-                                item.RegisterWay = 1;
-                                item.CertNum = 0;
-                                item.Certifiable = 0;
-                                item.ErrCode = 0;
-                                item.EndTime = "";
-                                item.Secrecy = 0;
-                                item.IPAddress = chlInfo->getIpAddress();
-                                item.Port = chlInfo->getPort();
-                                item.Password = "";
-                                item.Status = "ON";
-                                item.Longitude = 0;
-                                item.Latitude = 0;
-                                items.push_back(item);
-                                string outStr;
-                                CreateCatalogResponse(XmlMsg.DeviceID.c_str(), XmlMsg.sn, sumnum, items, NULL, outStr);
-                                unique_ptr<Contents> content(new PlainContents(outStr.c_str(), Mime("Application", "MANSCDP+xml")));
-                                //h->send
-                                SendResponsePageMsg(fromuser, outStr, MsgCmdType_Catalog, routelist);
-                            }
-                        }
-                    }
-                }
-            }
+            PtzControlInfo* ptz = (PtzControlInfo *)XmlMsg.pPoint;
+            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::PtzControlResponseTask, this, XmlMsg.DeviceID.c_str(), PTZCMDType(ptz->value.c_str()), ptz->ControlPriority));
         }
-        else if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_DEVICEINFO)
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_CONFIG)//DeviceConfig 设备配置
         {
-            if (XmlMsg.DeviceID == "34020000002000000001")
-            {
-                DeviceInfoMsg devInfoMsg;
-                devInfoMsg.DeviceName = "sipserver";
-                devInfoMsg.Result = "OK";
-                devInfoMsg.Manufacturer = "vsk";
-                devInfoMsg.Model = "901";
-                devInfoMsg.Firmware = "1.1.9";
-                devInfoMsg.Channel = 1;
-                string outStr;
-                CreateDeviceInfoResponse(XmlMsg.DeviceID.c_str(), XmlMsg.sn, devInfoMsg, outStr);
-                SendResponsePageMsg(fromuser, outStr, MsgCmdType_DeviceInfo, routelist);
-            }
+        }
+        else
+        {
         }
     }
-    else if(XmlMsg.cmdname == XML_CMD_NAME_NOTIFY)
+    else if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
     {
-        if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_KEEPALIVE)
-        {
 
+        if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_STATUS)//DeviceStatus 设备状态查询
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)//Catalog 设备目录查询
+        {
+            //XML_CONTROLCMD_PTZ,
+            ////TeleBoot 远程启动控制命令
+            //XML_CONTROLCMD_TELEBOOT,
+            ////RecordCmd 录像控制命令
+            //XML_CONTROLCMD_RECORD,
+            ////GuardCmd 报警布防/撤防命令
+            //XML_CONTROLCMD_GUARD,
+            ////AlarmCmd 报警复位命令
+            //XML_CONTROLCMD_ALARM,
+            ////IFameCmd 强制关键帧命令,设备收到此命令应立刻发送一个IDR帧
+            //XML_CONTROLCMD_IFRAME,
+            ////DragZoomIn 拉框放大控制命令
+            //XML_CONTROLCMD_DRAGZOOMIN,
+            ////DragZoomOut 拉框缩小控制命令
+            //XML_CONTROLCMD_DRAGZOOMOUT,
+            ////HomePosition 看守位控制命令
+            //XML_CONTROLCMD_HOMEPOSITION
+            if (XmlMsg.controlCmd == XML_CONTROLCMD_PTZ)
+            {
+                ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::CatalogQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_TELEBOOT)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_RECORD)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_GUARD)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_ALARM)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_IFRAME)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_DRAGZOOMIN)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_DRAGZOOMOUT)
+            {
+            }
+            else if (XmlMsg.controlCmd == XML_CONTROLCMD_HOMEPOSITION)
+            {
+            }
+            
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_INFO)//DeviceInfo 设备信息查询
+        {
+            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::DeviceInfoQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RECORDINFO)//RecordInfo 文件目录检索
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_ALARM)//Alarm 报警查询
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_CONFIG_DOWNLOAD)//ConfigDownload 设备配置查询
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_PRESET_QUERY)//PresetQuery 预置位查询
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_MOBILE_POSITION)//MobilePosition 移动设备位置数据查询
+        {
+        }
+        else
+        {
+        }
+    }
+    else if (XmlMsg.cmdname == XML_CMD_NAME_NOTIFY)
+    {
+        ////通知命令
+        ////Keepalive 设备状态信息报送
+        //XML_CMDTYPE_NOTIFY_KEEPALIVE,
+        ////Alarm 报警通知
+        //XML_CMDTYPE_NOTIFY_ALARM,
+        ////MediaStatus 媒体通知
+        //XML_CMDTYPE_NOTIFY_MEDIA_STATUS,
+        ////Broadcast 广播通知
+        //XML_CMDTYPE_NOTIFY_BROADCAST,
+        ////MobilePosition 移动设备位置数据通知
+        //XML_CMDTYPE_NOTIFY_MOBILE_POSITION,
+        if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_KEEPALIVE)//Keepalive 设备状态信息报送
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_ALARM)//Alarm 报警通知
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MEDIA_STATUS)//MediaStatus 媒体通知
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_BROADCAST)//Broadcast 广播通知
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)//MobilePosition 移动设备位置数据通知
+        {
+        }
+        else
+        {
         }
     }
     else if (XmlMsg.cmdname == XML_CMD_NAME_RESPONSE)
     {
-        if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG)
+        ////应答命令
+        ////Catalog 目录信息查询收到应答
+        //XML_CMDTYPE_RESPONSE_CATALOG,
+        ////Catalog 目录收到应答
+        //XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED,
+        ////DeviceInfo 设备信息查询应答
+        //XML_CMDTYPE_RESPONSE_DEV_INFO,
+        ////DeviceStatus 设备状态信息查询应答
+        //XML_CMDTYPE_RESPONSE_DEV_STATUS,
+        ////RecordInfo 文件目录检索应答
+        //XML_CMDTYPE_RESPONSE_RECORD_INFO,
+        ////DeviceConfig 设备配置应答
+        //XML_CMDTYPE_RESPONSE_DEV_CONFIG,
+        ////ConfigDownload 设备配置查询应答
+        //XML_CMDTYPE_RESPONSE_CONFIG_DOWNLOAD,
+        ////PresetQuery 设备预置位查询应答
+        //XML_CMDTYPE_RESPONSE_PRESET_QUERY,
+        ////Broadcast 语音广播应答
+        //XML_CMDTYPE_RESPONSE_BROADCAST,
+        if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_DEV_CONTROL)//DeviceControl 设备控制应答
         {
-            IDeviceMngrSvr& devmng = GetIDeviceMngr();
-            std::shared_ptr<Device> pDev = devmng.queryDevice(XmlMsg.DeviceID);
-            if (pDev)
-            {
-                std::shared_ptr<SipServerDeviceInfo> devinfo = std::static_pointer_cast<SipServerDeviceInfo>(pDev);
-                if (devinfo)
-                {
-                    ResponseCatalogList* pResponseCatalogList = (ResponseCatalogList*)XmlMsg.pPoint;
-                    if (devinfo->getCatalogStatus() == SipServerDeviceInfo::ready)
-                    {
-                        devinfo->setCatalogStatus(SipServerDeviceInfo::runIng);
-                        devinfo->setTotal(pResponseCatalogList->allnum);
-                    }
-                    for (auto& it : pResponseCatalogList->m_devVect)
-                    {
-                        std::shared_ptr<GBDeviceChannel> pChannel = std::static_pointer_cast<GBDeviceChannel>(devinfo->GetGBChannel(it.DeviceID));
-                        //GBDeviceChannel* pChannel = dynamic_cast<GBDeviceChannel*>(devinfo->GetGBChannel(it.DeviceID).get());
-                        if (pChannel)
-                        {
-                            //update
-                            GBDeviceChannel* pGbChannel = new GBDeviceChannel();
-                            pGbChannel->setChannelId(it.DeviceID);
-                            pGbChannel->setName(it.Name);
-                            pGbChannel->setManufacture(it.Manufacturer);
-                            pGbChannel->setModel(it.Model);
-                            pGbChannel->setOwner(it.Owner);
-                            pGbChannel->setCivilCode(it.CivilCode);
-                            pGbChannel->setBlock(it.Block);
-                            pGbChannel->setAddress(it.Address);
-                            pGbChannel->setParental(it.Parental);
-                            pGbChannel->setParentId(it.ParentID);
-                            pGbChannel->setSafetyWay(it.SafetyWay);
-                            pGbChannel->setRegisterWay(it.RegisterWay);
-                            pGbChannel->setCertNum(it.CertNum);
-                            pGbChannel->setCertifiable(it.Certifiable);
-                            pGbChannel->setErrCode(it.ErrCode);
-                            pGbChannel->setEndTime(it.EndTime);
-                            pGbChannel->setSecrecy(std::to_string(it.Secrecy));
-                            pGbChannel->setIpAddress(it.IPAddress);
-                            pGbChannel->setPort(it.Port);
-                            pGbChannel->setPassword(it.Password);
-                            pGbChannel->setStatus(it.Status);
-                            pGbChannel->setLongitude(it.Longitude);
-                            pGbChannel->setLatitude(it.Latitude);
-                            pGbChannel->setDeviceId(devinfo->getDeviceId());
-                            devinfo->ResponseUpdateCatalog(pGbChannel);
-                            //devmng.GetGBDeviceMapper().GetGBDeviceChannelMapper().update(pGbChannel);
-                        }
-                        else
-                        {
-                            //add
-                            GBDeviceChannel *pGbChannel = new GBDeviceChannel();
-                            pGbChannel->setUuid(imuuid::uuidgen());
-                            pGbChannel->setChannelId(it.DeviceID);
-                            pGbChannel->setName(it.Name);
-                            pGbChannel->setManufacture(it.Manufacturer);
-                            pGbChannel->setModel(it.Model);
-                            pGbChannel->setOwner(it.Owner);
-                            pGbChannel->setCivilCode(it.CivilCode);
-                            pGbChannel->setBlock(it.Block);
-                            pGbChannel->setAddress(it.Address);
-                            pGbChannel->setParental(it.Parental);
-                            pGbChannel->setParentId(it.ParentID);
-                            pGbChannel->setSafetyWay(it.SafetyWay);
-                            pGbChannel->setRegisterWay(it.RegisterWay);
-                            pGbChannel->setCertNum(it.CertNum);
-                            pGbChannel->setCertifiable(it.Certifiable);
-                            pGbChannel->setErrCode(it.ErrCode);
-                            pGbChannel->setEndTime(it.EndTime);
-                            pGbChannel->setSecrecy(std::to_string(it.Secrecy));
-                            pGbChannel->setIpAddress(it.IPAddress);
-                            pGbChannel->setPort(it.Port);
-                            pGbChannel->setPassword(it.Password);
-                            pGbChannel->setStatus(it.Status);
-                            pGbChannel->setLongitude(it.Longitude);
-                            pGbChannel->setLatitude(it.Latitude);
-                            pGbChannel->setDeviceId(devinfo->getDeviceId());
-                            devinfo->addResponseCatalog(pGbChannel);
-                            devmng.GetGBDeviceMapper().GetGBDeviceChannelMapper().add(pGbChannel);
-                        }
-                    }
-                    if (devinfo->getTotal() == devinfo->getCatalogNum())
-                    {
-                        devinfo->setCatalogStatus(SipServerDeviceInfo::end);
-                    }
-                    if (devinfo->getCatalogStatus() == SipServerDeviceInfo::end)
-                    {
-                        devinfo->setChannelCount(devinfo->getTotal());
-                        IDeviceMngrSvr& devmng = GetIDeviceMngr();
-                        devmng.sync(devinfo);
-                    }
-                }
-            }
         }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_ALARM)//Alarm 报警通知应答
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG_ITEM)//Catalog 设备目录信息查询应答
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG)//Catalog 目录信息查询收到应答
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
+        {
+        }
+    }
+    else
+    {
+
     }
 }
 // message
@@ -629,7 +505,55 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
         }
     }
 }
-void CUserMessageMrg::QueryCatalogTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
+void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType PtzCmd, int ControlPriority)
+{
+    BaseChildDevice *child = DeviceMng::Instance().findChildDevice(deviceId);
+    if (child)
+    {
+        auto parentDev = child->getParentDev();
+        if (parentDev || parentDev->devType == BaseDevice::JSON_NVR)
+        {
+            JsonNvrDevic::Ptr Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
+            if (Nvr)
+            {
+                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                if (jsonChild)
+                {
+                    int channel = jsonChild->getChannel();
+                    if (channel > 0 && jsonChild->getStatus())
+                    {
+                        int lrArg, udarg;
+                        int cmd = PtzCmd.GetPTZUDLREx(lrArg, udarg);
+                        if (cmd > 0)
+                        {
+                            int err = 0;
+                            int arg = lrArg > 0 ? lrArg : udarg;
+                            Nvr->Dev_PTZCtrl(channel, JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd), arg, err);
+                            if (err != 0)
+                            {
+                                printf(" ptz ctrl err:%d, arg:%d\n", err, arg);
+                            }
+                        }
+                        else
+                        {
+                            printf("ptz cmd:%d channel:%d status:%d\n", cmd, channel, jsonChild->getStatus());
+                        }
+                    }
+                    else
+                    {
+                        printf("json channel:%d status:%d\n", channel, jsonChild->getStatus());
+                    }
+                }
+                else
+                {
+                    printf("jsonChild is null\n");
+                }
+            }
+        }
+    }
+    
+}
+void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
 {
     std::vector<VirtualOrganization> vcList;
     std::vector<BaseChildDevice*> vChildList;
@@ -691,26 +615,26 @@ void CUserMessageMrg::QueryCatalogTask(const Uri target, const std::string user,
                     item.ParentID = pChildDev->getParentId();
                     item.Name = Utf8ToGbk(pChildDev->getName());
 
-                    item.Manufacturer = "VSK";//��Ϊ�豸ʱ,�豸����(��ѡ)
-                    item.Model = "";//��Ϊ�豸ʱ,�豸�ͺ�(��ѡ)
-                    item.Owner = "";//��Ϊ�豸ʱ,�豸����(��ѡ)
-                    item.CivilCode = item.DeviceID.substr(0, 6);//��������(��ѡ)
-                    item.Block = "";//����(��ѡ)
-                    item.Address = "";//��Ϊ�豸ʱ,��װ��ַ(��ѡ)
-                    item.Parental = 0;//��Ϊ�豸ʱ,�Ƿ������豸(��ѡ)1��,0û��
-                    item.SafetyWay = 0;//���ȫģʽ(��ѡ)ȱʡΪ0; 0:������;2:S/MIME ǩ����ʽ;3:S/MIME����ǩ��ͬʱ���÷�ʽ; 4:����ժҪ��ʽ
-                    item.RegisterWay = 1;//ע�᷽ʽ(��ѡ)ȱʡΪ1;1:����IETFRFC3261��׼����֤ע��ģʽ; 2:���ڿ����˫����֤ע��ģʽ; 3:��������֤���˫����֤ע��ģʽ
-                    item.CertNum = 0;//֤�����к�(��֤����豸��ѡ)
-                    item.Certifiable = 0;//֤����Ч��ʶ(��֤����豸��ѡ)ȱʡΪ0;֤����Ч��ʶ:0:��Ч 1:��Ч
-                    item.ErrCode = 0;//��Чԭ����(��֤����֤����Ч���豸��ѡ)
-                    item.EndTime = "";//֤����ֹ��Ч��(��֤����豸��ѡ)
-                    item.Secrecy = 0;//��������(��ѡ)ȱʡΪ0;0:������,1:����
-                    item.IPAddress = pChildDev->getChildIp();//�豸/����/ϵͳIP��ַ(��ѡ)
-                    item.Port = 0;//�豸/����/ϵͳ�˿�(��ѡ)
+                    item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
+                    item.Model = "";//当为设备时,设备型号(必选)
+                    item.Owner = "";//当为设备时,设备归属(必选)
+                    item.CivilCode = item.DeviceID.substr(0, 6);//行政区域(必选)
+                    item.Block = "";//警区(可选)
+                    item.Address = "";//当为设备时,安装地址(必选)
+                    item.Parental = 0;//当为设备时,是否有子设备(必选)1有,0没有
+                    item.SafetyWay = 0;//信令安全模式(可选)缺省为0; 0:不采用;2:S/MIME 签名方式;3:S/MIME加密签名同时采用方式; 4:数字摘要方式
+                    item.RegisterWay = 1;//注册方式(必选)缺省为1;1:符合IETFRFC3261标准的认证注册模式; 2:基于口令的双向认证注册模式; 3:基于数字证书的双向认证注册模式
+                    item.CertNum = 0;//证书序列号(有证书的设备必选)
+                    item.Certifiable = 0;//证书有效标识(有证书的设备必选)缺省为0;证书有效标识:0:无效 1:有效
+                    item.ErrCode = 0;//无效原因码(有证书且证书无效的设备必选)
+                    item.EndTime = "";//证书终止有效期(有证书的设备必选)
+                    item.Secrecy = 0;//保密属性(必选)缺省为0;0:不涉密,1:涉密
+                    item.IPAddress = pChildDev->getChildIp();//设备/区域/系统IP地址(可选)
+                    item.Port = 0;//设备/区域/系统端口(可选)
                     item.Password = "";
                     item.Status = pChildDev->getStatus() ? "ON" : "OFF";
-                    item.Longitude = 0;//����(��ѡ)
-                    item.Latitude = 0;//γ��(��ѡ)
+                    item.Longitude = 0;//经度(可选)
+                    item.Latitude = 0;//纬度(可选)
                     ChildTtems.push_back(item);
                 }
             }
@@ -737,5 +661,21 @@ void CUserMessageMrg::QueryCatalogTask(const Uri target, const std::string user,
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         }
+    }
+}
+void CUserMessageMrg::DeviceInfoQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
+{
+    if (user == DeviceMng::Instance().getSelfId())
+    {
+        DeviceInfoMsg devInfoMsg;
+        devInfoMsg.DeviceName = "sipserver";
+        devInfoMsg.Result = "OK";
+        devInfoMsg.Manufacturer = "vsk";
+        devInfoMsg.Model = "901";
+        devInfoMsg.Firmware = "1.1.9";
+        devInfoMsg.Channel = 1;
+        string outStr;
+        CreateDeviceInfoResponse(user.c_str(), sn, devInfoMsg, outStr);
+        SendResponsePageMsg(target, outStr, MsgCmdType_DeviceInfo, Routlist);
     }
 }
