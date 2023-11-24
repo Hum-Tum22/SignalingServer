@@ -2,8 +2,51 @@
 #include "tools/CodeConversion.h"
 #include <string>
 
+bool CreatelPTZControCmd(char* deviceId, const char *ptzCmd, int ControlPriority, unsigned int sn, std::string& outstr)
+{
+	try
+	{
+		XMLDocument doc;
+		doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\" encoding=\"GB2312\""));
 
-bool CreateKeepAliveMsg(const char* user, const uint32_t& sn, string &outstr)
+		XMLElement* CmdName = doc.NewElement("Control");
+		doc.InsertEndChild(CmdName);
+
+		XMLElement* CmdTypeElement = doc.NewElement("CmdType");
+		CmdTypeElement->InsertEndChild(doc.NewText("DeviceControl"));
+		CmdName->InsertEndChild(CmdTypeElement);
+
+		XMLElement* SNElement = doc.NewElement("SN");
+		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
+		CmdName->InsertEndChild(SNElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
+		DeviceIDElement->InsertEndChild(doc.NewText(deviceId));
+		CmdName->InsertEndChild(DeviceIDElement);
+
+		XMLElement* ptzCmdElement = doc.NewElement("PTZCmd");
+		ptzCmdElement->InsertEndChild(doc.NewText(ptzCmd));
+		CmdName->InsertEndChild(ptzCmdElement);
+
+		XMLElement* infoElement = doc.NewElement("Info");
+		CmdName->InsertEndChild(infoElement);
+
+		XMLElement* ControlPriorityElement = doc.NewElement("ControlPriority");
+		ControlPriorityElement->InsertEndChild(doc.NewText(to_string(ControlPriority).c_str()));
+		infoElement->InsertEndChild(ControlPriorityElement);
+
+		XMLPrinter printer;
+		doc.Print(&printer);
+		outstr = printer.CStr();
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+
+bool CreateKeepAliveMsg(const char* user, const uint32_t& sn, std::string &outstr)
 {
 	try
 	{
@@ -37,7 +80,7 @@ bool CreateKeepAliveMsg(const char* user, const uint32_t& sn, string &outstr)
 	}
 	return false;
 }
-bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, string& outstr)
+bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, std::string& outstr)
 {
 	try
 	{
@@ -247,7 +290,7 @@ void AddIPCInfoToCatalog(XMLDocument& doc, XMLElement* Element, const CatalogIte
 	{
 	}
 }
-bool CreateVirtualOrganizationCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<VirtualOrganization> Items, string& outstr)
+bool CreateVirtualOrganizationCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<VirtualOrganization> Items, std::string& outstr)
 {
 	try
 	{
@@ -321,7 +364,7 @@ void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* Dev
 	{
 	}
 }
-bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const DeviceInfoMsg& devInfoMsg, string& outstr)
+bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const DeviceInfoMsg& devInfoMsg, std::string& outstr)
 {
 	try
 	{
@@ -383,7 +426,7 @@ bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const De
 	}
 	return false;
 }
-bool CreateCatalogSubscriptionResponseMsg(const char* user, const uint32_t& sn, string& outstr)
+bool CreateCatalogSubscriptionResponseMsg(const char* user, const uint32_t& sn, std::string& outstr)
 {
 	try
 	{
@@ -418,7 +461,7 @@ bool CreateCatalogSubscriptionResponseMsg(const char* user, const uint32_t& sn, 
 	}
 	return false;
 }
-bool CreateCatalogQueryRequestMsg(const char* gbid, const uint32_t& sn, string& outstr)
+bool CreateCatalogQueryRequestMsg(const char* gbid, const uint32_t& sn, std::string& outstr)
 {
 	try
 	{
