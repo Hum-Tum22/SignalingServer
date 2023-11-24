@@ -26,12 +26,12 @@ public:
 	virtual std::string getDeviceId();
 	virtual void setDeviceId(const std::string& devid);
 protected:
-	//ΨId
+	//唯Id
 	std::string uuid;
 	std::string deviceId;
-	// ͨ������
+	// 通道个数
 	int channelCount;
-	// ����
+	// 在线
 	int online;
 	protocal proType;
 	std::list<std::shared_ptr<IDeviceChannel>> mChannelList;
@@ -43,58 +43,58 @@ public:
 		ready, runIng, end
 	};
 private:
-	//�豸��
+	//设备名
 	std::string name;
-	// ��������
+	// 生产厂商
 	std::string manufacturer;
-	// �ͺ�
+	// 型号
 	std::string model;
-	// �̼��汾
+	// 固件版本
 	std::string firmware;
-	// ����Э��
+	// 传输协议
 	// UDP/TCP
 	std::string transport;
 	/**
-	* ����������ģʽ
-	* UDP:udp����
-	* TCP-ACTIVE��tcp����ģʽ
-	* TCP-PASSIVE��tcp����ģʽ
+	* 数据流传输模式
+	* UDP:udp传输
+	* TCP-ACTIVE：tcp主动模式
+	* TCP-PASSIVE：tcp被动模式
 	*/
 	std::string streamMode;
-	// wan��ַ_ip
+	// wan地址_ip
 	std::string  ip;
-	// wan��ַ_port
+	// wan地址_port
 	int port;
-	// wan��ַ
+	// wan地址
 	std::string  hostAddress;
-	// ע��ʱ��
+	// 注册时间
 	std::string registerTime;
-	//����ʱ��
+	//心跳时间
 	std::string keepaliveTime;
-	// ע����Ч��
+	// 注册有效期
 	int expires;
-	// ����ʱ��
+	// 创建时间
 	std::string createTime;
-	// ����ʱ��
+	// 更新时间
 	std::string updateTime;
-	// �豸ʹ�õ�ý��id, Ĭ��Ϊnull
+	// 设备使用的媒体id, 默认为null
 	std::string mediaServerId;
-	// �ַ���, ֧�� UTF-8 �� GB2312
+	// 字符集, 支持 UTF-8 与 GB2312
 	std::string charset;
-	// Ŀ¼�������ڣ�0Ϊ������
+	// 目录订阅周期，0为不订阅
 	int subscribeCycleForCatalog;
-	// �ƶ��豸λ�ö������ڣ�0Ϊ������
+	// 移动设备位置订阅周期，0为不订阅
 	int subscribeCycleForMobilePosition;
-	// �ƶ��豸λ����Ϣ�ϱ�ʱ����,��λ:��,Ĭ��ֵ5
+	// 移动设备位置信息上报时间间隔,单位:秒,默认值5
 	int mobilePositionSubmissionInterval;
-	// �����������ڣ�0Ϊ������
+	// 报警订阅周期，0为不订阅
 	int subscribeCycleForAlarm;
-	// �Ƿ���ssrcУ�飬Ĭ�Ϲرգ��������Է�ֹ����
+	// 是否开启ssrc校验，默认关闭，开启可以防止串流
 	std::string ssrcCheck;
 
 	//list<GBDeviceChannel> mChannelList;
 
-	int mSn; // �������к�
+	int mSn; // 命令序列号
 	int mTotal;
 	int mCurCount;
 	std::string mLastTime;
@@ -257,47 +257,172 @@ struct ResponseCatalogList
 {
 	unsigned int allnum;
 	std::string   fatherdevid;
-	int catalogtype;//0:��֯���� 1:nvr 2:ipc 3:ҵ����� 4:ϵͳ��Ϣ
+	int catalogtype;//0:组织机构 1:nvr 2:ipc 3:业务分组 4:系统信息
 	std::vector<ResponseCatalogMsg> m_devVect;
 	///std::vector<Organization> m_OrgVect;
 	//std::vector<BusinessGroupItem> m_GroupVect;
 	//CatalogSystemItem sysinfo;
 };
-
+//分类 名称 说明
+//请求命令
+//Control 表示一个控制的动作
+//Query 表示一个查询的动作
+//Notify 表示一个通知的动作
+//应答命令 Response 表示一个请求动作的应答
 typedef enum
 {
 	XML_CMD_NAME_UNKNOWN,
-	XML_CMD_NAME_QUERY,
-
-	XML_CMD_NAME_RESPONSE,
-
-
-
-	//Subscription
-	XML_CMD_NAME_SUBSCRIPTION,
-	XML_CMD_NAME_NOTIFY,
+	//请求命令
+	XML_CMD_NAME_CONTROL,//表示一个控制的动作
+	XML_CMD_NAME_QUERY,//表示一个查询的动作
+	XML_CMD_NAME_NOTIFY,//表示一个通知的动作
+	//应答命令
+	XML_CMD_NAME_RESPONSE,//表示一个请求动作的应答
 }XmlCmdName;
+
+//deviceIDType 设备编码类型
+//statusType 状态类型
+//resultType 结果类型
+//PTZType 控制码类型
+//recordType 录像控制类型
+//guardType 布防 / 撤防控制类型
+//itemType 设备目录项类型
+//itemFileType 文件目录项类型
 typedef enum
 {
-	//request
 	XML_CMDTYPE_UNKNOWN,
-	XML_CMDTYPE_REQUEST_CATALOG,
-	XML_CMDTYPE_REQUEST_DEVICEINFO,
 
-	XML_CMDTYPE_REQUEST_KEEPALIVE,
+	//控制命令
+	//DeviceControl 设备控制
+	XML_CMDTYPE_DEVICE_CONTROL,
+	//DeviceConfig 设备配置
+	XML_CMDTYPE_DEVICE_CONFIG,
+	//查询命令
+	//DeviceStatus 设备状态查询
+	XML_CMDTYPE_DEVICE_STATUS,
+	//Catalog 设备目录查询
+	XML_CMDTYPE_CATALOG,
+	//DeviceInfo 设备信息查询
+	XML_CMDTYPE_DEVICE_INFO,
+	//RecordInfo 文件目录检索
+	XML_CMDTYPE_RECORDINFO,
+	//Alarm 报警查询
+	XML_CMDTYPE_ALARM,
+	//ConfigDownload 设备配置查询
+	XML_CMDTYPE_CONFIG_DOWNLOAD,
+	//PresetQuery 预置位查询
+	XML_CMDTYPE_PRESET_QUERY,
+	//MobilePosition 移动设备位置数据查询
+	XML_CMDTYPE_MOBILE_POSITION,
 
-	//Subscription
-	XML_CMDTYPE_REQUEST_CATALOG_SUBSCRIPTION,
-	XML_CMDTYPE_REQUEST_ALARM_SUBSCRIPTION,
+	//通知命令
+	//Keepalive 设备状态信息报送
+	XML_CMDTYPE_NOTIFY_KEEPALIVE,
+	//Alarm 报警通知
+	XML_CMDTYPE_NOTIFY_ALARM,
+	//MediaStatus 媒体通知
+	XML_CMDTYPE_NOTIFY_MEDIA_STATUS,
+	//Broadcast 广播通知
+	XML_CMDTYPE_NOTIFY_BROADCAST,
+	//MobilePosition 移动设备位置数据通知
+	XML_CMDTYPE_NOTIFY_MOBILE_POSITION,
+	//Catalog 目录通知
+	XML_CMDTYPE_NOTIFY_CATALOG,
 
+	//应答命令
+	//DeviceControl 设备控制应答
+	XML_CMDTYPE_RESPONSE_DEV_CONTROL,
+	//Alarm 报警通知应答
+	XML_CMDTYPE_RESPONSE_ALARM,
+	//Catalog 设备目录信息查询应答
+	XML_CMDTYPE_RESPONSE_CATALOG_ITEM,
+	//Catalog 目录信息查询收到应答
+	XML_CMDTYPE_RESPONSE_CATALOG,
+	//Catalog 目录收到应答received
+	XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED,
+	//DeviceInfo 设备信息查询应答
+	XML_CMDTYPE_RESPONSE_DEV_INFO,
+	//DeviceStatus 设备状态信息查询应答
+	XML_CMDTYPE_RESPONSE_DEV_STATUS,
+	//RecordInfo 文件目录检索应答
+	XML_CMDTYPE_RESPONSE_RECORD_INFO,
+	//DeviceConfig 设备配置应答
+	XML_CMDTYPE_RESPONSE_DEV_CONFIG,
+	//ConfigDownload 设备配置查询应答
+	XML_CMDTYPE_RESPONSE_CONFIG_DOWNLOAD,
+	//PresetQuery 设备预置位查询应答
+	XML_CMDTYPE_RESPONSE_PRESET_QUERY,
+	//Broadcast 语音广播应答
+	XML_CMDTYPE_RESPONSE_BROADCAST,
 
-	//response
-	XML_CMDTYPE_RESPONSE_CATALOG
 }XmlCmdType;
+
+typedef enum
+{
+	XML_CONTROLCMD_UNKNOWN,
+	//PTZCmd 球机/云台控制命令
+	XML_CONTROLCMD_PTZ,
+	//TeleBoot 远程启动控制命令
+	XML_CONTROLCMD_TELEBOOT,
+	//RecordCmd 录像控制命令
+	XML_CONTROLCMD_RECORD,
+	//GuardCmd 报警布防/撤防命令
+	XML_CONTROLCMD_GUARD,
+	//AlarmCmd 报警复位命令
+	XML_CONTROLCMD_ALARM,
+	//IFameCmd 强制关键帧命令,设备收到此命令应立刻发送一个IDR帧
+	XML_CONTROLCMD_IFRAME,
+	//DragZoomIn 拉框放大控制命令
+	XML_CONTROLCMD_DRAGZOOMIN,
+	//DragZoomOut 拉框缩小控制命令
+	XML_CONTROLCMD_DRAGZOOMOUT,
+	//HomePosition 看守位控制命令
+	XML_CONTROLCMD_HOMEPOSITION
+}XmlControlCmd;
+typedef struct
+{
+	std::string value;
+	int ControlPriority;
+}PtzControlInfo;
+typedef struct
+{
+	std::string value;
+}BootControlInfo;
+typedef struct
+{
+	std::string value;
+}RecordControlInfo;
+typedef struct
+{
+	std::string value;
+}GuardControlInfo;
+typedef struct
+{
+	std::string value;
+}AlarmControlInfo;
+typedef struct
+{
+	std::string value;
+}IFameControlInfo;
+typedef struct
+{
+	std::string value;
+}DragZoomControlInfo;
+typedef struct
+{
+	std::string value;
+}HomePositionControlInfo;
+
+typedef struct
+{
+	std::string value;
+}DeviceConfigInfo;
+
 struct GB28181XmlMsg
 {
 	XmlCmdName cmdname;
 	XmlCmdType cmdtype;
+	XmlControlCmd controlCmd;
 	unsigned int sn;
 	std::string DeviceID;
 	void* pPoint;//the point to some memery just like this
