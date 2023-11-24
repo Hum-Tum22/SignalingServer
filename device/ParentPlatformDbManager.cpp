@@ -63,7 +63,7 @@ void ParentPlatformDbManager::IniTable()
     }
     else
     {
-        //´´½¨Ë÷Òý
+        //åˆ›å»ºç´¢å¼•
         rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `parent_platform_id_uindex` on parent_platform(`id`)", &szErrMsg);
         if (rc != SQLITE_OK)
         {

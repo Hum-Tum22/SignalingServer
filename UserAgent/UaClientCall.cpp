@@ -101,7 +101,7 @@ UaClientCall::~UaClientCall()
         {
             if (psSource)
             {
-                //psSourceÖĞÊ¹ÓÃÁËMediaStream::Ptr   ÏÈÊÍ·ÅMediaStream::Ptr
+                //psSourceä¸­ä½¿ç”¨äº†MediaStream::Ptr   å…ˆé‡Šæ”¾MediaStream::Ptr
                 delete psSource; psSource = NULL;
             }
             MediaStream::Ptr ms = MediaMng::GetInstance().findStream(streamId);
@@ -180,7 +180,7 @@ UaClientCall::timerExpired()
         }
         else
         {
-            //Éè±¸²»Ö§³Ö session message ²»ÔÙsend
+            //è®¾å¤‡ä¸æ”¯æŒ session message ä¸å†send
             mTimerExpiredCounter = 0;
         }
     }
@@ -328,7 +328,7 @@ bool UaClientCall::makeBLeg()
 }
 void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer)
 {
-    //½âÎöoffer sdp
+    //è§£æoffer sdp
     mRequestSdp = offer;
     app = "rtp";
     sessionName = offer.session().name();
@@ -381,7 +381,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         }
     }
 
-    //½âÎöh_Subject
+    //è§£æh_Subject
     std::vector<std::string> subjectArray;
     if (msg.exists(h_Subject))
     {
@@ -396,7 +396,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         }
     }
 
-    //´´½¨answer sdp
+    //åˆ›å»ºanswer sdp
     mResponseSdp = offer;
     myRtpPort = mUserAgent.GetAvailableRtpPort();
     SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
@@ -427,7 +427,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             auto mdaStream = MediaMng::GetInstance().findStream(streamId);
             if (mdaStream)
             {
-                //Á÷´æÔÚ//Ö±½Ó»Ø¸´
+                //æµå­˜åœ¨//ç›´æ¥å›å¤
                 //mResponseSdp
                 auto transport = std::make_shared<RTPUdpTransport>();
                 unsigned short localport[2] = { myRtpPort, myRtpPort + 1 };
@@ -449,7 +449,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             }
             else
             {
-                //Á÷²»´æÔÚÉêÇë
+                //æµä¸å­˜åœ¨ç”³è¯·
                 bool chlOnline = makeBLeg();
                 if (!chlOnline)
                 {
@@ -473,7 +473,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                         //streamInfo->setMediaSource(psSource);
                         //return true;
                     }
-                    //Ö±½Ó»Ø¸´
+                    //ç›´æ¥å›å¤
                         
                     //mResponseSdp
                     handle->provideAnswer(mResponseSdp);
@@ -510,7 +510,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     break;
                 }
             }
-            //À­Á÷
+            //æ‹‰æµ
             bool chlOnline = makeBLeg();
             if (!chlOnline)
             {
@@ -523,7 +523,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         }
         else if (sessionName == Data("Download"))
         {
-            //À­Á÷
+            //æ‹‰æµ
             bool chlOnline = makeBLeg();
             if (!chlOnline)
             {
@@ -546,7 +546,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     }
     else
     {
-        //²ÎÊı´íÎó
+        //å‚æ•°é”™è¯¯
         WarningCategory warning;
         warning.hostname() = DnsUtil::getLocalIpAddress();
         warning.code() = 488;
@@ -632,7 +632,7 @@ UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnsw
    {
        if (msg.isFromWire())
        {
-           //¼øÈ¨´¦Àí
+           //é‰´æƒå¤„ç†
            
        }
    }
@@ -648,7 +648,7 @@ UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
    mUserAgent.setCallStatus(streamId, CALL_UAC_FAILURE);
    if (msg.isResponse()) 
    {
-       //¹Ø±Õ×Ô¼ºÉêÇëµÄÁ÷
+       //å…³é—­è‡ªå·±ç”³è¯·çš„æµ
       switch(msg.header(h_StatusLine).statusCode()) 
       {
          case 408:
@@ -925,7 +925,7 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
    //Tuple sourceTuple = msg.getSource();
    //in_addr_t msgSourceAddress = sourceTuple.toGenericIPAddress().v4Address.sin_addr.s_addr;
    //call->onAnswer(this, sdp, msgSourceAddress);
-   //¿ªÆôÒ»¸örtpserver½ÓÊÕrtpÊı¾İ
+   //å¼€å¯ä¸€ä¸ªrtpserveræ¥æ”¶rtpæ•°æ®
    m_CallEvt.notify_one();
 }
 
@@ -951,7 +951,7 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
    {
        InfoLog(<< "my is uas" << msg.brief());
 
-       //Á÷´æÔÚ  Ö±½Ó·µ»Ø;²»´æÔÚÔòÉêÇë
+       //æµå­˜åœ¨  ç›´æ¥è¿”å›;ä¸å­˜åœ¨åˆ™ç”³è¯·
        //mUserAgent.setCallStatus(streamId, CALL_UAS_RECEIVE_OFFER);
        ReceiveInviteOffRequest(h, msg, sdp);
    }

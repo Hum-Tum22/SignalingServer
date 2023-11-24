@@ -4,49 +4,49 @@ class IDeviceMngrInterface
 {
 public:
     virtual void online(Device* device) = 0;
-    virtual void offline(string deviceId) = 0;
-    virtual bool isSyncRunning(string deviceId) = 0;
+    virtual void offline(std::string deviceId) = 0;
+    virtual bool isSyncRunning(std::string deviceId) = 0;
     virtual void sync(std::shared_ptr<Device> device) = 0;
-    virtual std::shared_ptr<Device> queryDevice(string deviceId) = 0;
+    virtual std::shared_ptr<Device> queryDevice(std::string deviceId) = 0;
 
     ///**
-    //    * ÒÆ³ıÒÆ¶¯Î»ÖÃ¶©ÔÄ
-    //    * @param deviceId Éè±¸ID
-    //    * @return Í¬²½×´Ì¬
+    //    * ç§»é™¤ç§»åŠ¨ä½ç½®è®¢é˜…
+    //    * @param deviceId è®¾å¤‡ID
+    //    * @return åŒæ­¥çŠ¶æ€
     //    */
     //SyncStatus getChannelSyncStatus(string deviceId);
 
     ///**
-    //    * »ñÈ¡ËùÓĞÔÚÏßÉè±¸
-    //    * @return Éè±¸ÁĞ±í
+    //    * è·å–æ‰€æœ‰åœ¨çº¿è®¾å¤‡
+    //    * @return è®¾å¤‡åˆ—è¡¨
     //    */
-    virtual list<std::shared_ptr<Device>> getAllOnlineDevice() = 0;
-    virtual list<std::shared_ptr<Device>> getAllOffLineDevice() = 0;
+    virtual std::list<std::shared_ptr<Device>> getAllOnlineDevice() = 0;
+    virtual std::list<std::shared_ptr<Device>> getAllOffLineDevice() = 0;
 
     ///**
-    //    * ÅĞ¶ÏÊÇ·ñ×¢²áÒÑ¾­Ê§Ğ§
-    //    * @param device Éè±¸ĞÅÏ¢
-    //    * @return ²¼¶û
+    //    * åˆ¤æ–­æ˜¯å¦æ³¨å†Œå·²ç»å¤±æ•ˆ
+    //    * @param device è®¾å¤‡ä¿¡æ¯
+    //    * @return å¸ƒå°”
     //    */
     //bool expire(Device device);
 
     ///**
-    //    * ¼ì²éÉè±¸×´Ì¬
-    //    * @param device Éè±¸ĞÅÏ¢
+    //    * æ£€æŸ¥è®¾å¤‡çŠ¶æ€
+    //    * @param device è®¾å¤‡ä¿¡æ¯
     //    */
     //void checkDeviceStatus(Device device);
 
     ///**
-    //    * ¸ù¾İIPºÍ¶Ë¿Ú»ñÈ¡Éè±¸ĞÅÏ¢
+    //    * æ ¹æ®IPå’Œç«¯å£è·å–è®¾å¤‡ä¿¡æ¯
     //    * @param host IP
-    //    * @param port ¶Ë¿Ú
-    //    * @return Éè±¸ĞÅÏ¢
+    //    * @param port ç«¯å£
+    //    * @return è®¾å¤‡ä¿¡æ¯
     //    */
     //Device getDeviceByHostAndPort(string host, int port);
 
     ///**
-    //    * ¸üĞÂÉè±¸
-    //    * @param device Éè±¸ĞÅÏ¢
+    //    * æ›´æ–°è®¾å¤‡
+    //    * @param device è®¾å¤‡ä¿¡æ¯
     //    */
     /*void updateDevice(Device* device);
     void clearCatchByDeviceId(string devId);

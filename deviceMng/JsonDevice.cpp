@@ -18,6 +18,90 @@ bool JsonNvrDevic::DevDisConnect()
 	return err ? false : true;
 }
 
+JsonNvrDevic::PTZCONTROL_COMMAND JsonNvrDevic::switchFromGB28181(PTZCMDType::GB28181PtzCmd cmd)
+{
+	switch (cmd)
+	{
+	case PTZCMDType::PTZ_NO:
+	case PTZCMDType::PTZ_STOP:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_UNKNOWN;
+	}
+	case PTZCMDType::PTZ_UP:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_UP;
+	}
+	case PTZCMDType::PTZ_DOWN:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_DOWN;
+	}
+	case PTZCMDType::PTZ_LEFT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_LEFT;
+	}
+	case PTZCMDType::PTZ_RIGHT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_RIGHT;
+	}
+	case PTZCMDType::PTZ_UP_LEFT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_UP_LEFT;
+	}
+	case PTZCMDType::PTZ_UP_RIGHT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_UP_RIGHT;
+	}
+	case PTZCMDType::PTZ_DOWN_LEFT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_DOWN_LEFT;
+	}
+	case PTZCMDType::PTZ_DOWN_RIGHT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_DOWN_RIGHT;
+	}
+	case PTZCMDType::PTZ_ZOOM_IN:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_ZOOM_IN;
+	}
+	case PTZCMDType::PTZ_ZOOM_OUT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_ZOOM_OUT;
+	}
+	case PTZCMDType::FOCUS_IN:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_FOCUS_NEAR;
+	}
+	case PTZCMDType::FOCUS_OUT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_FOCUS_FAR;
+	}
+	case PTZCMDType::IRIS_IN:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_IRIS_OPEN;
+	}
+	case PTZCMDType::IRIS_OUT:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_IRIS_CLOSE;
+	}
+	case PTZCMDType::PTZ_SETPRESET:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_SAVE_PRESET;
+	}
+	case PTZCMDType::PTZ_GTOPRESET:
+	case PTZCMDType::PTZ_DELPRESET:
+	{
+		break;
+	}
+	case PTZCMDType::PTZ_MOVPRESET:
+	{
+		return JsonNvrDevic::JSON_PTZCOMMAND_CALL_PRESET;
+	}
+	default:
+		break;
+	}
+	return JsonNvrDevic::JSON_PTZCOMMAND_UNKNOWN;
+}
+
 void JsonNvrDevic::setStatus(int statu)
 {
 	status = statu;
@@ -170,7 +254,7 @@ void __stdcall JsonNvrDevic::VskX86NvrRtPreDataCb(uint32_t PlayHandle, uint8_t* 
 
 
 
-JsonChildDevic::JsonChildDevic(const char* Id) :BaseChildDevice(Id)
+JsonChildDevic::JsonChildDevic(const char* Id) :BaseChildDevice(Id), channel(-1)
 {
 }
 JsonChildDevic::~JsonChildDevic()
@@ -215,4 +299,12 @@ void JsonChildDevic::setChildIp(std::string Ip)
 const std::string JsonChildDevic::getChildIp()
 {
 	return ChildIp;
+}
+void JsonChildDevic::setChannel(int chl)
+{
+	channel = chl;
+}
+const int JsonChildDevic::getChannel()
+{
+	return channel;
 }

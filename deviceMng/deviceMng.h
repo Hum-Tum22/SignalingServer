@@ -15,6 +15,7 @@ public:
 
 	static DeviceMng& Instance();
 	void setSelfId(const std::string &myId);
+	const std::string getSelfId();
 
 	void addDevice(BaseDevice::Ptr);
 	void removeDevice(std::string);

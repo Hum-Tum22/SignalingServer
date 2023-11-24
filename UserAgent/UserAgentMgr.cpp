@@ -161,20 +161,7 @@ public:
         {
             Data destip = Tuple::inet_ntop(destination);
         }
-        if (msg.isRequest())
-	    {
-	        /*sipserver::SipServer* pSvr = GetServer();
-    	    if (pSvr && !pSvr->localHost.empty())
-    	    {
-        	    msg.header(h_Vias).front().sentHost() = pSvr->localHost;
-	            msg.header(h_Contacts).front().uri().host() = pSvr->localHost;
-    	    }
-    	    if (pSvr && !pSvr->localPort != 0)
-    	    {
-	            msg.header(h_Vias).front().sentPort() = pSvr->localPort;
-        	    msg.header(h_Contacts).front().uri().port() = pSvr->localPort;
-    	    }*/
-	    }
+        
         InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
     }
     virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
@@ -1607,14 +1594,14 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
     if (AnalyzeSubscriptionMsg(content->getBodyData().c_str(), XmlMsg))
     {
         string outStr;
-        if (XmlMsg.cmdname == XML_CMD_NAME_SUBSCRIPTION)
+        if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
         {
-            if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_CATALOG_SUBSCRIPTION)
+            if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)
             {
                 CatalogSubscriptionMsg* pCatalogSubMsg = (CatalogSubscriptionMsg*)XmlMsg.pPoint;
                 //CreateCatalogSubscriptionResponseMsg(pCatalogSubMsg->DeviceID.c_str(), XmlMsg.sn, outStr);
             }
-            else if (XmlMsg.cmdtype == XML_CMDTYPE_REQUEST_ALARM_SUBSCRIPTION)
+            else if (XmlMsg.cmdtype == XML_CMDTYPE_ALARM)
             {
 
             }

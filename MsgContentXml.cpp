@@ -97,7 +97,7 @@ bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std
 		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
 		ResponseElement->InsertEndChild(SNElement);
 
-		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//Ä¿±êÉè±¸/ÇøÓò/ÏµÍ³µÄ±àÂë,È¡ÖµÓëÄ¿Â¼²éÑ¯ÇëÇóÏàÍ¬(±ØÑ¡)
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//ç›®æ ‡è®¾å¤‡/åŒºåŸŸ/ç³»ç»Ÿçš„ç¼–ç ,å–å€¼ä¸Žç›®å½•æŸ¥è¯¢è¯·æ±‚ç›¸åŒ(å¿…é€‰)
 		DeviceIDElement->InsertEndChild(doc.NewText(user));
 		ResponseElement->InsertEndChild(DeviceIDElement);
 
@@ -145,7 +145,7 @@ void AddDeviceItemToCatalog(XMLDocument& doc, XMLElement* DeviceListElement, con
 		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
-		XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//Ä¿±êÉè±¸/ÇøÓò/ÏµÍ³µÄ±àÂë,È¡ÖµÓëÄ¿Â¼²éÑ¯ÇëÇóÏàÍ¬(±ØÑ¡)
+		XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//ç›®æ ‡è®¾å¤‡/åŒºåŸŸ/ç³»ç»Ÿçš„ç¼–ç ,å–å€¼ä¸Žç›®å½•æŸ¥è¯¢è¯·æ±‚ç›¸åŒ(å¿…é€‰)
 		ManufacturerElement->InsertEndChild(doc.NewText(item.Manufacturer.c_str()));
 		ItemElement->InsertEndChild(ManufacturerElement);
 
@@ -307,7 +307,7 @@ bool CreateVirtualOrganizationCatalogResponse(const char* user, const uint32_t& 
 		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
 		ResponseElement->InsertEndChild(SNElement);
 
-		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//Ä¿±êÉè±¸/ÇøÓò/ÏµÍ³µÄ±àÂë,È¡ÖµÓëÄ¿Â¼²éÑ¯ÇëÇóÏàÍ¬(±ØÑ¡)
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//ç›®æ ‡è®¾å¤‡/åŒºåŸŸ/ç³»ç»Ÿçš„ç¼–ç ,å–å€¼ä¸Žç›®å½•æŸ¥è¯¢è¯·æ±‚ç›¸åŒ(å¿…é€‰)
 		DeviceIDElement->InsertEndChild(doc.NewText(user));
 		ResponseElement->InsertEndChild(DeviceIDElement);
 
@@ -409,7 +409,7 @@ bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const De
 		ChannelElement->InsertEndChild(doc.NewText(to_string(devInfoMsg.Channel).c_str()));
 		ResponseElement->InsertEndChild(ChannelElement);
 
-		/*<!--À©Õ¹ÐÅÏ¢, ¿É¶àÏî-->
+		/*<!--æ‰©å±•ä¿¡æ¯, å¯å¤šé¡¹-->
 		<elementname = "Info"minOccurs = "0"maxOccurs = "unbounded">
 		<restrictionbase = "string">
 		<maxLengthvalue = "1024" / >

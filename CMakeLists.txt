@@ -98,7 +98,6 @@ SET(LIBS
 	libresipares.a
 	librutil.a
 	libcurl.a
-	libmysqlclient.a
 
 	librtp.a
 	libmpeg.a

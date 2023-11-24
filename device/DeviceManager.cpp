@@ -37,7 +37,7 @@ void IDeviceMngrSvr::online(Device *device)
 {
     if (device == NULL)
         return;
-    //logger.info("[Éè±¸ÉÏÏß] deviceId£º{}->{}:{}", device.getDeviceId(), device.getIp(), device.getPort());
+    //logger.info("[è®¾å¤‡ä¸Šçº¿] deviceIdï¼š{}->{}:{}", device.getDeviceId(), device.getIp(), device.getPort());
     //Device deviceInRedis = redisCatchStorage.getDevice(device.getDeviceId());
     std::shared_ptr<GBDeviceOnlineTask> task;
     OnvifDeviceInfo* pOnvifDev = dynamic_cast<OnvifDeviceInfo*>(device);
@@ -96,7 +96,7 @@ void IDeviceMngrSvr::offline(string deviceId)
             device.setOnline(0);
             //redisCatchStorage.updateDevice(device);
             mGBDeviceMapper.update(&device);
-            // ÀëÏßÊÍ·ÅËùÓĞssrc
+            // ç¦»çº¿é‡Šæ”¾æ‰€æœ‰ssrc
             /*List<SsrcTransaction> ssrcTransactions = streamSession.getSsrcTransactionForAll(deviceId, null, null, null);
             if (ssrcTransactions != null && ssrcTransactions.size() > 0) {
                 for (SsrcTransaction ssrcTransaction : ssrcTransactions) {
@@ -105,7 +105,7 @@ void IDeviceMngrSvr::offline(string deviceId)
                     streamSession.remove(deviceId, ssrcTransaction.getChannelId(), ssrcTransaction.getStream());
                 }
             }*/
-            // ÒÆ³ı¶©ÔÄ
+            // ç§»é™¤è®¢é˜…
             //removeCatalogSubscribe(device);
             //removeMobilePositionSubscribe(device);
     }
@@ -136,7 +136,7 @@ void IDeviceMngrSvr::sync(std::shared_ptr<Device> device)
                 if (isSyncRunning(pGBDev->getDeviceId()))
                     return;
                 //pGBDev->setStatus(SipServerDeviceInfo::ready);
-                //Í¬²½Êı¾İ¿â
+                //åŒæ­¥æ•°æ®åº“
             }
         }
     }

@@ -11,36 +11,36 @@
 using namespace tinyxml2;
 
 //Message Request
-//XML_CMD_NAME_CONTROL,//±íÊ¾Ò»¸ö¿ØÖÆµÄ¶¯×÷
+//XML_CMD_NAME_CONTROL,//è¡¨ç¤ºä¸€ä¸ªæ§åˆ¶çš„åŠ¨ä½œ
 bool CreatelPTZControCmd(char* deviceId, const char* ptzCmd, int ControlPriority, unsigned int sn, std::string& outstr);
 
 
-//XML_CMD_NAME_QUERY,//±íÊ¾Ò»¸ö²éÑ¯µÄ¶¯×÷
+//XML_CMD_NAME_QUERY,//è¡¨ç¤ºä¸€ä¸ªæŸ¥è¯¢çš„åŠ¨ä½œ
 //Subscription
 bool CreateCatalogSubscriptionResponseMsg(const char* user, const uint32_t& sn, std::string& outstr);
 //Request
 bool CreateCatalogQueryRequestMsg(const char* gbid, const uint32_t& sn, std::string& outstr);
 
 
-//XML_CMD_NAME_NOTIFY,//±íÊ¾Ò»¸öÍ¨ÖªµÄ¶¯×÷
+//XML_CMD_NAME_NOTIFY,//è¡¨ç¤ºä¸€ä¸ªé€šçŸ¥çš„åŠ¨ä½œ
 //keeplive
 bool CreateKeepAliveMsg(const char* user, const uint32_t& sn, std::string& outstr);
 
 
 
-////Ó¦´ğÃüÁî
-//XML_CMD_NAME_RESPONSE,//±íÊ¾Ò»¸öÇëÇó¶¯×÷µÄÓ¦´ğ
+////åº”ç­”å‘½ä»¤
+//XML_CMD_NAME_RESPONSE,//è¡¨ç¤ºä¸€ä¸ªè¯·æ±‚åŠ¨ä½œçš„åº”ç­”
 
 //Response
-//catalog ÏìÓ¦
-bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, std::string& outstr);	//pExpandÉãÏà»úÊ¹ÓÃ
+//catalog å“åº”
+bool CreateCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<CatalogItem> Items, CatalogItemExpandInfo* pExpand, std::string& outstr);	//pExpandæ‘„ç›¸æœºä½¿ç”¨
 void AddDeviceItemToCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItem& item);
 void AddIPCInfoToCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItemExpandInfo* expand);
 
 //Virtual organization
 bool CreateVirtualOrganizationCatalogResponse(const char* user, const uint32_t& sn, int SumNum, std::vector<VirtualOrganization> Items, std::string& outstr);
 void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const VirtualOrganization& item);
-//Éè±¸ĞÅÏ¢ÏìÓ¦
+//è®¾å¤‡ä¿¡æ¯å“åº”
 bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const DeviceInfoMsg& devInfoMsg, std::string& outstr);
 
 

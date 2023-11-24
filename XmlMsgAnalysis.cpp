@@ -5,6 +5,7 @@ GB28181XmlMsg::GB28181XmlMsg()
 {
 	cmdname = XML_CMD_NAME_UNKNOWN;
 	cmdtype = XML_CMDTYPE_UNKNOWN;
+	controlCmd = XML_CONTROLCMD_UNKNOWN;
 	sn = 0;
 	pPoint = NULL;
 }
@@ -12,31 +13,133 @@ GB28181XmlMsg::~GB28181XmlMsg()
 {
 	if (pPoint)
 	{
+		//控制命令
+
 		switch (cmdtype)
 		{
-		case XML_CMDTYPE_REQUEST_CATALOG:
+		case XML_CMDTYPE_DEVICE_CONTROL:
+		{
+			switch (controlCmd)
+			{
+			case XML_CONTROLCMD_PTZ:
+			{
+				delete (PtzControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_TELEBOOT:
+			{
+				delete (BootControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_RECORD:
+			{
+				delete (RecordControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_GUARD:
+			{
+				delete (GuardControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_ALARM:
+			{
+				delete (AlarmControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_IFRAME:
+			{
+				delete (IFameControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_DRAGZOOMIN:
+			case XML_CONTROLCMD_DRAGZOOMOUT:
+			{
+				delete (DragZoomControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			case XML_CONTROLCMD_HOMEPOSITION:
+			{
+				delete (HomePositionControlInfo*)pPoint;
+				pPoint = NULL;
+				break;
+			}
+			default:
+				break;
+			}
+		}
+		case XML_CMDTYPE_DEVICE_CONFIG:
+		{
+			delete (DeviceConfigInfo*)pPoint;
+			pPoint = NULL;
+			break;
+		}
+		case XML_CMDTYPE_DEVICE_STATUS:
+		{
+			break;
+		}
+		case XML_CMDTYPE_CATALOG:
 		{
 			delete (CatalogQueryMsg*)pPoint;
 			pPoint = NULL;
+			break;
 		}
-		break;
-		case XML_CMDTYPE_REQUEST_CATALOG_SUBSCRIPTION:
+		case XML_CMDTYPE_DEVICE_INFO:
+		case XML_CMDTYPE_RECORDINFO:
+		case XML_CMDTYPE_ALARM:
+		case XML_CMDTYPE_CONFIG_DOWNLOAD:
+		case XML_CMDTYPE_PRESET_QUERY:
+		case XML_CMDTYPE_MOBILE_POSITION:
 		{
-			delete (CatalogSubscriptionMsg*)pPoint;
-			pPoint = NULL;
+			break;
 		}
-		break;
-		case XML_CMDTYPE_REQUEST_KEEPALIVE:
+		case XML_CMDTYPE_NOTIFY_KEEPALIVE:
 		{
 			delete (KeepAliveMsg*)pPoint;
 			pPoint = NULL;
+			break;
 		}
-		break;
-		case XML_CMDTYPE_RESPONSE_CATALOG:
+		case XML_CMDTYPE_NOTIFY_ALARM:
+		case XML_CMDTYPE_NOTIFY_MEDIA_STATUS:
+		case XML_CMDTYPE_NOTIFY_BROADCAST:
+		case XML_CMDTYPE_NOTIFY_MOBILE_POSITION:
+		case XML_CMDTYPE_NOTIFY_CATALOG:
+		case XML_CMDTYPE_RESPONSE_DEV_CONTROL:
+		case XML_CMDTYPE_RESPONSE_ALARM:
+		{
+			break;
+		}
+		case XML_CMDTYPE_RESPONSE_CATALOG_ITEM:
 		{
 			delete (ResponseCatalogList*)pPoint;
 			pPoint = NULL;
+			break;
 		}
+		case XML_CMDTYPE_RESPONSE_CATALOG:
+		case XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED:
+		case XML_CMDTYPE_RESPONSE_DEV_INFO:
+		case XML_CMDTYPE_RESPONSE_DEV_STATUS:
+		case XML_CMDTYPE_RESPONSE_RECORD_INFO:
+		case XML_CMDTYPE_RESPONSE_DEV_CONFIG:
+		case XML_CMDTYPE_RESPONSE_CONFIG_DOWNLOAD:
+		case XML_CMDTYPE_RESPONSE_PRESET_QUERY:
+		case XML_CMDTYPE_RESPONSE_BROADCAST:
+		{
+		}
+
+		
+		break;
+		/*case XML_CMDTYPE_REQUEST_CATALOG_SUBSCRIPTION:
+		{
+			delete (CatalogSubscriptionMsg*)pPoint;
+			pPoint = NULL;
+		}*/
 		break;
 		default:
 			break;
@@ -58,6 +161,315 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 		const char* CmdName = pRootNode->Value();
 		if (!CmdName)
 			return false;
+
+		//Control 表示一个控制的动作
+		//Query 表示一个查询的动作
+		//Notify 表示一个通知的动作
+		//应答命令 Response 表示一个请求动作的应答
+		if (strncmp(CmdName, "Control", 7) == 0)
+		{
+			XmlMsg.cmdname = XML_CMD_NAME_CONTROL;
+			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
+			if (!CmdTypeElement)
+				return false;
+
+			XMLElement* SNElement = pRootNode->FirstChildElement("SN");
+			if (!SNElement)
+				return false;
+			XmlMsg.sn = atoi(SNElement->GetText());
+
+			XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
+			if (!DeviceIDElement)
+				return false;
+			XmlMsg.DeviceID = DeviceIDElement->GetText();
+
+			const char* CmdType = CmdTypeElement->GetText();
+			if (!CmdType)
+				return false;
+
+			if (strncmp(CmdType, "DeviceControl", 13) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONTROL;
+
+				XMLElement* controlName = pRootNode->FirstChildElement("PTZCmd");
+				if (controlName)
+				{
+					PtzControlInfo* info = new PtzControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_PTZ;
+					info->value = controlName->Value();
+					XMLElement* infoElement = pRootNode->FirstChildElement("info");
+					if (infoElement)
+					{
+						XMLElement* PriorityElement = infoElement->FirstChildElement("ControlPriority");
+						if (PriorityElement)
+						{
+							info->ControlPriority = std::stoi(PriorityElement->Value());
+						}
+					}
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("TeleBoot");
+				if (controlName)
+				{
+					BootControlInfo* info = new BootControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_TELEBOOT;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("RecordCmd");
+				if (controlName)
+				{
+					RecordControlInfo* info = new RecordControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_RECORD;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("GuardCmd");
+				if (controlName)
+				{
+					GuardControlInfo* info = new GuardControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_GUARD;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("AlarmCmd");
+				if (controlName)
+				{
+					AlarmControlInfo* info = new AlarmControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_ALARM;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("IFameCmd");
+				if (controlName)
+				{
+					IFameControlInfo* info = new IFameControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_IFRAME;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("DragZoomIn");
+				if (controlName)
+				{
+					DragZoomControlInfo* info = new DragZoomControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_DRAGZOOMIN;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("DragZoomOut");
+				if (controlName)
+				{
+					DragZoomControlInfo* info = new DragZoomControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_DRAGZOOMOUT;
+					info->value = controlName->Value();
+					return true;
+				}
+				controlName = pRootNode->FirstChildElement("HomePosition");
+				if (controlName)
+				{
+					HomePositionControlInfo* info = new HomePositionControlInfo();
+					XmlMsg.pPoint = info;
+					XmlMsg.controlCmd = XML_CONTROLCMD_HOMEPOSITION;
+					info->value = controlName->Value();
+					return true;
+				}
+				return false;
+			}
+			else if (strncmp(CmdType, "DeviceConfig", 12) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+
+				DeviceConfigInfo* info = new DeviceConfigInfo();
+				XmlMsg.pPoint = info;
+				//info->value = controlName->Value();
+				return true;
+			}
+			else
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_UNKNOWN;
+				return false;
+			}
+
+		}
+		else if (strncmp(CmdName, "Query", 5) == 0)
+		{
+			XmlMsg.cmdname = XML_CMD_NAME_CONTROL;
+			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
+			if (!CmdTypeElement)
+				return false;
+			const char* CmdType = CmdTypeElement->GetText();
+			if (!CmdType)
+				return false;
+			if (strncmp(CmdType, "DeviceStatus", 12) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONTROL;
+				return true;
+			}
+			else if (strncmp(CmdType, "Catalog", 7) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "DeviceInfo", 10) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "RecordInfo", 10) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "Alarm", 5) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "ConfigDownload", 14) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "PresetQuery", 11) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "MobilePosition", 14) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_UNKNOWN;
+				return false;
+			}
+		}
+		else if (strncmp(CmdName, "Notify", 6) == 0)
+		{
+			XmlMsg.cmdname = XML_CMD_NAME_CONTROL;
+			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
+			if (!CmdTypeElement)
+				return false;
+			const char* CmdType = CmdTypeElement->GetText();
+			if (!CmdType)
+				return false;
+			if (strncmp(CmdType, "Keepalive", 9) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONTROL;
+				return true;
+			}
+			else if (strncmp(CmdType, "Alarm", 5) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "MediaStatus", 11) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "Broadcast", 9) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "MobilePosition", 14) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "Catalog", 7) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_UNKNOWN;
+				return false;
+			}
+		}
+		else if (strncmp(CmdName, "Response", 8) == 0)
+		{
+			XmlMsg.cmdname = XML_CMD_NAME_CONTROL;
+			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
+			if (!CmdTypeElement)
+				return false;
+			const char* CmdType = CmdTypeElement->GetText();
+			if (!CmdType)
+				return false;
+			if (strncmp(CmdType, "DeviceControl", 13) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONTROL;
+				return true;
+			}
+			else if (strncmp(CmdType, "Alarm", 5) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "Catalog", 7) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "DeviceInfo", 10) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "DeviceStatus", 12) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "RecordInfo", 10) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "DeviceConfig", 12) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "ConfigDownload", 14) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "PresetQuery", 11) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else if (strncmp(CmdType, "Broadcast", 9) == 0)
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				return true;
+			}
+			else
+			{
+				XmlMsg.cmdtype = XML_CMDTYPE_UNKNOWN;
+				return false;
+			}
+		}
+		else
+		{
+			XmlMsg.cmdname = XML_CMD_NAME_UNKNOWN;
+			return false;
+		}
+
 		if (strcmp(CmdName, "Query") == 0)
 		{
 			XmlMsg.cmdname = XML_CMD_NAME_QUERY;
@@ -75,14 +487,30 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			if (!DeviceIDElement)
 				return false;
 			XmlMsg.DeviceID = DeviceIDElement->GetText();
+			////DeviceStatus 设备状态查询
+			//XML_CMDTYPE_DEVICE_STATUS,
+			////Catalog 设备目录查询
+			//XML_CMDTYPE_CATALOG,
+			////DeviceInfo 设备信息查询
+			//XML_CMDTYPE_DEVICE_INFO,
+			////RecordInfo 文件目录检索
+			//XML_CMDTYPE_RECORDINFO,
+			////Alarm 报警查询
+			//XML_CMDTYPE_ALARM,
+			////ConfigDownload 设备配置查询
+			//XML_CMDTYPE_CONFIG_DOWNLOAD,
+			////PresetQuery 预置位查询
+			//XML_CMDTYPE_PRESET_QUERY,
+			////MobilePosition 移动设备位置数据查询
+			//XML_CMDTYPE_MOBILE_POSITION,
 			if (strcmp(CmdType, "Catalog") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_REQUEST_CATALOG;
+				XmlMsg.cmdtype = XML_CMDTYPE_CATALOG;
 				return true;
 			}
 			else if (strcmp(CmdType, "DeviceInfo") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_REQUEST_DEVICEINFO;
+				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_INFO;
 				return true;
 			}
 			
@@ -103,7 +531,7 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			XmlMsg.sn = atoi(SNElement->GetText());
 			if (strcmp(CmdType, "Keepalive") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_REQUEST_KEEPALIVE;
+				XmlMsg.cmdtype = XML_CMDTYPE_NOTIFY_KEEPALIVE;
 				XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
 				if (!DeviceIDElement)
 					return false;
@@ -118,7 +546,7 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			}
 			else if (strcmp(CmdType, "Catalog") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_REQUEST_CATALOG;
+				XmlMsg.cmdtype = XML_CMDTYPE_NOTIFY_CATALOG;
 				XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
 				if (!DeviceIDElement)
 					return false;
@@ -493,7 +921,7 @@ bool AnalyzeSubscriptionMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			return false;
 		if (strcmp(XmlCmd, "Query") == 0)
 		{
-			XmlMsg.cmdname = XML_CMD_NAME_SUBSCRIPTION;
+			XmlMsg.cmdname = XML_CMD_NAME_QUERY;
 			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
 			if (!CmdTypeElement)
 				return false;
@@ -506,7 +934,7 @@ bool AnalyzeSubscriptionMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			XmlMsg.sn = atoi(SNElement->GetText());
 			if (strcmp(XmlSubCmd, "Catalog") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_REQUEST_CATALOG_SUBSCRIPTION;
+				XmlMsg.cmdtype = XML_CMDTYPE_CATALOG;
 				XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
 				if (!DeviceIDElement)
 					return false;

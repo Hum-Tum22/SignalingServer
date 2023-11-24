@@ -15,139 +15,139 @@ public:
     int id;
 
     /**
-     * ÊÇ·ñÆôÓÃ
+     * æ˜¯å¦å¯ç”¨
      */
     bool enable;
 
     /**
-     * Ãû³Æ
+     * åç§°
      */
     std::string name;
 
     /**
-     * SIP·şÎñ¹ú±ê±àÂë
+     * SIPæœåŠ¡å›½æ ‡ç¼–ç 
      */
     std::string serverGBId;
 
     /**
-     * SIP·şÎñ¹ú±êÓò
+     * SIPæœåŠ¡å›½æ ‡åŸŸ
      */
     std::string serverGBDomain;
 
     /**
-     * SIP·şÎñIP
+     * SIPæœåŠ¡IP
      */
     std::string serverIP;
 
     /**
-     * SIP·şÎñ¶Ë¿Ú
+     * SIPæœåŠ¡ç«¯å£
      */
     int serverPort;
 
     /**
-     * Éè±¸¹ú±ê±àºÅ
+     * è®¾å¤‡å›½æ ‡ç¼–å·
      */
     std::string deviceGBId;
 
     /**
-     * Éè±¸ip
+     * è®¾å¤‡ip
      */
     std::string deviceIp;
 
     /**
-     * Éè±¸¶Ë¿Ú
+     * è®¾å¤‡ç«¯å£
      */
     std::string devicePort;
 
     /**
-     * SIPÈÏÖ¤ÓÃ»§Ãû(Ä¬ÈÏÊ¹ÓÃÉè±¸¹ú±ê±àºÅ)
+     * SIPè®¤è¯ç”¨æˆ·å(é»˜è®¤ä½¿ç”¨è®¾å¤‡å›½æ ‡ç¼–å·)
      */
     std::string username;
 
     /**
-     * SIPÈÏÖ¤ÃÜÂë
+     * SIPè®¤è¯å¯†ç 
      */
     std::string password;
 
     /**
-     * ×¢²áÖÜÆÚ (Ãë)
+     * æ³¨å†Œå‘¨æœŸ (ç§’)
      */
     std::string expires;
 
     /**
-     * ĞÄÌøÖÜÆÚ(Ãë)
+     * å¿ƒè·³å‘¨æœŸ(ç§’)
      */
     std::string keepTimeout;
 
     /**
-     * ´«ÊäĞ­Òé
+     * ä¼ è¾“åè®®
      * UDP/TCP
      */
     std::string transport;
 
     /**
-     * ×Ö·û¼¯
+     * å­—ç¬¦é›†
      */
     std::string characterSet;
 
     /**
-     * ÔÊĞíÔÆÌ¨¿ØÖÆ
+     * å…è®¸äº‘å°æ§åˆ¶
      */
     bool ptz;
 
     /**
-     * RTCPÁ÷±£»î
-     * TODO Ô¤Áô, Ôİ²»ÊµÏÖ
+     * RTCPæµä¿æ´»
+     * TODO é¢„ç•™, æš‚ä¸å®ç°
      */
     bool rtcp;
 
     /**
-     * ÔÚÏß×´Ì¬
+     * åœ¨çº¿çŠ¶æ€
      */
     bool status;
 
     /**
-     * ÔÚÏß×´Ì¬
+     * åœ¨çº¿çŠ¶æ€
      */
     int channelCount;
 
     /**
-     * ¹²ÏíËùÓĞµÄÖ±²¥Á÷
+     * å…±äº«æ‰€æœ‰çš„ç›´æ’­æµ
      */
     bool shareAllLiveStream;
 
     /**
-     * Ä¬ÈÏÄ¿Â¼Id,×Ô¶¯Ìí¼ÓµÄÍ¨µÀ¶à·ÅÔÚÕâ¸öÄ¿Â¼ÏÂ
+     * é»˜è®¤ç›®å½•Id,è‡ªåŠ¨æ·»åŠ çš„é€šé“å¤šæ”¾åœ¨è¿™ä¸ªç›®å½•ä¸‹
      */
     std::string catalogId;
 
     /**
-     * ÒÑ±»¶©ÔÄÄ¿Â¼ĞÅÏ¢
+     * å·²è¢«è®¢é˜…ç›®å½•ä¿¡æ¯
      */
     bool catalogSubscribe;
 
     /**
-     * ÒÑ±»¶©ÔÄ±¨¾¯ĞÅÏ¢
+     * å·²è¢«è®¢é˜…æŠ¥è­¦ä¿¡æ¯
      */
     bool alarmSubscribe;
 
     /**
-     * ÒÑ±»¶©ÔÄÒÆ¶¯Î»ÖÃĞÅÏ¢
+     * å·²è¢«è®¢é˜…ç§»åŠ¨ä½ç½®ä¿¡æ¯
      */
     bool mobilePositionSubscribe;
 
     /**
-     * µã²¥Î´ÍÆÁ÷µÄÉè±¸Ê±ÊÇ·ñÊ¹ÓÃredisÍ¨ÖªÀ­Æğ
+     * ç‚¹æ’­æœªæ¨æµçš„è®¾å¤‡æ—¶æ˜¯å¦ä½¿ç”¨redisé€šçŸ¥æ‹‰èµ·
      */
     bool startOfflinePush;
 
     /**
-     * Ä¿Â¼·Ö×é-Ã¿´ÎÏòÉÏ¼¶·¢ËÍÍ¨µÀĞÅÏ¢Ê±µ¥¸ö°üĞ¯´øµÄÍ¨µÀÊıÁ¿£¬È¡Öµ1,2,4,8
+     * ç›®å½•åˆ†ç»„-æ¯æ¬¡å‘ä¸Šçº§å‘é€é€šé“ä¿¡æ¯æ—¶å•ä¸ªåŒ…æºå¸¦çš„é€šé“æ•°é‡ï¼Œå–å€¼1,2,4,8
      */
     int catalogGroup;
 
     /**
-     * ĞĞÕşÇø»®
+     * è¡Œæ”¿åŒºåˆ’
      */
     std::string administrativeDivision;
 

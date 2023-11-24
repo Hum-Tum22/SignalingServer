@@ -112,7 +112,7 @@ private:
    void closeMediaStream();
 public:
 	bool makeBLeg();
-	//收到一个invite off请求处理
+	//鏀跺埌涓�涓猧nvite off璇锋眰澶勭悊
 	void ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer);
 	resip::InviteSessionHandle& getInviteSessionHandle();
 

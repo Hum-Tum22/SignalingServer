@@ -24,81 +24,81 @@ public:
     void initialize();
     GBDeviceMapper& GetGBDeviceMapper();
     /**
-        * Éè±¸ÉÏÏß
-        * @param device Éè±¸ĞÅÏ¢
+        * è®¾å¤‡ä¸Šçº¿
+        * @param device è®¾å¤‡ä¿¡æ¯
         */
     virtual void online(Device *device);
 
     /**
-        * Éè±¸ÏÂÏß
-        * @param deviceId Éè±¸±àºÅ
+        * è®¾å¤‡ä¸‹çº¿
+        * @param deviceId è®¾å¤‡ç¼–å·
         */
-    virtual void offline(string deviceId);
+    virtual void offline(std::string deviceId);
 
     ///**
-    //    * ÒÆ³ıÒÆ¶¯Î»ÖÃ¶©ÔÄ
-    //    * @param deviceId Éè±¸ID
-    //    * @return Í¬²½×´Ì¬
+    //    * ç§»é™¤ç§»åŠ¨ä½ç½®è®¢é˜…
+    //    * @param deviceId è®¾å¤‡ID
+    //    * @return åŒæ­¥çŠ¶æ€
     //    */
     //SyncStatus getChannelSyncStatus(string deviceId);
 
     ///**
-    //    * ²é¿´ÊÇ·ñÈÔÔÚÍ¬²½
-    //    * @param deviceId Éè±¸ID
-    //    * @return ²¼¶û
+    //    * æŸ¥çœ‹æ˜¯å¦ä»åœ¨åŒæ­¥
+    //    * @param deviceId è®¾å¤‡ID
+    //    * @return å¸ƒå°”
     //    */
-    virtual bool isSyncRunning(string deviceId);
+    virtual bool isSyncRunning(std::string deviceId);
 
     ///**
-    //    * Í¨µÀÍ¬²½
-    //    * @param device Éè±¸ĞÅÏ¢
+    //    * é€šé“åŒæ­¥
+    //    * @param device è®¾å¤‡ä¿¡æ¯
     //    */
     virtual void sync(std::shared_ptr<Device> device);
 
     ///**
-    //    * ²éÑ¯Éè±¸ĞÅÏ¢
-    //    * @param deviceId Éè±¸±àºÅ
-    //    * @return Éè±¸ĞÅÏ¢
+    //    * æŸ¥è¯¢è®¾å¤‡ä¿¡æ¯
+    //    * @param deviceId è®¾å¤‡ç¼–å·
+    //    * @return è®¾å¤‡ä¿¡æ¯
     //    */
-    virtual std::shared_ptr<Device> queryDevice(string deviceId);
+    virtual std::shared_ptr<Device> queryDevice(std::string deviceId);
 
     ///**
-    //    * »ñÈ¡ËùÓĞÔÚÏßÉè±¸
-    //    * @return Éè±¸ÁĞ±í
+    //    * è·å–æ‰€æœ‰åœ¨çº¿è®¾å¤‡
+    //    * @return è®¾å¤‡åˆ—è¡¨
     //    */
-    virtual list<std::shared_ptr<Device>> getAllOnlineDevice();
-    virtual list<std::shared_ptr<Device>> getAllOffLineDevice();
+    virtual std::list<std::shared_ptr<Device>> getAllOnlineDevice();
+    virtual std::list<std::shared_ptr<Device>> getAllOffLineDevice();
 
     ///**
-    //    * ÅĞ¶ÏÊÇ·ñ×¢²áÒÑ¾­Ê§Ğ§
-    //    * @param device Éè±¸ĞÅÏ¢
-    //    * @return ²¼¶û
+    //    * åˆ¤æ–­æ˜¯å¦æ³¨å†Œå·²ç»å¤±æ•ˆ
+    //    * @param device è®¾å¤‡ä¿¡æ¯
+    //    * @return å¸ƒå°”
     //    */
     //bool expire(Device device);
 
     ///**
-    //    * ¼ì²éÉè±¸×´Ì¬
-    //    * @param device Éè±¸ĞÅÏ¢
+    //    * æ£€æŸ¥è®¾å¤‡çŠ¶æ€
+    //    * @param device è®¾å¤‡ä¿¡æ¯
     //    */
     //void checkDeviceStatus(Device device);
 
     ///**
-    //    * ¸ù¾İIPºÍ¶Ë¿Ú»ñÈ¡Éè±¸ĞÅÏ¢
+    //    * æ ¹æ®IPå’Œç«¯å£è·å–è®¾å¤‡ä¿¡æ¯
     //    * @param host IP
-    //    * @param port ¶Ë¿Ú
-    //    * @return Éè±¸ĞÅÏ¢
+    //    * @param port ç«¯å£
+    //    * @return è®¾å¤‡ä¿¡æ¯
     //    */
     //Device getDeviceByHostAndPort(string host, int port);
 
     ///**
-    //    * ¸üĞÂÉè±¸
-    //    * @param device Éè±¸ĞÅÏ¢
+    //    * æ›´æ–°è®¾å¤‡
+    //    * @param device è®¾å¤‡ä¿¡æ¯
     //    */
     void updateDevice(Device* device);
-    void clearCatchByDeviceId(string devId);
-    void updateDeviceInfoCatch(string devId, Device* device);
-    void GetAllDeviceList(list<std::shared_ptr<Device>>& devlist);
-    std::shared_ptr<Device> GetDeviceChannelList(string devId, list<std::shared_ptr<IDeviceChannel>>& channellist);
+    void clearCatchByDeviceId(std::string devId);
+    void updateDeviceInfoCatch(std::string devId, Device* device);
+    void GetAllDeviceList(std::list<std::shared_ptr<Device>>& devlist);
+    std::shared_ptr<Device> GetDeviceChannelList(std::string devId, std::list<std::shared_ptr<IDeviceChannel>>& channellist);
     int  GetAllChannelCount();
     //int  GetAllChannelCount();
 };
@@ -111,30 +111,30 @@ public:
 //    virtual void online(Device device);
 //    virtual void offline(string deviceId);
 //    /**
-//        * Ìí¼ÓÄ¿Â¼¶©ÔÄ
-//        * @param device Éè±¸ĞÅÏ¢
-//        * @return ²¼¶û
+//        * æ·»åŠ ç›®å½•è®¢é˜…
+//        * @param device è®¾å¤‡ä¿¡æ¯
+//        * @return å¸ƒå°”
 //        */
 //    bool addCatalogSubscribe(Device device);
 //
 //    ///**
-//    //    * ÒÆ³ıÄ¿Â¼¶©ÔÄ
-//    //    * @param device Éè±¸ĞÅÏ¢
-//    //    * @return ²¼¶û
+//    //    * ç§»é™¤ç›®å½•è®¢é˜…
+//    //    * @param device è®¾å¤‡ä¿¡æ¯
+//    //    * @return å¸ƒå°”
 //    //    */
 //    //bool removeCatalogSubscribe(Device device);
 //
 //    ///**
-//    //    * Ìí¼ÓÒÆ¶¯Î»ÖÃ¶©ÔÄ
-//    //    * @param device Éè±¸ĞÅÏ¢
-//    //    * @return ²¼¶û
+//    //    * æ·»åŠ ç§»åŠ¨ä½ç½®è®¢é˜…
+//    //    * @param device è®¾å¤‡ä¿¡æ¯
+//    //    * @return å¸ƒå°”
 //    //    */
 //    //bool addMobilePositionSubscribe(Device device);
 //
 //    ///**
-//    //    * ÒÆ³ıÒÆ¶¯Î»ÖÃ¶©ÔÄ
-//    //    * @param device Éè±¸ĞÅÏ¢
-//    //    * @return ²¼¶û
+//    //    * ç§»é™¤ç§»åŠ¨ä½ç½®è®¢é˜…
+//    //    * @param device è®¾å¤‡ä¿¡æ¯
+//    //    * @return å¸ƒå°”
 //    //    */
 //    //bool removeMobilePositionSubscribe(Device device);
 //};
@@ -144,30 +144,30 @@ public:
 //    virtual void online(Device device);
 //    virtual void offline(string deviceId);
 //    /**
-//        * Ìí¼ÓÄ¿Â¼¶©ÔÄ
-//        * @param device Éè±¸ĞÅÏ¢
-//        * @return ²¼¶û
+//        * æ·»åŠ ç›®å½•è®¢é˜…
+//        * @param device è®¾å¤‡ä¿¡æ¯
+//        * @return å¸ƒå°”
 //        */
 //    bool addCatalogSubscribe(Device device);
 //
 //    /**
-//        * ÒÆ³ıÄ¿Â¼¶©ÔÄ
-//        * @param device Éè±¸ĞÅÏ¢
-//        * @return ²¼¶û
+//        * ç§»é™¤ç›®å½•è®¢é˜…
+//        * @param device è®¾å¤‡ä¿¡æ¯
+//        * @return å¸ƒå°”
 //        */
 //    bool removeCatalogSubscribe(Device device);
 //
 //    /**
-//        * Ìí¼ÓÒÆ¶¯Î»ÖÃ¶©ÔÄ
-//        * @param device Éè±¸ĞÅÏ¢
-//        * @return ²¼¶û
+//        * æ·»åŠ ç§»åŠ¨ä½ç½®è®¢é˜…
+//        * @param device è®¾å¤‡ä¿¡æ¯
+//        * @return å¸ƒå°”
 //        */
 //    bool addMobilePositionSubscribe(Device device);
 //
 //    /**
-//        * ÒÆ³ıÒÆ¶¯Î»ÖÃ¶©ÔÄ
-//        * @param device Éè±¸ĞÅÏ¢
-//        * @return ²¼¶û
+//        * ç§»é™¤ç§»åŠ¨ä½ç½®è®¢é˜…
+//        * @param device è®¾å¤‡ä¿¡æ¯
+//        * @return å¸ƒå°”
 //        */
 //    bool removeMobilePositionSubscribe(Device device);
 //};

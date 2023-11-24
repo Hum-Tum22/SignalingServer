@@ -106,7 +106,7 @@ public:
         return mCurCount;
     }
 private:
-    int mSn; // ÃüÁîĞòÁĞºÅ
+    int mSn; // å‘½ä»¤åºåˆ—å·
     int mTotal;
     int mCurCount;
     list<GBDeviceChannel*> mChannelList;

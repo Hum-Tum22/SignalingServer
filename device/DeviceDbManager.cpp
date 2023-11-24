@@ -64,7 +64,7 @@ void GBDeviceChannelMapper::IniTable()
     }
     else
     {
-        //创建索引
+        //鍒涘缓绱㈠紩
         rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_channel_id_uindex` on gb_device_channel(`id`)", &szErrMsg);
         if (rc != SQLITE_OK)
         {
@@ -1142,7 +1142,7 @@ void GBDeviceMapper::IniTable()
     }
     else
     {
-        //创建索引
+        //鍒涘缓绱㈠紩
         rc = pDb->Sqlite_exec("CREATE UNIQUE INDEX IF NOT EXISTS `gb_device_deviceId_uindex` on gb_device(`deviceId`)", &szErrMsg);
         if (rc != SQLITE_OK)
         {

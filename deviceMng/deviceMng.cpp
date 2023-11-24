@@ -31,6 +31,10 @@ void DeviceMng::setSelfId(const std::string& myId)
 {
 	selfId = myId;
 }
+const std::string DeviceMng::getSelfId()
+{
+	return selfId;
+}
 void DeviceMng::addDevice(BaseDevice::Ptr dev)
 {
 	GMUTEX lock(devMtx);
