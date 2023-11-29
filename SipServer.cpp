@@ -2061,6 +2061,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                     VirtualOrganization voTop;
                     voTop.Name = json_check_string(msbody[i], "Title");
                     voTop.DeviceID = json_check_string(msbody[i], "GBId");
+                    voTop.ParentID = DeviceMng::Instance().getSelfId();
                     //printf("gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
                     DeviceMng::Instance().addVirtualOrganization(voTop);
 
@@ -2092,7 +2093,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                                 std::string name = json_check_string(ipcbody[j], "ipc");
                                 std::string childId = json_check_string(ipcbody[j], "GBId");
                                 printf("gbid name:%s %s\n", childId.c_str(), name.c_str());
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");//1Òì³££¬0Õı³£
+                                int ipcStatus = json_check_int32(ipcbody[j], "status");//1å¼‚å¸¸ï¼Œ0æ­£å¸¸
                                 ipcStatus = ipcStatus ? 0 : 1;
                                 auto childDev = new JsonChildDevic(childId.c_str());
                                 childDev->setParentDev(dev);

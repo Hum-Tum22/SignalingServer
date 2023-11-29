@@ -29,7 +29,7 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 #ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
 #else
-	m_hDll = dlopen("./libsdkJson.so", RTLD_LAZY);
+	m_hDll = dlopen("libsdkJson.so", RTLD_LAZY);
 	if (!m_hDll)
 	{
 		printf("sdkJson.so load err:%s\n", dlerror());

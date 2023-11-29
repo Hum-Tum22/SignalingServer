@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <iosfwd>
+#include <map>
 #include <memory>
 
 #include "resip/stack/Contents.hxx"
@@ -37,24 +38,6 @@ class AttributeHelper
    private:
       std::list<std::pair<Data, Data> > mAttributeList;  // used to ensure attribute ordering on encode
       HashMap< Data, std::list<Data> > mAttributes;
-};
-class OtherAttributeHelper
-{
-public:
-   RESIP_HeapCount(OtherAttributeHelper);
-   OtherAttributeHelper();
-   OtherAttributeHelper(const OtherAttributeHelper& rhs);
-   OtherAttributeHelper& operator=(const OtherAttributeHelper& rhs);
-
-   bool exists(const Data& key) const;
-   const std::list<Data>& getValues(const Data& key) const;
-   EncodeStream& encode(EncodeStream& s) const;
-   void parse(ParseBuffer& pb);
-   void addAttribute(const Data& key, const Data& value = Data::Empty);
-   void clearAttribute(const Data& key);
-private:
-   std::list<std::pair<Data, Data> > mAttributeList;  // used to ensure attribute ordering on encode
-   HashMap< Data, std::list<Data> > mAttributes;
 };
 
 /**
@@ -605,7 +588,7 @@ class SdpContents : public Contents
                   static const Direction RECVONLY;
                   static const Direction SENDRECV;
 
-                  const std::reference_wrapper<Direction> cref;
+                  const std::reference_wrapper<const Direction> cref;
 
                   const Data& name() const { return mName; }
                   typedef std::pair<Data, std::reference_wrapper<const SdpContents::Session::Direction>> Tuple;
@@ -721,6 +704,16 @@ class SdpContents : public Contents
                     *  
                     **/
                   void setPort(int port);
+                  /** @brief get the value of the first specified RTCP port
+                   *         or if no rtcp: attribute found, the default port()
+                   *         value.  RFC 3605.
+                   *
+                   *  @return the RTCP port
+                   */
+                  int firstRtcpPort() const
+                  {
+                     return exists("rtcp") ? getValues("rtcp").front().convertInt() : port()+1;
+                  }
                   /** @brief get the number of transport port pairs
                     * 
                     * @return number of transport port pairs  
@@ -1008,7 +1001,7 @@ class SdpContents : public Contents
               * @param type the type
               * @return Media lines
               */
-            std::list<std::reference_wrapper<const Medium>> getMediaByType(const Data& type) const;
+            std::list<std::reference_wrapper<Medium>> getMediaByType(const Data& type);
 
             /** @brief add an e= (email) line to session
               * 
@@ -1072,9 +1065,6 @@ class SdpContents : public Contents
               **/
             const std::list<Data>& getValues(const Data& key) const;
 
-            const OtherAttributeHelper& OtherAttrHelper() const { return mOtherAttributeHelper; }
-            OtherAttributeHelper& OtherAttrHelper() { return mOtherAttributeHelper; }
-
             const Direction& getDirection() const;
             /** @brief examine direction for streams of given types
               *
@@ -1130,7 +1120,6 @@ class SdpContents : public Contents
             std::shared_ptr<TrickleIceContents> makeIceFragment(const Data& fragment,
                unsigned int lineIndex, const Data& mid);
 
-
          private:
             int mVersion;
             Origin mOrigin;
@@ -1148,7 +1137,6 @@ class SdpContents : public Contents
             Timezones mTimezones;
             Encryption mEncryption;
             AttributeHelper mAttributeHelper;
-            OtherAttributeHelper mOtherAttributeHelper;
 
             friend class SdpContents;
       };
