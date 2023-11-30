@@ -85,11 +85,6 @@ link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/media)
 
-link_libraries(libdum.a)
-link_libraries(libresip.a)
-link_libraries(libresipares.a)
-link_libraries(librutil.a)
-link_libraries(libcurl.a)
 
 SET(LIBS
 	-Wl,--start-group
@@ -97,6 +92,8 @@ SET(LIBS
 	libresip.a
 	libresipares.a
 	librutil.a
+	librepro.a
+	libdb.a
 	libcurl.a
 
 	librtp.a

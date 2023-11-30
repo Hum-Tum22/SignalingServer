@@ -48,16 +48,6 @@ public:
 			readSize = size;
 			memcpy(curBuf + wPos, data, size);
 			wPos += size;
-			/*if (fwPos)
-			{
-				readPtr = bm_ptr + frPos;
-				readSize = fwPos - frPos;
-			}
-			else
-			{
-				readPtr = buf + rPos;
-				readSize = wPos - rPos;
-			}*/
 			return Init();
 		}
 		else

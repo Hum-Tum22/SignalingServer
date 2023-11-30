@@ -11,20 +11,20 @@
 
 #include "rutil/Logger.hxx"
 
-#include "AclStore.hxx"
+#include "repro/AclStore.hxx"
 #include "RegistServerAuthenticatorFactory.hxx"
-#include "RegistRADIUSServerAuthManager.hxx"
+//#include "repro/RADIUSServerAuthManager.hxx"
 #include "RegistrarServerAuthManager.hxx"
-#include "RegistTlsPeerAuthManager.hxx"
-#include "UserAuthGrabber.hxx"
+#include "repro/ReproTlsPeerAuthManager.hxx"
+#include "repro/UserAuthGrabber.hxx"
 #include "resip/stack/Worker.hxx"
-#include "CertificateAuthenticator.hxx"
-#include "DigestAuthenticator.hxx"
-#include "RADIUSAuthenticator.hxx"
+#include "repro/monkeys/CertificateAuthenticator.hxx"
+#include "repro/monkeys/DigestAuthenticator.hxx"
+#include "repro/monkeys/RADIUSAuthenticator.hxx"
 
 using namespace std;
 using namespace resip;
-using namespace regist;
+using namespace repro;
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
 

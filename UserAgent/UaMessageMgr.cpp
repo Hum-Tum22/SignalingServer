@@ -98,24 +98,6 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
     {
         if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_CONTROL)//DeviceControl 设备控制
         {
-            PtzControlInfo* ptz = (PtzControlInfo *)XmlMsg.pPoint;
-            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::PtzControlResponseTask, this, XmlMsg.DeviceID.c_str(), PTZCMDType(ptz->value.c_str()), ptz->ControlPriority));
-        }
-        else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_CONFIG)//DeviceConfig 设备配置
-        {
-        }
-        else
-        {
-        }
-    }
-    else if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
-    {
-
-        if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_STATUS)//DeviceStatus 设备状态查询
-        {
-        }
-        else if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)//Catalog 设备目录查询
-        {
             //XML_CONTROLCMD_PTZ,
             ////TeleBoot 远程启动控制命令
             //XML_CONTROLCMD_TELEBOOT,
@@ -135,7 +117,8 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
             //XML_CONTROLCMD_HOMEPOSITION
             if (XmlMsg.controlCmd == XML_CONTROLCMD_PTZ)
             {
-                ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::CatalogQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
+                PtzControlInfo* ptz = (PtzControlInfo*)XmlMsg.pPoint;
+                ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::PtzControlResponseTask, this, XmlMsg.DeviceID.c_str(), PTZCMDType(ptz->value.c_str()), ptz->ControlPriority));
             }
             else if (XmlMsg.controlCmd == XML_CONTROLCMD_TELEBOOT)
             {
@@ -161,7 +144,23 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
             else if (XmlMsg.controlCmd == XML_CONTROLCMD_HOMEPOSITION)
             {
             }
-            
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_CONFIG)//DeviceConfig 设备配置
+        {
+        }
+        else
+        {
+        }
+    }
+    else if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
+    {
+
+        if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_STATUS)//DeviceStatus 设备状态查询
+        {
+        }
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)//Catalog 设备目录查询
+        {
+            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::CatalogQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist)); 
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_INFO)//DeviceInfo 设备信息查询
         {
@@ -245,13 +244,13 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_ALARM)//Alarm 报警通知应答
         {
         }
-        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED)
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG_NOTIFY_RECEIVED)
         {
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG_ITEM)//Catalog 设备目录信息查询应答
         {
         }
-        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_CATALOG)//Catalog 目录信息查询收到应答
+        else if (XmlMsg.cmdtype == XML_CMDTYPE_RESPONSE_SUB_CATALOG)//Catalog 目录信息查询收到应答
         {
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)

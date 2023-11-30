@@ -11,8 +11,8 @@
 //#include "repro/AbstractDb.hxx"
 #include "SqliteDb.h"
 #include "rutil/WinLeakCheck.hxx"
-#include "RegistrarServer/UserStore.hxx"
-#include "RegistrarServer/TlsPeerIdentityStore.hxx"
+#include "repro/UserStore.hxx"
+#include "repro/TlsPeerIdentityStore.hxx"
 
 #include <sstream>
 
@@ -21,7 +21,6 @@
 using namespace resip;
 using namespace repro;
 using namespace std;
-using namespace regist;
 
 #define RESIPROCATE_SUBSYSTEM Subsystem::TEST
 //#define USE_DBENV   // Required for transaction support
@@ -196,7 +195,7 @@ SqliteDb::singleResultQuery(const Data& queryCommand, std::vector<Data>& fields)
 resip::Data&
 SqliteDb::escapeString(const resip::Data& str, resip::Data& escapedStr) const
 {
-    //特殊字符转义
+    //鐗规畩瀛楃杞箟
     //escapedStr.truncate2(mysql_real_escape_string(mConn, (char*)escapedStr.getBuf(str.size() * 2 + 1), str.c_str(), str.size()));
     return escapedStr;
 }
@@ -914,7 +913,7 @@ void SqliteDb::IniTable() const
 //list<IDeviceChannel>& SqliteDb::queryOnlineChannelsByDeviceId(string deviceid)
 //{
 //    list<IDeviceChannel> DevChlList;
-//    //通道
+//    //閫氶亾
 //    Data command;
 //    //"SELECT * FROM device WHERE deviceId = #{deviceId}"
 //    DataStream ds(command);

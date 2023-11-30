@@ -77,19 +77,19 @@ public:
         int method = msg.method();
         if (method == REGISTER)
         {
-            printf("");
+            printf("\n");
         }
         else if (method == MESSAGE)
         {
-            printf("");
+            printf("\n");
         }
         if (msg.isRequest())
         {
-            printf("");
+            printf("\n");
         }
         else if (msg.isResponse())
         {
-            printf("");
+            printf("\n");
         }
         switch (msg.method())
         {
@@ -135,15 +135,30 @@ public:
                 }
                 else if (msg.isResponse())
                 {
-                    if (pSvr)
+                    if (pSvr && !pSvr->mediaIp.empty())
                     {
-                        //sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
-                        //sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
+                        sdp->session().connection().setAddress(pSvr->mediaIp.c_str());
+                        sdp->session().origin().setAddress(pSvr->mediaIp.c_str());
+                    }
+                    if (!msg.header(h_Contacts).empty())
+                    {
+                        if (msg.header(h_Contacts).front().uri().port() != msg.header(h_To).uri().port())
+                        {
+                            msg.header(h_Contacts).front().uri().port() = msg.header(h_To).uri().port();
+                        }
                     }
                 }
                 Data sourceip = Tuple::inet_ntop(source);
                 Data destip = Tuple::inet_ntop(destination);
             }
+            if (msg.isResponse())
+            {
+                if (!msg.header(h_Contacts).empty())
+                {
+                    msg.header(h_Contacts).front().uri() = msg.header(h_To).uri();
+                }
+            }
+
         }
         else if (msg.method() == REGISTER)
         {
@@ -152,16 +167,21 @@ public:
         else if (msg.method() == MESSAGE)
         {
             Data destip = Tuple::inet_ntop(destination);
-            if (destip == "192.168.1.230")
-            {
-                cout << destip << endl;
-            }
+            cout << destip << endl;
         }
         else
         {
             Data destip = Tuple::inet_ntop(destination);
         }
         
+
+        if (msg.isRequest())
+        {
+        }
+        else if (msg.isResponse())
+        {
+
+        }
         InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
     }
     virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
@@ -371,8 +391,8 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mDum->setRedirectHandler(this);
     
     mDum->setClientRegistrationHandler(this);
-    mDum->addClientSubscriptionHandler("basicClientTest", this);   // fabricated test event package
-    mDum->addServerSubscriptionHandler("basicClientTest", this);
+    //mDum->addClientSubscriptionHandler("basicClientTest", this);   // fabricated test event package
+    //mDum->addServerSubscriptionHandler("basicClientTest", this);
     list<Data> eventlist;
     eventlist.push_back(Data("catalagitem"));
     eventlist.push_back(Data("Catalog"));
@@ -396,10 +416,6 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 
     mDum->registerForConnectionTermination(this);
 
-	
-    /*mRegHandle = new CUacRegistHandler(*mDum);
-    if (mRegHandle)
-        mRegHandle->RegistCallBackRegistState(RegistStateCallBack, this);*/
     mMessageMgr = new CUserMessageMrg(*mDum);
     if (mMessageMgr)
     {
@@ -494,7 +510,7 @@ void UaMgr::DoCancelRegist(const Data& targetuser)
     shared_ptr<UaSessionInfo> uaInfo = GetUaInfoByUser(targetuser);
     if (uaInfo->mh.isValid())
     {
-        uaInfo->mh->end();
+        uaInfo->mh->endCommand();
         uaInfo->i_State = 0;
     }
     return;
@@ -562,16 +578,12 @@ void UaMgr::checkStateThread(UaMgr* chandle)
     int count = 0;
     while (!chandle->mDumShutdown)
     {
-        if (count++ > 30)
+        if (count++ > 10)
         {
             chandle->CheckRegistState();
             count = 0;
         }
-#ifdef _WIN32
-        Sleep(1000);
-#else
-        usleep(1000 * 1000);
-#endif
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }
 void UaMgr::CheckRegistState()
@@ -586,17 +598,16 @@ void UaMgr::CheckRegistState()
             if (uaState->mh.isValid())
             {
                 uaState->i_State = 0;
-                uaState->mh->end();
-            }
-            else
-            {
-                //reRegist(uaState);
+                if (uaState->heartTimeOutCount % mDevCfg.HeartBeatCount == 0)
+                {
+                    uaState->mh->requestRefresh();
+                }
             }
         }
         else
         {
-           /* if(mMessageMgr)
-                mMessageMgr->SendHeart(uaState, mDevCfg);*/
+            if(mMessageMgr)
+                mMessageMgr->SendHeart(uaState, mDevCfg);
         }
     }
 }
@@ -658,8 +669,9 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
             if (Nvr)
             {
                 int err = 0, chl = -1;
-                uint32_t msgSize = 16384;
-                char Buffer[16384] = { 0 };
+                uint32_t msgSize = 1024*8*3;
+                //char Buffer[msgSize] = { 0 };
+                char* Buffer = new char[msgSize];
                 Nvr->Dev_ListIPC(Buffer, msgSize, err);
                 if (err == 0)
                 {
@@ -685,9 +697,11 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                                         {
                                             std::string Id = json_check_string(body[i], "device_id");
                                             chl = child;
+                                            pChild->setStatus(1);
                                         }
                                         else
                                         {
+                                            pChild->setStatus(0);
                                             printf("%s %s child device offline\n", channelId.c_str(), devNum.c_str());
                                         }
                                     }
@@ -705,10 +719,11 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                 {
                     printf("%s get channel info err: %d\n", channelId.c_str(), err);
                 }
+                delete Buffer; Buffer = NULL;
                 if (chl >= 0)
                 {
                     JsonStream::Ptr streamIn = std::make_shared<JsonStream>(channelId.c_str());
-                    ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, (void*)JsonStream::VskX86NvrRtPreDataCb, (void*)streamIn.get(), err);
+                    ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
                     if (err == 0)
                     {
                         //parent->streamStatus = UaClientCall::CALL_MY_MEDIA_OK;

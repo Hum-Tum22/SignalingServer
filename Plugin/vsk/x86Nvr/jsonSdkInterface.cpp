@@ -6,6 +6,8 @@
 #include "include/base64.h"
 #include <errno.h>
 #include <dlfcn.h>
+#include <exception>
+#include <iostream>
 //#include "include/base64.cpp"
 
 JsonSdkInterface& JsonSdkInterface::Instance()
@@ -75,17 +77,20 @@ void JsonSdkInterface::InitSdk(int& err)
 			}
 			else
 			{
+				printf("json sdk init err:%d\n", err);
 				err = ret;
 			}
 		}
 		else
 		{
+			printf("get JsonSdk_Initate err:%d\n", err);
 			err = -2;
 		}
 	}
 	else
 	{
 		err = -1;
+		printf("Load json sdk err:%d\n", err);
 	}
 }
 void JsonSdkInterface::SdkClear(int& err)
@@ -147,20 +152,36 @@ DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const 
 			writer.EndObject();
 
 			std::string strJsonReq = buffer.GetString();
-			DWORD nLoginID;
-			int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
-			if (ret == 0)
+			try
 			{
-				return nLoginID;
+				DWORD nLoginID;
+				int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
+				if (ret == 0)
+				{
+					return nLoginID;
+				}
+				else
+				{
+					printf("json sdk  login err:%d\n", err);
+					err = ret;
+				}
 			}
-			else
-				err = ret;
+			catch (std::exception& e)
+			{
+				std::cout << "Standard exception: " << e.what() << std::endl;
+			}
 		}
 		else
+		{
+			printf("get JsonSdk_Login err:%d\n", err);
 			err = -2;
+		}
 	}
 	else
+	{
 		err = -1;
+		printf("Load json sdk err:%d\n", err);
+	}
 	return 0;
 }
 void JsonSdkInterface::LogOut(DWORD loginId, int& err)
@@ -232,6 +253,49 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 		err = -1;
 	return 0;
 }
+DWORD JsonSdkInterface::VskPreview(DWORD UserID, int channel, int streamId, DataPlayCallBack VideoTranCallBack, LPVOID pUser, int& err)
+{
+	err = 0;
+	if (m_hDll && IsInit)
+	{
+		if (!VskPreviewFun)
+		{
+			VskPreviewFun = (Sdk_VskPreview)LoadSharedLibFun(m_hDll, "JsonSdk_VideoTranspondStart");
+		}
+		if (UserID && VskPreviewFun)
+		{
+			rapidjson::StringBuffer buffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			writer.StartObject();
+
+			writer.Key("chid");
+			writer.Int(channel);
+			writer.Key("rate_type");
+			writer.Int(streamId);
+			writer.Key("trans_mode");
+			writer.Int(0);
+			writer.Key("rate_size");
+			writer.Int(0);
+
+			writer.EndObject();
+
+			std::string strJsonReq = buffer.GetString();
+			DWORD hHandle = 0;
+			int ret = VskPreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
+			if (ret == 0)
+			{
+				return hHandle;
+			}
+			else
+				err = ret;
+		}
+		else
+			err = -2;
+	}
+	else
+		err = -1;
+	return 0;
+}
 void JsonSdkInterface::StopPreview(DWORD UserID, int& err)
 {
 	err = 0;
@@ -287,7 +351,7 @@ DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end
 			std::string strJsonReq = buffer.GetString();
 			DWORD hHandle = 0;
 			uint64_t  nTotalFileSize = 0;
-			int ret = PlayBackFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, NULL, this, &nTotalFileSize, &hHandle);
+			int ret = PlayBackFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, 0, this, &nTotalFileSize, &hHandle);
 			if (ret == 0)
 			{
 				return hHandle;
@@ -432,17 +496,37 @@ void JsonSdkInterface::ListIPC(DWORD UserID, char* pIPCServerList, UINT* pIPCSer
 		}
 		if (UserID && ListIPCFun)
 		{
-			int ret = ListIPCFun(UserID, pIPCServerList, pIPCServerListSize);
-			if (ret == 0)
+			try
 			{
-				return;
+				int ret = ListIPCFun(UserID, pIPCServerList, pIPCServerListSize);
+				if (ret == 0)
+				{
+					return;
+				}
+				else
+				{
+					printf("json sdk  get ipc list err:%d\n", err);
+					err = ret;
+				}
 			}
-			err = ret;
+			catch (std::exception& e)
+			{
+				std::cout << "Standard exception: " << e.what() << std::endl;
+			}
+			
 			return;
 		}
-		err = -2;
+		else
+		{
+			printf("get JsonSdk_ListIPC err:%d\n", err);
+			err = -2;
+		}
 		return;
 	}
-	err = -1;
+	else
+	{
+		err = -1;
+		printf("Load json sdk err:%d\n", err);
+	}
 	return;
 }

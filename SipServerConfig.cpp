@@ -1,7 +1,9 @@
 
 #include "SipServerConfig.h"
 #include "SqliteDb.h"
+#ifdef USE_MYSQL
 #include "MySqlDb.hxx"
+#endif
 #include "rutil/Data.hxx"
 #include "rutil/Log.hxx"
 #include "rutil/Logger.hxx"
@@ -9,7 +11,6 @@
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::TEST
 using namespace resip;
 using namespace repro;
-using namespace regist;
 
 MyServerConfig::MyServerConfig() :mAbstractDb(0)
 {
@@ -101,7 +102,7 @@ AbstractDb* MyServerConfig::getDatabase(int configIndex)
     }
     return 0;
 }
-regist::AbstractDb* MyServerConfig::CreateDatabase()
+repro::AbstractDb* MyServerConfig::CreateDatabase()
 {
     if (mAbstractDb)
         return mAbstractDb;

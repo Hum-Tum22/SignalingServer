@@ -92,7 +92,7 @@
 
 #include "RegistrarServer/RegistServerAuthenticatorFactory.hxx"
 #include "RegistrarServer/RegistrarServerAuthManager.hxx"
-#include "RegistrarServer/BasicWsConnectionValidator.hxx"
+#include "repro/BasicWsConnectionValidator.hxx"
 #include "RegistrarServer/RegistServer.h"
 #include "SipServer.h"
 #include "UserAgent/UserAgentMgr.h"
@@ -100,8 +100,9 @@
 #include "http.h"
 #include "deviceMng/deviceMng.h"
 #include "deviceMng/JsonDevice.h"
+#ifdef USE_MYSQL
 #include "MySqlDb.hxx"
-
+#endif
 #include "myjsondef.h"
 #include "writer.h"
 #include "stringbuffer.h"
@@ -128,7 +129,7 @@
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::TEST
 
 using namespace resip;
-using namespace regist;
+using namespace repro;
 using namespace sipserver;
 using namespace std;
 
@@ -285,6 +286,8 @@ SipServer::run(int argc, char** argv)
     //
     zlmHttpPort = mProxyConfig->getConfigInt("zlmhttpport", 8080);
     gbHttpPort = mProxyConfig->getConfigInt("HttpPort", 8090);
+    mediaIp = mProxyConfig->getConfigData("mediaIp", "", true).c_str();
+    MapPort = mProxyConfig->getConfigInt("MapPort", 0);
     zlmHost = mProxyConfig->getConfigData("zlmhost", "127.0.0.1", true).c_str();
 
     localHost = mProxyConfig->getConfigData("localHost", "");
@@ -2038,6 +2041,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
     Data httphost("192.168.1.223");
     httphost = mProxyConfig->getConfigData("CCTVHOST", httphost);
     int port = mProxyConfig->getConfigInt("CCTVPORT", 8080);
+    mediaIp = httphost.c_str();
     httpUrl += httphost;
     httpUrl += Data(":");
     httpUrl += Data(port);

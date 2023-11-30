@@ -121,8 +121,8 @@ GB28181XmlMsg::~GB28181XmlMsg()
 			pPoint = NULL;
 			break;
 		}
-		case XML_CMDTYPE_RESPONSE_CATALOG:
-		case XML_CMDTYPE_RESPONSE_CATALOG_RECEIVED:
+		case XML_CMDTYPE_RESPONSE_SUB_CATALOG:
+		case XML_CMDTYPE_RESPONSE_CATALOG_NOTIFY_RECEIVED:
 		case XML_CMDTYPE_RESPONSE_DEV_INFO:
 		case XML_CMDTYPE_RESPONSE_DEV_STATUS:
 		case XML_CMDTYPE_RESPONSE_RECORD_INFO:
@@ -301,10 +301,21 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 		}
 		else if (strncmp(CmdName, "Query", 5) == 0)
 		{
-			XmlMsg.cmdname = XML_CMD_NAME_CONTROL;
+			XmlMsg.cmdname = XML_CMD_NAME_QUERY;
 			XMLElement* CmdTypeElement = pRootNode->FirstChildElement("CmdType");
 			if (!CmdTypeElement)
 				return false;
+
+			XMLElement* SNElement = pRootNode->FirstChildElement("SN");
+			if (!SNElement)
+				return false;
+			XmlMsg.sn = atoi(SNElement->GetText());
+
+			XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
+			if (!DeviceIDElement)
+				return false;
+			XmlMsg.DeviceID = DeviceIDElement->GetText();
+
 			const char* CmdType = CmdTypeElement->GetText();
 			if (!CmdType)
 				return false;
@@ -315,7 +326,7 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 			}
 			else if (strncmp(CmdType, "Catalog", 7) == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_DEVICE_CONFIG;
+				XmlMsg.cmdtype = XML_CMDTYPE_CATALOG;
 				return true;
 			}
 			else if (strncmp(CmdType, "DeviceInfo", 10) == 0)
@@ -580,7 +591,7 @@ bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 
 			if (strcmp(CmdType, "Catalog") == 0)
 			{
-				XmlMsg.cmdtype = XML_CMDTYPE_RESPONSE_CATALOG;
+				XmlMsg.cmdtype = XML_CMDTYPE_RESPONSE_CATALOG_ITEM;
 
 				ResponseCatalogList* pResponseCatalog = new ResponseCatalogList;
 				XMLElement* SumNumElement = pRootNode->FirstChildElement("SumNum");
@@ -938,20 +949,22 @@ bool AnalyzeSubscriptionMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg)
 				XMLElement* DeviceIDElement = pRootNode->FirstChildElement("DeviceID");
 				if (!DeviceIDElement)
 					return false;
-				CatalogSubscriptionMsg* pCatalogSubMsg = new CatalogSubscriptionMsg;
-				pCatalogSubMsg->DeviceID = DeviceIDElement->GetText();
+				CatalogSubscriptionMsg* pCatalogMsg = new CatalogSubscriptionMsg;
+				pCatalogMsg->DeviceID = DeviceIDElement->GetText();
 
 				XMLElement* StartTimeElement = pRootNode->FirstChildElement("StartTime");
-				if (!StartTimeElement)
-					return false;
-				pCatalogSubMsg->StartTime = StartTimeElement->GetText();
+				if (StartTimeElement)
+				{
+					pCatalogMsg->StartTime = StartTimeElement->GetText();
+				}
 
 				XMLElement* EndTimeElement = pRootNode->FirstChildElement("EndTime");
-				if (!EndTimeElement)
-					return false;
-				pCatalogSubMsg->EndTime = EndTimeElement->GetText();
+				if (EndTimeElement)
+				{
+					pCatalogMsg->EndTime = EndTimeElement->GetText();
+				}
 
-				XmlMsg.pPoint = pCatalogSubMsg;
+				XmlMsg.pPoint = pCatalogMsg;
 				return true;
 			}
 			else if (strcmp(XmlSubCmd, "...") == 0)

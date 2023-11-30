@@ -55,6 +55,7 @@ private:
 	int64_t m_pos;
 	double m_speed;
 	unsigned short m_seq;
+	int mGap;
 
 	uint64_t m_ps_clock;
 	uint64_t m_rtp_clock;
@@ -66,7 +67,7 @@ private:
 
 	std::thread loop;
 	bool IsRun;
-	int playType;//1:Ô¤ÀÀ,2:»Ø·Å,3:ÏÂÔØ
+	int playType;//1:é¢„è§ˆ,2:å›žæ”¾,3:ä¸‹è½½
 
 	void* m_pspacker;
 	unsigned char m_packet[MAX_UDP_PACKET + 14];

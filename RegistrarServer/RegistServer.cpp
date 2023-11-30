@@ -26,9 +26,9 @@
 
 #include "../SqliteDb.h"
 //#include "device/DeviceInfo.h"
-#include "AsyncProcessorMessage.hxx"
-#include "RequestContext.hxx"
-#include "AsyncProcessorWorker.hxx"
+#include "repro/AsyncProcessorMessage.hxx"
+#include "repro/RequestContext.hxx"
+#include "repro/AsyncProcessorWorker.hxx"
 #include "../SipExtensionInfo.h"
 #include "../SipServerConfig.h"
 //#include "device/DeviceManager.h"
@@ -43,7 +43,6 @@
 
 using namespace resip;
 using namespace repro;
-using namespace regist;
 using namespace std;
 
 CRegistServer::CRegistServer(ProxyConfig* config, resip::SipStack& tsipstack):SvConfig(config)
@@ -555,9 +554,11 @@ MyRegistrarHandler::MyRegistrarHandler(ProxyConfig& config, Dispatcher* asyncDis
     Data mimeTypeFilterRegex = config.getConfigData("MessageSiloMimeTypeFilterRegex", "application\\/im\\-iscomposing\\+xml", false);
     if (!destFilterRegex.empty())
     {
-        mDestFilterRegex = new regex_t;
-        int ret = regcomp(mDestFilterRegex, destFilterRegex.c_str(), REG_EXTENDED | REG_NOSUB);
-        if (ret != 0)
+        try
+        {
+            mDestFilterRegex = new std::regex(destFilterRegex.c_str(), std::regex_constants::ECMAScript | std::regex_constants::nosubs);
+        }
+        catch (std::regex_error& e)
         {
             delete mDestFilterRegex;
             ErrLog(<< "MessageSilo has invalid destination filter regular expression: " << destFilterRegex);
@@ -566,9 +567,11 @@ MyRegistrarHandler::MyRegistrarHandler(ProxyConfig& config, Dispatcher* asyncDis
     }
     if (!mimeTypeFilterRegex.empty())
     {
-        mMimeTypeFilterRegex = new regex_t;
-        int ret = regcomp(mMimeTypeFilterRegex, mimeTypeFilterRegex.c_str(), REG_EXTENDED | REG_NOSUB);
-        if (ret != 0)
+        try
+        {
+            mMimeTypeFilterRegex = new std::regex(mimeTypeFilterRegex.c_str(), std::regex_constants::ECMAScript | std::regex_constants::nosubs);
+        }
+        catch (std::regex_error& e)
         {
             delete mMimeTypeFilterRegex;
             ErrLog(<< "MessageSilo has invalid mime-type filter regular expression: " << mimeTypeFilterRegex);
@@ -582,13 +585,11 @@ MyRegistrarHandler::~MyRegistrarHandler()
     // Clean up pcre memory
     if (mDestFilterRegex)
     {
-        regfree(mDestFilterRegex);
         delete mDestFilterRegex;
         mDestFilterRegex = 0;
     }
     if (mMimeTypeFilterRegex)
     {
-        regfree(mMimeTypeFilterRegex);
         delete mMimeTypeFilterRegex;
         mMimeTypeFilterRegex = 0;
     }
@@ -632,8 +633,9 @@ MyRegistrarHandler::process(RequestContext& context)
             async->mMimeType = Data::from(contents->getType());
             if (mMimeTypeFilterRegex)
             {
-                int ret = regexec(mMimeTypeFilterRegex, async->mMimeType.c_str(), 0, 0, 0/*eflags*/);
-                if (ret == 0)
+                // Note:  Using regex_search instead of regex_match, so that we don't need to fully match 
+                //        the string, this is backwards compatible with the previous regexec PCRE implementation
+                if (std::regex_search(async->mMimeType.c_str(), *mMimeTypeFilterRegex))
                 {
                     // match 
                     DebugLog(<< " MESSAGE not silo'd due to Mime-Type filter: " << async->mMimeType);
@@ -655,8 +657,9 @@ MyRegistrarHandler::process(RequestContext& context)
             async->mDestUri = originalRequest.header(h_To).uri().getAOR(false /* addPort? */);
             if (mDestFilterRegex)
             {
-                int ret = regexec(mDestFilterRegex, async->mDestUri.c_str(), 0, 0, 0/*eflags*/);
-                if (ret == 0)
+                // Note:  Using regex_search instead of regex_match, so that we don't need to fully match 
+                //        the string, this is backwards compatible with the previous regexec PCRE implementation
+                if (std::regex_search(async->mDestUri.c_str(), *mDestFilterRegex))
                 {
                     // match 
                     DebugLog(<< " MESSAGE not silo'd due to destination filter: " << async->mDestUri);
@@ -901,7 +904,7 @@ bool MyRegistrarHandler::onRefresh(resip::ServerRegistrationHandle sr, const res
     //                dev->NewVkek = vkek;
     //                Auth auth;
     //                std::string strEncData;
-    //                CEncryptLib::Sm2Encrypt(pPbKeyBuf, vkek, strEncData);//用设备公钥对vkek加密得到cryptkey
+    //                CEncryptLib::Sm2Encrypt(pPbKeyBuf, vkek, strEncData);//鐢ㄨ澶囧叕閽ュvkek鍔犲瘑寰楀埌cryptkey
     //                auth.param(p_cryptkey) = Data(strEncData.c_str(), strEncData.size()).base64encode();
     //                LogOut("GB", L_DEBUG, "******vkek:%s enc 64:%s", vkek.c_str(), auth.param(p_cryptkey).c_str());
     //                if (isEqualNoCase(i->scheme(), AuthScheme))
@@ -941,7 +944,7 @@ bool MyRegistrarHandler::onRefresh(resip::ServerRegistrationHandle sr, const res
     //                        pSvrPriBuf[filesize] = 0;
     //                        fclose(fstream);
     //                        std::string strsign2;
-    //                        CEncryptLib::Sm2Sign(pSvrPriBuf, sign2pb.c_str(), strsign2);//用管理平台私钥对random1+random2+deviceid+cryptkey签名得到sign2
+    //                        CEncryptLib::Sm2Sign(pSvrPriBuf, sign2pb.c_str(), strsign2);//鐢ㄧ鐞嗗钩鍙扮閽ュrandom1+random2+deviceid+cryptkey绛惧悕寰楀埌sign2
 
     //                        Data base64sign2(strsign2.c_str(), strsign2.size());
     //                        auth.param(p_sign2) = base64sign2.base64encode();
@@ -1173,7 +1176,7 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
     //                dev->NewVkek = vkek;
     //                Auth auth;
     //                std::string strEncData;
-    //                CEncryptLib::Sm2Encrypt(pPbKeyBuf, vkek, strEncData);//用设备公钥对vkek加密得到cryptkey
+    //                CEncryptLib::Sm2Encrypt(pPbKeyBuf, vkek, strEncData);//鐢ㄨ澶囧叕閽ュvkek鍔犲瘑寰楀埌cryptkey
     //                delete[]pPbKeyBuf; pPbKeyBuf = NULL;
     //                auth.param(p_cryptkey) = Data(strEncData.c_str(), strEncData.size()).base64encode();
     //                LogOut("GB", L_DEBUG, "******vkek:%s enc 64:%s", vkek.c_str(), auth.param(p_cryptkey).c_str());
@@ -1214,7 +1217,7 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
     //                        pSvrPriBuf[filesize] = 0;
     //                        fclose(fstream);
     //                        std::string strsign2;
-    //                        CEncryptLib::Sm2Sign(pSvrPriBuf, sign2pb.c_str(), strsign2);//用管理平台私钥对random1+random2+deviceid+cryptkey签名得到sign2
+    //                        CEncryptLib::Sm2Sign(pSvrPriBuf, sign2pb.c_str(), strsign2);//鐢ㄧ鐞嗗钩鍙扮閽ュrandom1+random2+deviceid+cryptkey绛惧悕寰楀埌sign2
     //                        delete[]pSvrPriBuf; pSvrPriBuf = NULL;
     //                        Data base64sign2(strsign2.c_str(), strsign2.size());
     //                        auth.param(p_sign2) = base64sign2.base64encode();

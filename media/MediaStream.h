@@ -17,8 +17,9 @@ struct vframe_t
 	long bytes;
 	bool idr; // IDR frame
 	int frameType;
+	int gap;
 
-	vframe_t():nalu(NULL),time(0),bytes(0),idr(false),frameType(0)
+	vframe_t():nalu(NULL),time(0),bytes(0),idr(false),frameType(0), gap(40)
 	{
 	}
 	bool operator < (const struct vframe_t& v) const
@@ -26,14 +27,20 @@ struct vframe_t
 		return time < v.time;
 	}
 };
-
+typedef enum
+{
+	GB_CODEC_UNKNOWN = -1,
+	GB_CODEC_H265,
+	GB_CODEC_H264
+}STREAM_CODEC;
 class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
 {
 	//int Init();
 	int Init264();
 	int Init265();
-	int frameType;
+	STREAM_CODEC frameType;
 	int m_duration;
+	int gap;
 
 	uint8_t *sps;
 	uint8_t *pps;
@@ -49,7 +56,7 @@ public:
 	FrameMemPool();
 	~FrameMemPool();
 
-	int Input(int type, uint8_t* data, size_t size);
+	int Input(STREAM_CODEC type, uint8_t* data, size_t size, int gap);
 	int InputFrame(uint8_t* data, size_t size);
 	int getReader();
 };
@@ -71,7 +78,7 @@ public:
 
 	void setMediaSource(IMediaSource*s);
 
-	void OnMediaStream(int type, uint8_t* data, size_t size);
+	void OnMediaStream(STREAM_CODEC code, uint8_t* data, size_t size, int gap);
 
 	int GetNextFrame(uint32_t readhandle, vframe_t & frame);
 

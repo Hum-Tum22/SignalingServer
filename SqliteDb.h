@@ -4,8 +4,8 @@
 
 #include "sqlite3.h"
 #include "rutil/Data.hxx"
-#include "RegistrarServer/AbstractDb.hxx"
-#include "RegistrarServer/SqlDb.hxx"
+#include "repro/AbstractDb.hxx"
+#include "repro/SqlDb.hxx"
 #include <list>
 #include "device/DeviceInfo.h"
 #include "device/DeviceChannel.h"
@@ -93,7 +93,7 @@ public:
     //virtual int updateDevice(SipServerDeviceInfo device);
     //virtual int delDevice(string deviceid);
 
-    ////设备通道
+    ////璁惧閫氶亾
     //virtual list<IDeviceChannel>& queryOnlineChannelsByDeviceId(string deviceid);
   
     int Sqlite_query(const char* zSql, char*** pazResult, int* pnRow, int* pnColumn, char** pzErrMsg);

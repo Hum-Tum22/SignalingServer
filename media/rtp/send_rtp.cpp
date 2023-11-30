@@ -109,13 +109,8 @@ void send_rtp::parseRtcpData(const uint8_t* data, size_t length)
 
 extern "C" const struct mov_buffer_t* mov_file_buffer(void);
 
-static uint8_t s_packet[2 * 1024 * 1024];
-static uint8_t s_buffer[4 * 1024 * 1024];
-static struct mpeg4_hevc_t s_hevc;
-static struct mpeg4_avc_t s_avc;
-static struct mpeg4_aac_t s_aac;
-static struct webm_vpx_t s_vpx;
-static struct aom_av1_t s_av1;
+
+
 
 struct mov_rtp_test_t;
 struct mov_rtp_test_stream_t
@@ -136,9 +131,16 @@ struct mov_rtp_test_t
     struct mov_rtp_test_stream_t a, v;
 
     struct ps_muxer_t* psenc;
+    uint8_t* s_packet;// [2 * 1024 * 1024] ;
+    uint8_t* s_buffer;// [4 * 1024 * 1024] ;
+    struct mpeg4_hevc_t s_hevc;
+    struct mpeg4_avc_t s_avc;
+    struct mpeg4_aac_t s_aac;
+    struct webm_vpx_t s_vpx;
+    struct aom_av1_t s_av1;
 };
 
-static unsigned char packet[8 * 1024 * 1024];
+//static unsigned char packet[8 * 1024 * 1024];
 
 static void* rtp_alloc(void* /*param*/, int bytes)
 {
@@ -196,15 +198,15 @@ static void onread(void* param, uint32_t track, const void* buffer, size_t bytes
     {
         if (MOV_OBJECT_H264 == ctx->v.object)
         {
-            n = h264_mp4toannexb(&s_avc, buffer, bytes, s_packet, sizeof(s_packet));
+            n = h264_mp4toannexb(&ctx->s_avc, buffer, bytes, ctx->s_packet, sizeof(ctx->s_packet));
         }
         else if (MOV_OBJECT_HEVC == ctx->v.object)
         {
-            n = h265_mp4toannexb(&s_hevc, buffer, bytes, s_packet, sizeof(s_packet));
+            n = h265_mp4toannexb(&ctx->s_hevc, buffer, bytes, ctx->s_packet, sizeof(ctx->s_packet));
         }
         else if (MOV_OBJECT_AV1 == ctx->v.object)
         {
-            n = aom_av1_codec_configuration_record_save(&s_av1, s_packet, sizeof(s_packet));
+            n = aom_av1_codec_configuration_record_save(&ctx->s_av1, ctx->s_packet, sizeof(ctx->s_packet));
         }
         else if (MOV_OBJECT_VP8 == ctx->v.object || MOV_OBJECT_VP9 == ctx->v.object)
         {
@@ -221,16 +223,22 @@ static void onread(void* param, uint32_t track, const void* buffer, size_t bytes
         if (MOV_OBJECT_H264 == ctx->v.object || MOV_OBJECT_HEVC == ctx->v.object)
         {
             ctx->v.dts = dts;
-            ps_muxer_input(ctx->psenc, ctx->v.psi, (MOV_AV_FLAG_KEYFREAME & flags) ? 0x0001 : 0, pts, dts, s_packet, n);
+            ps_muxer_input(ctx->psenc, ctx->v.psi, (MOV_AV_FLAG_KEYFREAME & flags) ? 0x0001 : 0, pts, dts, ctx->s_packet, n);
             return;
         }
-        assert(0 == rtp_payload_encode_input(ctx->v.encoder, s_packet, n, (unsigned int)dts));
+        assert(0 == rtp_payload_encode_input(ctx->v.encoder, ctx->s_packet, n, (unsigned int)dts));
     }
     else if (ctx->a.track == track)
     {
         if (MOV_OBJECT_AAC == ctx->a.object)
         {
-            n = mpeg4_aac_adts_save(&s_aac, bytes, s_packet, sizeof(s_packet));
+            n = mpeg4_aac_adts_save(&ctx->s_aac, bytes, ctx->s_packet, sizeof(ctx->s_packet));
+        }
+        else if (MOV_OBJECT_G711a == ctx->a.object)
+        {
+        }
+        else if (MOV_OBJECT_G711u == ctx->a.object)
+        {
         }
         else if (MOV_OBJECT_OPUS == ctx->a.object)
         {
@@ -244,7 +252,7 @@ static void onread(void* param, uint32_t track, const void* buffer, size_t bytes
         printf("[A] pts: %s, dts: %s, diff: %03d/%03d, %d\n", ftimestamp(pts, s_pts), ftimestamp(dts, s_dts), (int)(pts - a_pts), (int)(dts - a_dts), (int)n);
         a_pts = pts;
         a_dts = dts;
-        assert(0 == rtp_payload_encode_input(ctx->a.encoder, s_packet, n, (unsigned int)dts));
+        assert(0 == rtp_payload_encode_input(ctx->a.encoder, ctx->s_packet, n, (unsigned int)dts));
     }
     else
     {
@@ -262,27 +270,27 @@ static void mov_video_info(void* param, uint32_t track, uint8_t object, int /*wi
     if (MOV_OBJECT_H264 == object)
     {
         ctx->v.psi = ps_muxer_add_stream(ctx->psenc, PSI_STREAM_H264, NULL, 0);
-        assert(bytes == mpeg4_avc_decoder_configuration_record_load((const uint8_t*)extra, bytes, &s_avc));
+        assert(bytes == mpeg4_avc_decoder_configuration_record_load((const uint8_t*)extra, bytes, &ctx->s_avc));
     }
     else if (MOV_OBJECT_HEVC == object)
     {
         ctx->v.psi = ps_muxer_add_stream(ctx->psenc, PSI_STREAM_H265, NULL, 0);
-        assert(bytes == mpeg4_hevc_decoder_configuration_record_load((const uint8_t*)extra, bytes, &s_hevc));
+        assert(bytes == mpeg4_hevc_decoder_configuration_record_load((const uint8_t*)extra, bytes, &ctx->s_hevc));
     }
     else if (MOV_OBJECT_AV1 == object)
     {
         assert(0 == rtp_payload_codec_create(&ctx->v, 96, "AV1", 0, 0));
-        assert(bytes == aom_av1_codec_configuration_record_load((const uint8_t*)extra, bytes, &s_av1));
+        assert(bytes == aom_av1_codec_configuration_record_load((const uint8_t*)extra, bytes, &ctx->s_av1));
     }
     else if (MOV_OBJECT_VP9 == object)
     {
         assert(0 == rtp_payload_codec_create(&ctx->v, 96, "VP9", 0, 0));
-        assert(bytes == webm_vpx_codec_configuration_record_load((const uint8_t*)extra, bytes, &s_vpx));
+        assert(bytes == webm_vpx_codec_configuration_record_load((const uint8_t*)extra, bytes, &ctx->s_vpx));
     }
     else if (MOV_OBJECT_VP8 == object)
     {
         assert(0 == rtp_payload_codec_create(&ctx->v, 96, "VP8", 0, 0));
-        assert(bytes == webm_vpx_codec_configuration_record_load((const uint8_t*)extra, bytes, &s_vpx));
+        assert(bytes == webm_vpx_codec_configuration_record_load((const uint8_t*)extra, bytes, &ctx->s_vpx));
     }
     else
     {
@@ -300,7 +308,17 @@ static void mov_audio_info(void* param, uint32_t track, uint8_t object, int /*ch
     if (MOV_OBJECT_AAC == object)
     {
         assert(0 == rtp_payload_codec_create(&ctx->a, 97, "MP4A-LATM", 0, 0));
-        assert(bytes == mpeg4_aac_audio_specific_config_load((const uint8_t*)extra, bytes, &s_aac));
+        assert(bytes == mpeg4_aac_audio_specific_config_load((const uint8_t*)extra, bytes, &ctx->s_aac));
+    }
+    else if (MOV_OBJECT_G711u == object)
+    {
+        //assert(0 == rtp_payload_codec_create(&ctx->a, 97, "MP4A-LATM", 0, 0));
+        //assert(bytes == mpeg4_aac_audio_specific_config_load((const uint8_t*)extra, bytes, &ctx->s_aac));
+    }
+    else if (MOV_OBJECT_G711a == object)
+    {
+        //assert(0 == rtp_payload_codec_create(&ctx->a, 97, "MP4A-LATM", 0, 0));
+        //assert(bytes == mpeg4_aac_audio_specific_config_load((const uint8_t*)extra, bytes, &ctx->s_aac));
     }
     else if (MOV_OBJECT_OPUS == object)
     {

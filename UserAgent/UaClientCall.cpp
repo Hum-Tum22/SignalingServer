@@ -430,8 +430,8 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 //流存在//直接回复
                 //mResponseSdp
                 auto transport = std::make_shared<RTPUdpTransport>();
-                unsigned short localport[2] = { myRtpPort, myRtpPort + 1 };
-                unsigned short peerport[2] = { remotePort, remotePort + 1 };
+                unsigned short localport[2] = { myRtpPort, ++myRtpPort };
+                unsigned short peerport[2] = { remotePort, ++remotePort };
                 if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
                 {
                     psSource = new PSFileSource("", ssrc.convertInt());
@@ -462,8 +462,8 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 else
                 {
                     auto transport = std::make_shared<RTPUdpTransport>();
-                    unsigned short localport[2] = { myRtpPort, myRtpPort + 1 };
-                    unsigned short peerport[2] = { remotePort, remotePort + 1 };
+                    unsigned short localport[2] = { myRtpPort, ++myRtpPort };
+                    unsigned short peerport[2] = { remotePort, ++remotePort };
                     if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
                     {
                         psSource = new PSFileSource("", ssrc.convertInt());
@@ -630,6 +630,8 @@ UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnsw
    }
    else
    {
+       //h->provisional(100);
+       h->provisional(180);
        if (msg.isFromWire())
        {
            //鉴权处理
@@ -1229,6 +1231,8 @@ UaClientCall::onNonDialogCreatingProvisional(AppDialogSetHandle h, const SipMess
    InfoLog(<< "onNonDialogCreatingProvisional: msg=" << msg.brief());
    if(isUACConnected()) return;  // Ignore provionals if already connected
 
+   //ServerInviteSession* sis = (ServerInviteSession*)(h->getInviteSession().get());
+   //sis->provisional(180);
    // Handle message here
 }
 

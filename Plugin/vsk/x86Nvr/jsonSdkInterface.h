@@ -24,6 +24,7 @@ public:
 	void LogOut(DWORD, int& err);
 
 	DWORD Preview(DWORD UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, LPVOID pUser, int& err);
+	DWORD VskPreview(DWORD UserID, int channel, int streamId, DataPlayCallBack VideoTranCallBack, LPVOID pUser, int& err);
 	void StopPreview(DWORD, int& err);
 
 	DWORD PlayBack(DWORD UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, LPVOID pUser, int& err);
@@ -46,6 +47,8 @@ public:
 
 	typedef int (CALLBACK* Sdk_Preview)(DWORD UserID, DataVideoAudioCallBackEx VideoTranCallBack, const char* pTranInfo, 
 										uint64 nUserData, LPVOID pUser, DWORD* pnPeviewID);
+	typedef int (CALLBACK* Sdk_VskPreview)(DWORD UserID, DataPlayCallBack VideoTranCallBack,
+		const char* pTranInfo, uint64 nUserData, LPVOID pUser, DWORD* pnPeviewID);
 	typedef int (CALLBACK* Sdk_StopPreview)(DWORD UserID);
 
 	typedef int (CALLBACK* Sdk_PlayBackStartByTime)(DWORD UserID, const char* pInfo, DataPlayCallBack VideoDataCallBack, PlayBackEndCallBack fun,
@@ -74,6 +77,7 @@ private:
 	Sdk_Logout LogOutFun;
 
 	Sdk_Preview PreviewFun;
+	Sdk_VskPreview VskPreviewFun;
 	Sdk_StopPreview StopPreviewFun;
 
 	Sdk_PlayBackStartByTime PlayBackFun;

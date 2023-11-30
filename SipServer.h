@@ -8,13 +8,13 @@
 #include "resip/stack/DomainMatcher.hxx"
 #include <memory>
 
-#include "RegistrarServer/AuthenticatorFactory.hxx"
+#include "repro/AuthenticatorFactory.hxx"
 //#include "repro/Plugin.hxx"
-#include "RegistrarServer/Registrar.hxx"
+#include "repro/Registrar.hxx"
 #include "UserAgent/UaMessageMgr.h"
 
 
-using namespace regist;
+using namespace repro;
 namespace resip
 {
 	class TransactionUser;
@@ -29,7 +29,7 @@ namespace resip
 	class CongestionManager;
 	class UaMgr;
 }
-namespace regist
+namespace repro
 {
 class ProxyConfig;
 class ProcessorChain;
@@ -83,7 +83,7 @@ protected:
 	virtual void populateRegistrations();
 	virtual bool createWebAdmin();
 	virtual void createAuthenticatorFactory();
-	virtual void createDialogUsageManager();//¡ä¡ä?¡§¡Á¡é2¨¢server dum  SipServerAuthManager
+	virtual void createDialogUsageManager();
 	virtual void createRegSync();
 	virtual void createCommandServer();
 
@@ -159,6 +159,9 @@ public:
 	std::string zlmHost;
 	int zlmHttpPort;
 	int gbHttpPort;
+
+	std::string mediaIp;
+	int MapPort;
 
 	Data localHost;
 	int localPort;

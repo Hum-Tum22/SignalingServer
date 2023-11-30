@@ -127,7 +127,7 @@ public:
 	SdpContents mRequestSdp;
 	Data sessionName;
 	Data remoteIp;
-	int remotePort;
+	unsigned short remotePort;
 	unsigned long startTime;
 	unsigned long stopTime;
 	int rtpType;			//0:udp,1:tcp active,2:tcp pass
@@ -144,7 +144,7 @@ public:
 	std::string channelId;
 	Data app;
 	//local info
-	int myRtpPort;
+	unsigned short myRtpPort;
 	std::string mySdpIp;
 
 	typedef enum _CallState

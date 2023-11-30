@@ -18,7 +18,7 @@ public:
 	ULHandle Dev_Preview(int channelId, int streamType, void* VideoTranCallBack, void* pUser, int& err);
 	void Dev_StopPreview(ULHandle, int& err);
 
-	ULHandle Dev_PlayBack(int channelId, long start, long end, BaseDevice::PbCbData VideoTranCallBack, PbCbEnd fun, void* pUser, int& err);
+	ULHandle Dev_PlayBack(int channelId, long start, long end, void* VideoTranCallBack, void* fun, void* pUser, int& err);
 	void Dev_StopPlayBack(ULHandle, int& err);
 
 	ULHandle Dev_Download(int channelId, long start, long end, DownloadData VideoTranCallBack, DownloadEnd fun, void* pUser, int& err);
@@ -57,10 +57,8 @@ public:
 	};
 	void Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argument, int& err);
 
-	void Dev_ListIPC(char* Buffer, uint32_t BufSize, int& err);
+	void Dev_ListIPC(char* Buffer, uint32_t &BufSize, int& err);
 
-	static void __stdcall VskX86NvrRtPreDataCb(uint32_t PlayHandle, uint8_t* pBuffer, uint32_t BufferSize, uint32_t DateType, time_t systime, uint32_t TimeSpace, void* pUser);
-	
 	static PTZCONTROL_COMMAND switchFromGB28181(PTZCMDType::GB28181PtzCmd cmd);
 	void setStatus(int statu);
 	const int getStatus();

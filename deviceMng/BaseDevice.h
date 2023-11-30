@@ -28,7 +28,7 @@ public:
     virtual ULHandle Dev_Preview(int channelId, int streamType, void* fun, void* pUser, int& err) = 0;
     virtual void Dev_StopPreview(ULHandle, int& err) = 0;
 
-    virtual ULHandle Dev_PlayBack(int channelId, long start, long end, PbCbData VideoTranCallBack, PbCbEnd fun, void* pUser, int& err) = 0;
+    virtual ULHandle Dev_PlayBack(int channelId, long start, long end, void* VideoTranCallBack, void* fun, void* pUser, int& err) = 0;
     virtual void Dev_StopPlayBack(ULHandle, int& err) = 0;
 
     virtual ULHandle Dev_Download(int channelId, long start, long end, DownloadData VideoTranCallBack, DownloadEnd fun, void* pUser, int& err) = 0;
@@ -36,7 +36,7 @@ public:
 
     virtual void Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argument, int& err) = 0;
 
-    virtual void Dev_ListIPC(char*Buffer, uint32_t BufSize, int& err) = 0;
+    virtual void Dev_ListIPC(char*Buffer, uint32_t &BufSize, int& err) = 0;
 };
 
 

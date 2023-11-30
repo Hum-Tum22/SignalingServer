@@ -9,10 +9,10 @@
 #include "resip/stack/Dispatcher.hxx"
 #include "resip/dum/DialogUsageManager.hxx"
 #include "resip/dum/TlsPeerAuthManager.hxx"
-#include "AuthenticatorFactory.hxx"
-#include "ProxyConfig.hxx"
+#include "repro/AuthenticatorFactory.hxx"
+#include "repro/ProxyConfig.hxx"
 
-namespace regist
+namespace repro
 {
 class RegistServerAuthenticatorFactory : public AuthenticatorFactory
 {

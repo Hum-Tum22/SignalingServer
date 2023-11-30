@@ -2,23 +2,24 @@
 #define REGIST_SERVER_H_
 
 
-#include "Registrar.hxx"
+#include "repro/Registrar.hxx"
 #include "resip/stack/Dispatcher.hxx"
-#include "UserAuthGrabber.hxx"
+#include "repro/UserAuthGrabber.hxx"
 #include "resip/dum/ServerRegistration.hxx"
 #include "resip/stack/DomainMatcher.hxx"
 
-#include "AuthenticatorFactory.hxx"
+#include "repro/AuthenticatorFactory.hxx"
 
-#include "Store.hxx"
-#include "AsyncProcessor.hxx"
+#include "repro/Store.hxx"
+#include "repro/AsyncProcessor.hxx"
 #include <list>
 #include <iostream>
+#include <regex>
 
 using namespace resip;
 using namespace std;
 
-namespace regist
+namespace repro
 {
 class ProxyConfig;
 class CertServer;
@@ -46,8 +47,8 @@ public:
 	void RequestStreamTask(std::string Id, std::string ip, int port);
 private:
 	SiloStore& mSiloStore;
-	regex_t* mDestFilterRegex;
-	regex_t* mMimeTypeFilterRegex;
+	std::regex* mDestFilterRegex;
+	std::regex* mMimeTypeFilterRegex;
 	unsigned long mExpirationTime;
 	bool mAddDateHeader;
 	unsigned long mMaxContentLength;

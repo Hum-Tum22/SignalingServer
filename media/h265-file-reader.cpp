@@ -2,10 +2,8 @@
 #include <assert.h>
 #include <string.h>
 #include <algorithm>
+#include "videoNalu.hpp"
 
-#define H265_NAL(v)	 ((v>> 1) & 0x3f)
-
-enum { NAL_IDR_W_RADL = 19, NAL_IDR_N_LP= 20, NAL_VPS = 32, NAL_SPS = 33, NAL_PPS = 34, NAL_SEI = 39};
 
 H265FileReader::H265FileReader(const char* file)
 :m_ptr(NULL), m_capacity(0)
@@ -75,28 +73,6 @@ int H265FileReader::Seek(int64_t &dts)
 	}
 	return 0;
 }
-
-static inline const uint8_t* search_start_code(const uint8_t* ptr, const uint8_t* end)
-{
-    for(const uint8_t *p = ptr; p + 3 < end; p++)
-    {
-        if(0x00 == p[0] && 0x00 == p[1] && (0x01 == p[2] || (0x00==p[2] && 0x01==p[3])))
-            return p;
-    }
-	return end;
-}
-
-static inline int h265_nal_type(const unsigned char* ptr)
-{
-    int i = 2;
-    assert(0x00 == ptr[0] && 0x00 == ptr[1]);
-    if(0x00 == ptr[2])
-        ++i;
-    assert(0x01 == ptr[i]);
-    return H265_NAL(ptr[i+1]);
-}
-
-
 int H265FileReader::Init()
 {
     size_t count = 0;

@@ -7,10 +7,9 @@
 
 //extern "C" uint32_t rtp_ssrc(void);
 
-static FILE* psfp = NULL;
-static FILE* hfp = NULL;
+
 PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
-	:m_reader(file), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL),  m_pos(0), m_seq(0)
+	:m_reader(file), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL),  m_pos(0), m_seq(0), mGap(0)
 {
 	m_speed = 1.0;
 	m_status = 0;
@@ -57,18 +56,6 @@ PSFileSource::~PSFileSource()
 	if (m_pspacker)
 		rtp_payload_encode_destroy(m_pspacker);
 	ps_muxer_destroy(m_ps);
-#ifdef _DEBUG
-	if (hfp)
-	{
-		fclose(hfp);
-		hfp = NULL;
-	}
-	if (psfp)
-	{
-		fclose(psfp);
-		psfp = NULL;
-	}
-#endif
 	printf("--- delete PSFileSource\n");
 }
 void PSFileSource::run()
@@ -131,7 +118,7 @@ int PSFileSource::Play()
 
 	//time64_t clock = time64_now();
 	int64_t clock = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	if (0 == m_rtp_clock || m_rtp_clock + 40 < (clock - m_ps_clock))
+	if (0 == m_rtp_clock || m_rtp_clock + mGap < (clock - m_ps_clock))
 	{
 		vframe_t frame;
 		if (media && 0 == media->GetNextFrame(readhandle, frame))
@@ -148,19 +135,9 @@ int PSFileSource::Play()
 			}
 			if (frame.idr)
 			{
-				//printf("--------------- idr frame time:%lld\n", time(0));
+				mGap = frame.gap;
+				printf("--------------- idr frame time:%lld\n", time(0));
 			}
-			//static FILE* psfp = NULL;
-#ifdef _DEBUG
-			if (!hfp)
-			{
-				hfp = fopen("psh264.h264", "wb+");
-			}
-			if (hfp)
-			{
-				fwrite(frame.nalu, frame.bytes, 1, hfp);
-			}
-#endif
 			ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
 			m_rtp_clock += 40;
 
@@ -288,17 +265,6 @@ void PSFileSource::Free(void* /*param*/, void* packet)
 int PSFileSource::Packet(void* param, int /*avtype*/, void* pes, size_t bytes)
 {
 	PSFileSource* self = (PSFileSource*)param;
-	//uint64_t clock = time64_now();
-#ifdef _DEBUG
-	if (!psfp)
-	{
-		psfp = fopen("local.ps", "wb");
-	}
-	if (psfp)
-	{
-		fwrite((uint8_t*)pes, bytes, 1, psfp);
-	}
-#endif
 	int64_t clock = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	return rtp_payload_encode_input(self->m_pspacker, pes, (int)bytes, (uint32_t)(clock * 90 /*kHz*/));
 }

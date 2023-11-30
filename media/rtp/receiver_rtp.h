@@ -4,9 +4,10 @@
 #include "lib/rtp/rtp-demuxer.h"
 #include "lib/mpeg/mpeg-ps.h"
 
+#ifdef _WIN32
 #pragma comment(lib,"librtp")
 #pragma comment(lib,"libmpeg")
-
+#endif
 using asio::ip::udp;
 
 class rtp_receiver
