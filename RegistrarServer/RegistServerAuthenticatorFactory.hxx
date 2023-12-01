@@ -14,89 +14,54 @@
 
 namespace repro
 {
-class RegistServerAuthenticatorFactory : public AuthenticatorFactory
-{
-public:
-	RegistServerAuthenticatorFactory(ProxyConfig& proxyConfig, resip::SipStack& sipStack, resip::DialogUsageManager* dum);
-	virtual ~RegistServerAuthenticatorFactory();
 
-	virtual void setDum(resip::DialogUsageManager* dum) { mDum = dum; };
+	class RegistAuthenticatorFactory : public AuthenticatorFactory
+	{
+	public:
+		RegistAuthenticatorFactory(ProxyConfig& proxyConfig, resip::SipStack& sipStack, resip::DialogUsageManager* dum);
+		virtual ~RegistAuthenticatorFactory();
 
-	virtual bool certificateAuthEnabled() { return mEnableCertAuth; };
+		virtual void setDum(resip::DialogUsageManager* dum) { mDum = dum; };
 
-	virtual std::shared_ptr<resip::DumFeature> getCertificateAuthManager();
-	virtual std::unique_ptr<Processor> getCertificateAuthenticator();
+		virtual bool certificateAuthEnabled() { return mEnableCertAuth; };
 
-	virtual bool digestAuthEnabled() { return mEnableDigestAuth; };
+		virtual std::shared_ptr<resip::DumFeature> getCertificateAuthManager();
+		virtual std::unique_ptr<Processor> getCertificateAuthenticator();
 
-	virtual std::shared_ptr<resip::ServerAuthManager> getServerAuthManager();
-	virtual std::unique_ptr<Processor> getDigestAuthenticator();
+		virtual bool digestAuthEnabled() { return mEnableDigestAuth; };
 
-	virtual resip::Dispatcher* getDispatcher();
+		virtual std::shared_ptr<resip::ServerAuthManager> getServerAuthManager();
+		virtual std::unique_ptr<Processor> getDigestAuthenticator();
 
-private:
-	void init();
-	void loadCommonNameMappings();
+		virtual resip::Dispatcher* getDispatcher();
 
-	ProxyConfig& mProxyConfig;
-	resip::SipStack& mSipStack;
-	resip::DialogUsageManager* mDum;
+	private:
+		void init();
+		void loadCommonNameMappings();
 
-	bool mEnableCertAuth;
-	bool mEnableDigestAuth;
-	bool mEnableRADIUS;
+		ProxyConfig& mProxyConfig;
+		resip::SipStack& mSipStack;
+		resip::DialogUsageManager* mDum;
 
-	resip::Data mRADIUSConfiguration;
+		bool mEnableCertAuth;
+		bool mEnableDigestAuth;
+		bool mEnableRADIUS;
 
-	resip::Data mStaticRealm;
+		resip::Data mRADIUSConfiguration;
 
-	// Maintains existing behavior for non-TLS cert auth users
-	bool mDigestChallengeThirdParties;
+		resip::Data mStaticRealm;
 
-	resip::CommonNameMappings mCommonNameMappings;
+		// Maintains existing behavior for non-TLS cert auth users
+		bool mDigestChallengeThirdParties;
 
-	std::unique_ptr<resip::Dispatcher> mAuthRequestDispatcher;
+		resip::CommonNameMappings mCommonNameMappings;
 
-	std::shared_ptr<resip::DumFeature> mCertificateAuthManager;
-	std::shared_ptr<resip::ServerAuthManager> mServerAuthManager;
-};
+		std::unique_ptr<resip::Dispatcher> mAuthRequestDispatcher;
+
+		std::shared_ptr<resip::DumFeature> mCertificateAuthManager;
+		std::shared_ptr<resip::ServerAuthManager> mServerAuthManager;
+	};
+
 }
+
 #endif
-
-/* ====================================================================
- * BSD License
- *
- * Copyright (c) 2013 Daniel Pocock http://danielpocock.com All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. Neither the name of the author(s) nor the names of any contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR(S) OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * ====================================================================
- *
- */
-

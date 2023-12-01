@@ -136,7 +136,7 @@ int PSFileSource::Play()
 			if (frame.idr)
 			{
 				mGap = frame.gap;
-				printf("--------------- idr frame time:%lld\n", time(0));
+				printf("--------------- idr frame time:%ld, gap:%d\n", time(0), mGap);
 			}
 			ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
 			m_rtp_clock += 40;

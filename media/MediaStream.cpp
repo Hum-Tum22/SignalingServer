@@ -25,9 +25,9 @@ int FrameMemPool::Init264()
 			frame.nalu = nalu;
 			frame.bytes = (long)bytes;
 			frame.frameType = 264;
-			frame.time = 40 * frameIndex++;
+			frame.time = fgap * frameIndex++;
 			frame.idr = 5 == nal_unit_type; // IDR-frame
-			frame.gap = gap;
+			frame.gap = fgap;
 			//m_videos.push_back(frame);
 			push(frame);
 			if (frame.idr)
@@ -71,7 +71,7 @@ int FrameMemPool::Init264()
 	}
 	readPtr = NULL;
 	readSize = 0;
-	m_duration = 40 * frameIndex;
+	m_duration = fgap * frameIndex;
 	return 0;
 }
 
@@ -126,8 +126,8 @@ int FrameMemPool::Init265()
 			frame.nalu = nalu;
 			frame.bytes = bytes;
 			frame.frameType = 265;
-			frame.time = 40 * count++;
-			frame.gap = gap;
+			frame.time = fgap * count++;
+			frame.gap = fgap;
 			frame.idr = (NAL_IDR_N_LP == nal_unit_type || NAL_IDR_W_RADL == nal_unit_type); // IDR-frame
 			push(frame);
 			nalu = pn;
@@ -136,11 +136,11 @@ int FrameMemPool::Init265()
 		p = pn;
 	}
 
-	m_duration = 40 * count;
+	m_duration = fgap * count;
 	return 0;
 }
-FrameMemPool::FrameMemPool() :unLockQueue(), MemPool(1024*1024*5), frameType(GB_CODEC_UNKNOWN), m_duration(0), gap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
-	, frameIndex(0), mFrame(512 * 1024)
+FrameMemPool::FrameMemPool() : MemPool(1024*1024*5), unLockQueue(), frameType(GB_CODEC_UNKNOWN), m_duration(0), fgap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
+	, frameIndex(0)//, mFrame(512 * 1024)
 {
 }
 FrameMemPool::~FrameMemPool()
@@ -162,161 +162,24 @@ FrameMemPool::~FrameMemPool()
 int FrameMemPool::Init()
 {
 	int ret = 0;
-	if (frameType == 264)
+	if (frameType == GB_CODEC_H264)
 	{
 		ret = Init264();
 	}
-	else
+	else if(frameType == GB_CODEC_H265)
 	{
 		ret = Init265();
 	}
 	return ret;
 }
-int FrameMemPool::Input(STREAM_CODEC type, uint8_t* data, size_t size, int gap)
+int FrameMemPool::InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int gap)
 {
-	if (frameType < 0 && type == 0)
+	if (frameType < 0 || type != frameType)
 	{
 		frameType = type;
 	}
-	if (frameType == GB_CODEC_H264)
-	{
-		int nalutype = h264_nal_type(data);
-		if (nalutype == NAL_SPS || nalutype == NAL_PPS)
-		{
-			const uint8_t* end = data + size;
-			const uint8_t* nalu = search_start_code(data + 3, end);
-			if (nalu == end)
-			{
-				if (mFrame.tailSize() > (int)size)
-				{
-					mFrame.writeBuf((char*)data, size);
-				}
-				else if(mFrame.freeSize() > (int)size)
-				{
-					mFrame.DataForward();
-					mFrame.writeBuf((char*)data, size);
-				}
-				else
-				{
-					int datalen = mFrame.dataSize();
-					mFrame.resetBuf(datalen + size);
-					if (mFrame.tailSize() > (int)size)
-					{
-						mFrame.writeBuf((char*)data, size);
-					}
-					else
-					{
-						Input(type, data, size, gap);
-					}
-				}
-			}
-		}
-		else
-		{
-			if (mFrame.dataSize() > 0)
-			{
-				if (mFrame.tailSize() > (int)size)
-				{
-					mFrame.writeBuf((char*)data, size);
-				}
-				else if (mFrame.freeSize() > (int)size)
-				{
-					mFrame.DataForward();
-					mFrame.writeBuf((char*)data, size);
-				}
-				else
-				{
-					int datalen = mFrame.dataSize();
-					mFrame.resetBuf(datalen + size);
-					if (mFrame.tailSize() > (int)size)
-					{
-						mFrame.writeBuf((char*)data, size);
-					}
-					else
-					{
-						Input(type, data, size, gap);
-					}
-				}
-				int nal_unit_type = h264_nal_type(data);
-				if (nal_unit_type != 5)
-				{
-					printf("\n");
-				}
-				//printf("--- input idr time:%lld \n", time(0));
-				int ret = InputFrame((uint8_t*)mFrame.Buf(), mFrame.dataSize());
-				mFrame.clear();
-				return ret;
-			}
-			return InputFrame(data, size);
-		}
-	}
-	else if (frameType == GB_CODEC_H265)
-	{
-		int nalutype = h265_nal_type(data);
-		//NAL_VPS = 32, NAL_SPS_5 = 33, NAL_PPS_5
-		if (nalutype == NAL_SPS_5 || nalutype == NAL_PPS_5 || nalutype == NAL_VPS)
-		{
-			const uint8_t* end = data + size;
-			const uint8_t* nalu = search_start_code(data + 3, end);
-			if (nalu == end)
-			{
-				if (mFrame.tailSize() > (int)size)
-				{
-					mFrame.writeBuf((char*)data, size);
-				}
-				else if (mFrame.freeSize() > (int)size)
-				{
-					mFrame.DataForward();
-					mFrame.writeBuf((char*)data, size);
-				}
-				else
-				{
-					int datalen = mFrame.dataSize();
-					mFrame.resetBuf(datalen + size);
-					mFrame.writeBuf((char*)data, size);
-				}
-			}
-		}
-		else
-		{
-			if (mFrame.dataSize() > 0)
-			{
-				if (mFrame.tailSize() > (int)size)
-				{
-					mFrame.writeBuf((char*)data, size);
-				}
-				else if (mFrame.freeSize() > (int)size)
-				{
-					mFrame.DataForward();
-					mFrame.writeBuf((char*)data, size);
-				}
-				else
-				{
-					int datalen = mFrame.dataSize();
-					mFrame.resetBuf(datalen + size);
-					mFrame.writeBuf((char*)data, size);
-				}
-				int ret = InputFrame((uint8_t*)mFrame.Buf(), mFrame.dataSize());
-				printf("--- input idr time:%lld\n", time(0));
-				mFrame.clear();
-				return ret;
-			}
-			return InputFrame(data, size);;
-		}
-	}
-	return 0;
-}
-int FrameMemPool::InputFrame(uint8_t* frame, size_t size)
-{
-	if (frameType == GB_CODEC_H264)
-	{
-		return wirteData(frame, size);
-	}
-	else if (frameType == GB_CODEC_H265)
-	{
-		return wirteData(frame, size);
-	}
-	return 0;
+	fgap = gap;
+	return wirteData(data, size);
 }
 int FrameMemPool::getReader()
 {
@@ -359,7 +222,7 @@ void MediaStream::setMediaSource(IMediaSource* s)
 }
 void MediaStream::OnMediaStream(STREAM_CODEC code, uint8_t* data, size_t size, int gap)
 {
-	framePool.Input(code, data, size, gap);
+	framePool.InputFrame(code, data, size, gap);
 }
 int MediaStream::GetNextFrame(uint32_t handle, vframe_t& frame)
 {

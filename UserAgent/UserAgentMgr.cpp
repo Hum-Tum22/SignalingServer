@@ -675,13 +675,13 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                 Nvr->Dev_ListIPC(Buffer, msgSize, err);
                 if (err == 0)
                 {
-                    rapidjson::Document document;
+                    rapidjson_sip::Document document;
                     document.Parse(Buffer);
                     if (!document.HasParseError())
                     {
                         if (document.HasMember("ipc_list") && document["ipc_list"].IsArray())
                         {
-                            rapidjson::Value& body = document["ipc_list"];
+                            rapidjson_sip::Value& body = document["ipc_list"];
                             for (uint32_t i = 0; i < body.Size(); i++)
                             {
                                 std::string devNum = json_check_string(body[i], "device_number");

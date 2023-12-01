@@ -13,7 +13,7 @@ public:
         ready, runIng, end
     };
 
-    CatalogDateQuery():mStatus(ready),mSn(0),mTotal(0), mCurCount(0)
+    CatalogDateQuery():mSn(0),mTotal(0), mCurCount(0), mStatus(ready)
     {
     }
 

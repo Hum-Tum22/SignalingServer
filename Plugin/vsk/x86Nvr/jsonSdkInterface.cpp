@@ -5,7 +5,6 @@
 #include "../../../lib/rapidjson/writer.h"
 #include "include/base64.h"
 #include <errno.h>
-#include <dlfcn.h>
 #include <exception>
 #include <iostream>
 //#include "include/base64.cpp"
@@ -22,16 +21,18 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 	LoginFun = NULL;
 	LogOutFun = NULL;
 	PreviewFun = NULL;
+	VskPreviewFun = NULL;
 	StopPreviewFun = NULL;
 	PlayBackFun = NULL;
 	StopPlayBackFun = NULL;
 	DownloadFun = NULL;
 	StopDownloadFun = NULL;
 	PtzCtrlFun = NULL;
+	ListIPCFun = NULL;
 #ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
 #else
-	m_hDll = dlopen("libsdkJson.so", RTLD_LAZY);
+	m_hDll = dlopen("libsdkJson.so", RTLD_NOW);
 	if (!m_hDll)
 	{
 		printf("sdkJson.so load err:%s\n", dlerror());
@@ -121,7 +122,7 @@ void JsonSdkInterface::SdkClear(int& err)
 	else
 		err = -1;
 }
-DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const char* pswd, int& err)
+JSONLONG JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const char* pswd, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -133,8 +134,8 @@ DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const 
 		if (LoginFun)
 		{
 			//ReqClientLogin
-			rapidjson::StringBuffer buffer;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
 			writer.StartObject();
 
 			writer.Key("user_info");
@@ -154,7 +155,7 @@ DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const 
 			std::string strJsonReq = buffer.GetString();
 			try
 			{
-				DWORD nLoginID;
+				JSONLONG nLoginID;
 				int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
 				if (ret == 0)
 				{
@@ -184,7 +185,7 @@ DWORD JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const 
 	}
 	return 0;
 }
-void JsonSdkInterface::LogOut(DWORD loginId, int& err)
+void JsonSdkInterface::LogOut(JSONLONG loginId, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -210,7 +211,7 @@ void JsonSdkInterface::LogOut(DWORD loginId, int& err)
 		err = -1;
 	return ;
 }
-DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, LPVOID pUser, int& err)
+JSONLONG JsonSdkInterface::Preview(JSONLONG UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, void* pUser, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -221,8 +222,8 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 		}
 		if (UserID && PreviewFun)
 		{
-			rapidjson::StringBuffer buffer;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
 			writer.StartObject();
 
 			writer.Key("chid");
@@ -237,7 +238,7 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 			writer.EndObject();
 
 			std::string strJsonReq = buffer.GetString();
-			DWORD hHandle = 0;
+			JSONLONG hHandle = 0;
 			int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
@@ -253,7 +254,7 @@ DWORD JsonSdkInterface::Preview(DWORD UserID, int channel, int streamId, DataVid
 		err = -1;
 	return 0;
 }
-DWORD JsonSdkInterface::VskPreview(DWORD UserID, int channel, int streamId, DataPlayCallBack VideoTranCallBack, LPVOID pUser, int& err)
+JSONLONG JsonSdkInterface::VskPreview(JSONLONG UserID, int channel, int streamId, DataPlayCallBack VideoTranCallBack, void* pUser, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -264,8 +265,8 @@ DWORD JsonSdkInterface::VskPreview(DWORD UserID, int channel, int streamId, Data
 		}
 		if (UserID && VskPreviewFun)
 		{
-			rapidjson::StringBuffer buffer;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
 			writer.StartObject();
 
 			writer.Key("chid");
@@ -280,7 +281,7 @@ DWORD JsonSdkInterface::VskPreview(DWORD UserID, int channel, int streamId, Data
 			writer.EndObject();
 
 			std::string strJsonReq = buffer.GetString();
-			DWORD hHandle = 0;
+			JSONLONG hHandle = 0;
 			int ret = VskPreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
@@ -296,7 +297,7 @@ DWORD JsonSdkInterface::VskPreview(DWORD UserID, int channel, int streamId, Data
 		err = -1;
 	return 0;
 }
-void JsonSdkInterface::StopPreview(DWORD UserID, int& err)
+void JsonSdkInterface::StopPreview(JSONLONG UserID, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -321,7 +322,7 @@ void JsonSdkInterface::StopPreview(DWORD UserID, int& err)
 	err = -1;
 	return ;
 }
-DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, LPVOID pUser, int& err)
+JSONLONG JsonSdkInterface::PlayBack(JSONLONG UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, void* pUser, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -333,8 +334,8 @@ DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end
 		if (UserID && PlayBackFun)
 		{
 			//ReqStartPlaybackStreamTime
-			rapidjson::StringBuffer buffer;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
 			writer.StartObject();
 
 			writer.Key("chid");
@@ -349,7 +350,7 @@ DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end
 			writer.EndObject();
 
 			std::string strJsonReq = buffer.GetString();
-			DWORD hHandle = 0;
+			JSONLONG hHandle = 0;
 			uint64_t  nTotalFileSize = 0;
 			int ret = PlayBackFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, 0, this, &nTotalFileSize, &hHandle);
 			if (ret == 0)
@@ -365,7 +366,7 @@ DWORD JsonSdkInterface::PlayBack(DWORD UserID, int channel, long start, long end
 	err = -1;
 	return 0;
 }
-void JsonSdkInterface::StopPlayBack(DWORD UserID, int& err)
+void JsonSdkInterface::StopPlayBack(JSONLONG UserID, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -391,7 +392,7 @@ void JsonSdkInterface::StopPlayBack(DWORD UserID, int& err)
 	return ;
 }
 
-DWORD JsonSdkInterface::Download(DWORD UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, LPVOID pUser, int& err)
+JSONLONG JsonSdkInterface::Download(JSONLONG UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, void* pUser, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -403,8 +404,8 @@ DWORD JsonSdkInterface::Download(DWORD UserID, int channel, long start, long end
 		if (UserID && DownloadFun)
 		{
 			//ReqStartPlaybackStreamTime
-			rapidjson::StringBuffer buffer;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
 			writer.StartObject();
 
 			writer.Key("chid");
@@ -419,7 +420,7 @@ DWORD JsonSdkInterface::Download(DWORD UserID, int channel, long start, long end
 			writer.EndObject();
 
 			std::string strJsonReq = buffer.GetString();
-			DWORD hHandle = 0;
+			JSONLONG hHandle = 0;
 			uint64_t  nTotalFileSize = 0;
 			int ret = DownloadFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, NULL, pUser, 0, &nTotalFileSize, &hHandle);
 			if (ret == 0)
@@ -435,7 +436,7 @@ DWORD JsonSdkInterface::Download(DWORD UserID, int channel, long start, long end
 	err = -1;
 	return 0;
 }
-void JsonSdkInterface::StopDownload(DWORD UserID, int& err)
+void JsonSdkInterface::StopDownload(JSONLONG UserID, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -460,7 +461,7 @@ void JsonSdkInterface::StopDownload(DWORD UserID, int& err)
 	err = -1;
 	return;
 }
-void JsonSdkInterface::PTZCtrl(DWORD UserID, uint32_t Channel, uint32_t PTZCommand, uint32_t Argument, int& err)
+void JsonSdkInterface::PTZCtrl(JSONLONG UserID, uint32_t Channel, uint32_t PTZCommand, uint32_t Argument, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -485,7 +486,7 @@ void JsonSdkInterface::PTZCtrl(DWORD UserID, uint32_t Channel, uint32_t PTZComma
 	err = -1;
 	return;
 }
-void JsonSdkInterface::ListIPC(DWORD UserID, char* pIPCServerList, UINT* pIPCServerListSize, int& err)
+void JsonSdkInterface::ListIPC(JSONLONG UserID, char* pIPCServerList, uint32_t* pIPCServerListSize, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)

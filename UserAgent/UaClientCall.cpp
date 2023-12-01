@@ -1751,7 +1751,7 @@ bool PushRtpStream::TaskRun()
     bool isStream = false;
     std::string app;
     std::string streamId;
-    rapidjson::Document document;
+    rapidjson_sip::Document document;
     //sipserver::SipServer* pSvr = GetServer();
     //for (int i = 0; i < 2 * 5; i++)
     //{

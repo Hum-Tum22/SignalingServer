@@ -219,7 +219,7 @@ void CRegistServer::createAuthenticatorFactory()
 {
     // TODO: let a plugin supply an instance of AuthenticatorFactory
     // instead of our builtin ReproAuthenticatorFactory
-    mAuthFactory = new RegistServerAuthenticatorFactory(*SvConfig, m_SipStack, NULL);
+    mAuthFactory = new RegistAuthenticatorFactory(*SvConfig, m_SipStack, NULL);
 }
 bool CRegistServer::createDatastore()
 {

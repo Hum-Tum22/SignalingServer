@@ -4,7 +4,7 @@ PROJECT(GB28181App)
 
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-add_definitions(-std=c++11 -DQINGDONG_CCTC)
+add_definitions(-std=c++11 -DQINGDONG_CCTC -DUSE_IPV6)
 
 IF(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
@@ -21,12 +21,10 @@ MESSAGE("CMAKE_C_FLAGS:" ${CMAKE_C_FLAGS})
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/SipServer)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/stateAgents)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/resip/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/libcurl/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/rapidjson)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/device)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/SqlDbManager)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/tools)
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/asio/include/)
@@ -55,9 +53,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../resip/contrib/MySQLConnectorC/in
 endif()
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/ SRC_LIST)
-AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/SipServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/device/ SRC_LIST)
-AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/SqlDbManager/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/tools/ SRC_LIST)
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/deviceMng/ SRC_LIST)
@@ -69,17 +65,6 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/x86Nvr/include SRC_L
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/RegistrarServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/UserAgent/ SRC_LIST)
 
-if (USE_SSL)
-AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/stateAgents/ SRC_LIST)
-else()
-FILE(GLOB_RECURSE SRC_CPP_SOURCES ${PROJECT_SOURCE_DIR}/stateAgents/PresenceSubscriptionHandler.cxx)
-SET(SRC_LIST ${SRC_LIST} ${SRC_CPP_SOURCES})
-endif()
-#AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/stateAgents/PresenceSubscriptionHandler.cxx SRC_LIST)
-#AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/stateAgents/ SRC_LIST)
-
-
-
 
 link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
@@ -88,12 +73,14 @@ link_directories(${PROJECT_SOURCE_DIR}/lib/media)
 
 SET(LIBS
 	-Wl,--start-group
-	libdum.a
-	libresip.a
-	libresipares.a
+	librepro.a 
+	libdum.a 
+	libresip.a 
 	librutil.a
-	librepro.a
-	libdb.a
+	libresipares.a
+	libdb.a 
+	libdb_cxx.a
+
 	libcurl.a
 
 	librtp.a
@@ -115,11 +102,10 @@ SET(LIBS ${LIBS}
 )
 endif()
 
-
 #link_libraries(z)
 #link_libraries(ssl)
 link_libraries(pthread)
-#link_libraries(rt)
+link_libraries(rt)
 #link_libraries(m)
 link_libraries(dl)
 link_libraries(stdc++)

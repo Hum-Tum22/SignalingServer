@@ -30,8 +30,8 @@ struct vframe_t
 typedef enum
 {
 	GB_CODEC_UNKNOWN = -1,
+	GB_CODEC_H264,
 	GB_CODEC_H265,
-	GB_CODEC_H264
 }STREAM_CODEC;
 class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
 {
@@ -40,7 +40,7 @@ class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
 	int Init265();
 	STREAM_CODEC frameType;
 	int m_duration;
-	int gap;
+	int fgap;
 
 	uint8_t *sps;
 	uint8_t *pps;
@@ -50,14 +50,12 @@ class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
 
 	size_t frameIndex;
 
-	LineBuffer mFrame;
 	int Init();
 public:
 	FrameMemPool();
 	~FrameMemPool();
 
-	int Input(STREAM_CODEC type, uint8_t* data, size_t size, int gap);
-	int InputFrame(uint8_t* data, size_t size);
+	int InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int gap);
 	int getReader();
 };
 using SHANDLE = unsigned long;

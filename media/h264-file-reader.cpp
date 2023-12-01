@@ -7,7 +7,7 @@
 const unsigned int MAX_SIZE = 128;
 
 H264FileReader::H264FileReader(const char* file)
-:m_ptr(NULL), bm_ptr(NULL), m_capacity(0), read(0), write(0), oneFrame(NULL), oneFrameSize(0)
+:read(0), write(0), m_duration(0), m_ptr(NULL), bm_ptr(NULL), m_capacity(0), rPos(0), wPos(0), frPos(0), fwPos(0), oneFrame(NULL), oneFrameSize(0)
 {
 	FILE* fp = fopen(file, "rb");
     if(fp)

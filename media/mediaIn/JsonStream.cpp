@@ -163,7 +163,6 @@ void CALLBACK JsonStream::VskX86NvrRtPreDataCb(unsigned int PlayHandle, uint8_t*
 	JsonStream* pThis = (JsonStream*)pUser;
 	if (pThis)
 	{
-		//pThis->OnMediaStream(DateType, pBuffer, (size_t)BufferSize);
 		pThis->OnVskJsonStream(pBuffer, (size_t)BufferSize);
 	}
 }
@@ -203,6 +202,60 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 		}
 
 		unsigned int heardlen = FrameHeardLen(xDataHeard.codect, xDataHeard.framet);
+
+		if (xDataHeard.codect == PT_H264)
+		{
+			if (xDataHeard.framet == H264E_NALU_SPS || xDataHeard.framet == H264E_NALU_PPS)
+			{
+				mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+			}
+			else
+			{
+				if (xDataHeard.framet == H264E_NALU_ISLICE)
+				{
+					printf("json idr:%ld\n", time(0));
+					if (mFrame.freeSize() < xDataHeard.framelen)
+					{
+						mFrame.resetBuf(xDataHeard.framelen * 2);
+					}
+					mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					mFrame.clear();
+				}
+				else
+				{
+					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+				}
+			}
+		}
+		else if (xDataHeard.codect == PT_H265)
+		{
+			if (xDataHeard.framet == H265_NALU_VPS || xDataHeard.framet == H265_NALU_SPS || xDataHeard.framet == H265_NALU_PPS)
+			{
+				mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+			}
+			else
+			{
+				if (xDataHeard.framet == H265_NALU_ISLICE || xDataHeard.framet == H265_NALU_ISLICE_MAX)
+				{
+					if (mFrame.freeSize() < xDataHeard.framelen)
+					{
+						mFrame.resetBuf(xDataHeard.framelen * 2);
+					}
+					mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					mFrame.clear();
+				}
+				else
+				{
+					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+				}
+			}
+		}
+		else
+		{
+
+		}
 		/*xStream.pBuf = pBuffer + skipsize + heardlen;
 		xStream.nFrameLen = xDataHeard.framelen;
 
@@ -210,7 +263,7 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 		xStream.pUser = pLinkData->mpUser;
 		xStream.nPlayHandle = PlayHandle;*/
 
-		OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+		//OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
 	}
 	else
 	{

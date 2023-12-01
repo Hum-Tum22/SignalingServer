@@ -14,13 +14,12 @@
 class MemPool
 {
 public:
-	MemPool(/*size_t count = 128,*/ size_t size = 0) :/*mQueue(count),*/ buf(NULL), bm_ptr(NULL), curBuf(NULL)
-		,bufSize(size), readPtr(NULL),readSize(0)
+	MemPool(size_t size = 0) : buf(NULL), bm_ptr(NULL), curBuf(NULL)
+		,bufSize(size), readPtr(NULL), readSize(0)
 	{
 		//6M Kbps  =>11M 缓存15s
 		if (bufSize == 0)
 		{
-			//bufsize = 11796480;
 			bufSize = 1024 * 1024 * 1;
 		}
 		buf = new uint8_t[bufSize];
@@ -75,39 +74,8 @@ public:
 		}
 		return 0;
 	};
-	/*int GetNextFrame(T& tt)
-	{
-		T* frame = mQueue.front();
-		if (frame)
-		{
-			tt = *frame;
-			mQueue.pop();
-			return 0;
-		}
-		return -1;
-	}
-
-	T* front()
-	{
-		return mQueue.front();
-	}
-
-	void pop()
-	{
-		mQueue.pop();
-	}
-
-	bool push(T frame)
-	{
-		return mQueue.push(frame);
-	}*/
-//private:
+	
 protected:
-	//unLockQueue<T> mQueue;
-	/*std::vector<T> mVector;
-	std::queue<T> cacheQueue;
-	size_t MAX_SIZE, write, read;*/
-
 	uint8_t* buf, * bm_ptr, *curBuf;
 	size_t bufSize;
 	size_t rPos, wPos, frPos, fwPos;

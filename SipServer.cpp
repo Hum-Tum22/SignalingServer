@@ -103,6 +103,7 @@
 #ifdef USE_MYSQL
 #include "MySqlDb.hxx"
 #endif
+
 #include "myjsondef.h"
 #include "writer.h"
 #include "stringbuffer.h"
@@ -2049,17 +2050,17 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
     ////"http://192.168.1.223:20010/device/gbInfo"
     std::string dirstr = GetRequest(httpUrl.c_str());
 
-    rapidjson::Document document;
+    rapidjson_sip::Document document;
     document.Parse((char*)dirstr.c_str());
     if (!document.HasParseError())
     {
         if (document.HasMember("data") && document["data"].IsObject())
         {
-            rapidjson::Value& body = document["data"];
+            rapidjson_sip::Value& body = document["data"];
             int count = json_check_int32(body, "Count");
             if (body.HasMember("Data") && body["Data"].IsArray())
             {
-                rapidjson::Value& msbody = body["Data"];
+                rapidjson_sip::Value& msbody = body["Data"];
                 for (size_t i = 0; i < msbody.Size(); i++)
                 {
                     VirtualOrganization voTop;
@@ -2081,7 +2082,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                     DeviceMng::Instance().addDevice(dev);
                     if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
                     {
-                        rapidjson::Value& upbody = msbody[i]["Upward"];
+                        rapidjson_sip::Value& upbody = msbody[i]["Upward"];
                         VirtualOrganization subVo;
                         subVo.Name = json_check_string(upbody, "Title");
                         subVo.DeviceID = json_check_string(upbody, "GBId");
@@ -2091,7 +2092,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         
                         if (upbody.HasMember("Data") && upbody["Data"].IsArray())
                         {
-                            rapidjson::Value& ipcbody = upbody["Data"];
+                            rapidjson_sip::Value& ipcbody = upbody["Data"];
                             for (size_t j = 0; j < ipcbody.Size(); j++)
                             {
                                 std::string name = json_check_string(ipcbody[j], "ipc");
@@ -2110,7 +2111,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                     }
                     if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
                     {
-                        rapidjson::Value& downbody = msbody[i]["Downward"];
+                        rapidjson_sip::Value& downbody = msbody[i]["Downward"];
                         VirtualOrganization subVo;
                         subVo.Name = json_check_string(downbody, "Title");
                         subVo.DeviceID = json_check_string(downbody, "GBId");
@@ -2119,7 +2120,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         DeviceMng::Instance().addVirtualOrganization(subVo);
                         if (downbody.HasMember("Data") && downbody["Data"].IsArray())
                         {
-                            rapidjson::Value& ipcbody = downbody["Data"];
+                            rapidjson_sip::Value& ipcbody = downbody["Data"];
                             for (size_t j = 0; j < ipcbody.Size(); j++)
                             {
                                 std::string childName = json_check_string(ipcbody[j], "ipc");
@@ -2138,7 +2139,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                     }
                     if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
                     {
-                        rapidjson::Value& kkbody = msbody[i]["KKIpc"];
+                        rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
                         VirtualOrganization subVo;
                         subVo.Name = json_check_string(kkbody, "Title");
                         subVo.DeviceID = json_check_string(kkbody, "GBId");
@@ -2147,7 +2148,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
                         DeviceMng::Instance().addVirtualOrganization(subVo);
                         if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
                         {
-                            rapidjson::Value& ipcbody = kkbody["Data"];
+                            rapidjson_sip::Value& ipcbody = kkbody["Data"];
                             for (size_t j = 0; j < ipcbody.Size(); j++)
                             {
                                 std::string childName = json_check_string(ipcbody[j], "ipc");
@@ -2175,7 +2176,7 @@ int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& up
             }*/
             if (body.HasMember("CCTV") && body["CCTV"].IsObject())
             {
-                rapidjson::Value& cctvBody = body["CCTV"];
+                rapidjson_sip::Value& cctvBody = body["CCTV"];
                 upID = json_check_string(cctvBody, "third.gb28181.server.id");
                 upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
                 std::string port  = json_check_string(cctvBody, "third.gb28181.server.port");

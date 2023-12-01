@@ -46,7 +46,7 @@ CDateTime::CDateTime(std::string str, std::string format) :mYear(0)
 {
 	if (str.size() > 0)
 	{
-		int d = sscanf(str.c_str(), format.c_str(), &mYear, &mMonth, &mDay, &mHour, &mMin, &mSec, &mMillisec);
+		sscanf(str.c_str(), format.c_str(), &mYear, &mMonth, &mDay, &mHour, &mMin, &mSec, &mMillisec);
 		//strptime()
 	}
 }

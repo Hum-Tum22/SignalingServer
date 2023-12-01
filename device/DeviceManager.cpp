@@ -81,7 +81,7 @@ void IDeviceMngrSvr::online(Device *device)
             task = std::make_shared<GBDeviceOnlineTask>(deviceInfo->getDeviceId(), target);
             //GBDeviceOnlineTask* ttask = new GBDeviceOnlineTask(pGBDev->getDeviceId(), target);
             //bool taskResult = thdpool.submitTask(task);
-            SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
+            //SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
         }
     }
     std::cout << "task :" << task << std::endl;
@@ -161,7 +161,7 @@ list<std::shared_ptr<Device>> IDeviceMngrSvr::getAllOffLineDevice()
 void IDeviceMngrSvr::updateDevice(Device* device)
 {
     SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
-    OnvifDeviceInfo* pOnvifDev = dynamic_cast<OnvifDeviceInfo*>(device);
+    //OnvifDeviceInfo* pOnvifDev = dynamic_cast<OnvifDeviceInfo*>(device);
     if (pGBDev)
     {   
         mGBDeviceMapper.update(pGBDev);

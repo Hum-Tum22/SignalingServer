@@ -36,23 +36,23 @@ string GetRequest(const string& url)
 	CURL* handle = curl_easy_init();
 	if (handle == NULL)
 		return "";
-	//…Ë÷√url
+	//ËÆæÁΩÆurl
 	curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(handle, CURLOPT_READFUNCTION, NULL);
-	//◊¢≤·ªÿµ˜∫Ø ˝
+	//Ê≥®ÂÜåÂõûË∞ÉÂáΩÊï∞
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &getUrlResponse);
-	//ªÒ»°–≈œ¢
+	//Ëé∑Âèñ‰ø°ÊÅØ
 	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response);
 
 	curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
 	curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(handle, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 	
-	//÷¥––«Î«Û
+	//ÊâßË°åËØ∑Ê±Ç
 	CURLcode code = curl_easy_perform(handle);
 	if (code == CURLE_OK)
 		cout << response << endl;
-	// Õ∑≈
+	//ÈáäÊîæ
 	curl_easy_cleanup(handle);
 	return response;
 }
@@ -74,7 +74,7 @@ string PostRequest(const string& url, const string& data)
 	CURL* handle = curl_easy_init();
 	if (handle == NULL)
 		return "";
-	//…Ë÷√url
+	//ËÆæÁΩÆurl
 	curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(handle, CURLOPT_POST, 1);
 	curl_slist* plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");
@@ -88,11 +88,11 @@ string PostRequest(const string& url, const string& data)
 	curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(handle, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 
-	//÷¥––«Î«Û
+	//ÊâßË°åËØ∑Ê±Ç
 	CURLcode code = curl_easy_perform(handle);
 	if (code == CURLE_OK)
 		cout << response << endl;
-	// Õ∑≈
+	//ÈáäÊîæ
 	curl_easy_cleanup(handle);
 	return response;
 }
@@ -256,7 +256,7 @@ bool HttpServer::init(const string& rootpath, const string& indexfile)
 	//{
 	//	return false;
 	//}
-	////websocket«Î«ÛΩ”ø⁄
+	////websocketËØ∑Ê±ÇÊé•Âè£
 	////mg_register_http_endpoint(httpcon, "/ws", WebsocketMessageProcess);
 
 	//mg_register_http_endpoint(httpcon, "/device/channels", DeviceChannelList);
@@ -293,8 +293,8 @@ void HttpServer::loop()
 			string wid;
 			string url = "http://82.157.16.246:8080/device/auth-gb";
 
-			rapidjson::StringBuffer response;
-			rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+			rapidjson_sip::StringBuffer response;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 			writer.StartObject();
 			writer.Key("gbid"); writer.String("");
 			writer.Key("account"); writer.String("");
@@ -304,20 +304,20 @@ void HttpServer::loop()
 
 
 			string strresponse = PostRequest(url, response.GetString());
-			rapidjson::Document document;
+			rapidjson_sip::Document document;
 			document.Parse((char*)strresponse.c_str());
 			if (!document.HasParseError())
 			{
 				if (document.HasMember("data"))
 				{
-					rapidjson::Value& msbody = document["data"];
+					rapidjson_sip::Value& msbody = document["data"];
 					wid = json_check_string(msbody, "wid");
 					if (wid.empty())
 					{
 						string url = "http://82.157.16.246/device/line";
 
-						rapidjson::StringBuffer res;
-						rapidjson::Writer<rapidjson::StringBuffer> writers(res);
+						rapidjson_sip::StringBuffer res;
+						rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writers(res);
 						writers.StartObject();
 
 						writers.Key("onlineWids");
@@ -342,12 +342,12 @@ void HttpServer::loop()
 	return ;
 }
 
-void WebAddUserAction(rapidjson::Document& document, rapidjson::StringBuffer& response)
+void WebAddUserAction(rapidjson_sip::Document& document, rapidjson_sip::StringBuffer& response)
 {
 	int errcode = 0;
 	if (document.HasMember("data"))
 	{
-		rapidjson::Value& msbody = document["data"];
+		rapidjson_sip::Value& msbody = document["data"];
 		string strUser = json_check_string(msbody, "user");
 		string strName = json_check_string(msbody, "name");
 		string strDomain = json_check_string(msbody, "domain");
@@ -363,19 +363,19 @@ void WebAddUserAction(rapidjson::Document& document, rapidjson::StringBuffer& re
 			errcode = -1;
 		}
 	}
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(errcode);
 	writer.Key("msg"); writer.String("");
 	writer.EndObject();
 	return;
 }
-void WebDelUserAction(rapidjson::Document& document, rapidjson::StringBuffer& response)
+void WebDelUserAction(rapidjson_sip::Document& document, rapidjson_sip::StringBuffer& response)
 {
 	int errcode = 0;
 	if (document.HasMember("data"))
 	{
-		rapidjson::Value& msbody = document["data"];
+		rapidjson_sip::Value& msbody = document["data"];
 		string strUser = json_check_string(msbody, "user");
 		/*string strName = json_check_string(msbody, "name");
 		string strDomain = json_check_string(msbody, "domain");
@@ -391,19 +391,19 @@ void WebDelUserAction(rapidjson::Document& document, rapidjson::StringBuffer& re
 			errcode = -1;
 		}
 	}
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(errcode);
 	writer.Key("msg"); writer.String("");
 	writer.EndObject();
 	return;
 }
-void WebChangeUserAction(rapidjson::Document& document, rapidjson::StringBuffer& response)
+void WebChangeUserAction(rapidjson_sip::Document& document, rapidjson_sip::StringBuffer& response)
 {
 	int errcode = 0;
 	if (document.HasMember("data"))
 	{
-		rapidjson::Value& msbody = document["data"];
+		rapidjson_sip::Value& msbody = document["data"];
 		string strUser = json_check_string(msbody, "user");
 		string strName = json_check_string(msbody, "name");
 		string strDomain = json_check_string(msbody, "domain");
@@ -419,7 +419,7 @@ void WebChangeUserAction(rapidjson::Document& document, rapidjson::StringBuffer&
 			errcode = -1;
 		}
 	}
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(errcode);
 	writer.Key("msg"); writer.String("");
@@ -533,7 +533,7 @@ void HttpServer::WebsocketMessageProcess(struct mg_connection* websocketC, char*
 void HttpServer::DeviceOnLineState(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -542,14 +542,14 @@ void HttpServer::DeviceOnLineState(const struct mg_str& body, std::string& strOu
 	}
 
 	std::string cmd = json_check_string(document, "cmd");
-	rapidjson::StringBuffer response;
+	rapidjson_sip::StringBuffer response;
 	strOut = std::string(response.GetString(), response.GetSize());
 	return;
 }
 void HttpServer::DeviceChannelList(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -561,8 +561,8 @@ void HttpServer::DeviceChannelList(const struct mg_str& body, std::string& strOu
 	string channel = json_check_string(document, "channel");
 	list<std::shared_ptr<Device>> devlist;
 	IDeviceMngrSvr& devMgr = GetIDeviceMngr();
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	if (channel.empty())
 	{
 		writer.StartObject();
@@ -618,7 +618,7 @@ bool HttpIsStreamExist(std::string schema, std::string app, std::string streamId
 	sipserver::SipServer* pSvr = GetServer();
 	if (pSvr)
 	{
-		rapidjson::Document document;
+		rapidjson_sip::Document document;
 		std::ostringstream ss;
 		ss << "http://" << pSvr->zlmHost << ":" << pSvr->zlmHttpPort << "/index/api/getRtpInfo?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&"
 			<< "stream=" << streamId;
@@ -647,7 +647,7 @@ std::string GetMediaConfigInfo()
 	sipserver::SipServer* pSvr = GetServer();
 	if (pSvr)
 	{
-		rapidjson::Document document;
+		rapidjson_sip::Document document;
 		std::ostringstream ss;
 		ss << "http://" << pSvr->zlmHost << ":" << pSvr->zlmHttpPort << "/index/api/getServerConfig?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 		ss.flush();
@@ -660,9 +660,9 @@ std::string GetMediaConfigInfo()
 				int iCode = json_check_int32(document, "code");
 				if (iCode == 0 && document.HasMember("data") && document["data"].IsArray())
 				{
-					rapidjson::Value& msbody = document["data"][0];
-					rapidjson::StringBuffer sbBuf;
-					rapidjson::Writer<rapidjson::StringBuffer> jWriter(sbBuf);
+					rapidjson_sip::Value& msbody = document["data"][0];
+					rapidjson_sip::StringBuffer sbBuf;
+					rapidjson_sip::Writer<rapidjson_sip::StringBuffer> jWriter(sbBuf);
 					msbody.Accept(jWriter);
 					return std::string(sbBuf.GetString());
 				}
@@ -674,7 +674,7 @@ std::string GetMediaConfigInfo()
 void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -690,9 +690,9 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 	std::string stream_Id = json_check_string(document, "stream");
 	std::string deviceId;
 
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
-	//≤È—Ø¡˜ «∑Ò¥Ê‘⁄
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+	//Êü•ËØ¢ÊµÅÊòØÂê¶Â≠òÂú®
 	bool isStream = false;
 	sipserver::SipServer* pSvr = GetServer();
 	if (pSvr)
@@ -721,7 +721,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 				//	{
 				//		//stream_Id = std::str_format("%s_%s", deviceId.c_str(), channel.c_str());
 				//	}
-				//	//≈–∂œ¡˜¥Ê‘⁄
+				//	//Âà§Êñ≠ÊµÅÂ≠òÂú®
 				//	ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
 				//	tPool.submitTask(std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(), 
 				//		devuinfo.getIp(), devuinfo.getPort(), channel, *pUaMgr, pUaMgr->GetAvailableRtpPort(), 0
@@ -774,7 +774,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 		}
 	}
 
-	//¥Ê‘⁄
+	//Â≠òÂú®
 	if (isStream)
 	{
 		if (stream_Id.empty())
@@ -817,7 +817,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 			writer.Key("rtc"); writer.String(rtcUrl.c_str());
 			//writer.Key("mediainfo"); writer.String(GetMediaConfigInfo().c_str());
 			std::string mediaInfo = GetMediaConfigInfo();
-			writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson::kObjectType);
+			writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson_sip::kObjectType);
 			
 				
 			writer.EndObject();
@@ -827,7 +827,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 	{
 		writer.StartObject();
 		writer.Key("code"); writer.Int(1);
-		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("≤•∑≈ ß∞‹").c_str()*/);
+		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("Êí≠ÊîæÂ§±Ë¥•").c_str()*/);
 		writer.EndObject();
 	}
 	strOut = std::string(response.GetString(), response.GetSize());
@@ -836,7 +836,7 @@ void HttpServer::StartLive(const struct mg_str& body, std::string& strOut)
 void HttpServer::StopLive(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -859,8 +859,8 @@ void HttpServer::StopLive(const struct mg_str& body, std::string& strOut)
 			pUaMgr->CloseStreamStreamId(stream_Id);
 		}
 	}
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(0);
 	writer.Key("msg"); writer.String("");
@@ -871,7 +871,7 @@ void HttpServer::StopLive(const struct mg_str& body, std::string& strOut)
 void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -889,9 +889,9 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 	unsigned long stime = (unsigned long)json_check_uint64(document, "startTime");
 	unsigned long etime = (unsigned long)json_check_uint64(document, "stopTime");
 
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
-	//≤È—Ø¡˜ «∑Ò¥Ê‘⁄
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+	//Êü•ËØ¢ÊµÅÊòØÂê¶Â≠òÂú®
 	bool isStream = false;
 	sipserver::SipServer* pSvr = GetServer();
 	if (pSvr)
@@ -922,7 +922,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 				//		CDateTime endTime(etime);
 				//		//stream_Id = std::str_format("%s_%s_%s_%s", deviceId.c_str(), channel.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
 				//	}
-				//	//≈–∂œ¡˜¥Ê‘⁄
+				//	//Âà§Êñ≠ÊµÅÂ≠òÂú®
 				//	ownThreadPool::myThreadPool& tPool = ownThreadPool::GetThreadPool();
 				//	tPool.submitTask(
 				//		std::make_shared<resip::RequestStreamTask>(devuinfo.getDeviceId(),devuinfo.getIp(), devuinfo.getPort(), channel,
@@ -941,7 +941,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 				//{
 				//	if (stream_Id.empty())
 				//	{
-				//		//≤ªø…ƒ‹◊ﬂµΩ’‚
+				//		//‰∏çÂèØËÉΩËµ∞Âà∞Ëøô
 				//		//stream_Id = std::str_format("%s_%s", pCall->devId.c_str(), channel.c_str());
 				//	}
 				//}
@@ -977,7 +977,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 		}
 	}
 
-	//¥Ê‘⁄
+	//Â≠òÂú®
 	if (isStream)
 	{
 		if (stream_Id.empty())
@@ -1020,7 +1020,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 		writer.Key("rtc"); writer.String(rtcUrl.c_str());
 		//writer.Key("mediainfo"); writer.String(GetMediaConfigInfo().c_str());
 		std::string mediaInfo = GetMediaConfigInfo();
-		writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson::kObjectType);
+		writer.Key("mediainfo"); writer.RawValue(mediaInfo.c_str(), mediaInfo.size(), rapidjson_sip::kObjectType);
 
 		writer.EndObject();
 		writer.EndObject();
@@ -1029,7 +1029,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 	{
 		writer.StartObject();
 		writer.Key("code"); writer.Int(1);
-		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("≤•∑≈ ß∞‹").c_str()*/);
+		writer.Key("msg"); writer.String(""/*std::GbkToUtf8("Êí≠ÊîæÂ§±Ë¥•").c_str()*/);
 		writer.EndObject();
 	}
 	strOut = std::string(response.GetString(), response.GetSize());
@@ -1038,7 +1038,7 @@ void HttpServer::StartVod(const struct mg_str& body, std::string& strOut)
 void HttpServer::StopVod(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1061,8 +1061,8 @@ void HttpServer::StopVod(const struct mg_str& body, std::string& strOut)
 			pUaMgr->CloseStreamStreamId(stream_Id);
 		}
 	}
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(0);
 	writer.Key("msg"); writer.String("");
@@ -1073,7 +1073,7 @@ void HttpServer::StopVod(const struct mg_str& body, std::string& strOut)
 void HttpServer::UserManager(const struct mg_str& body, std::string& strOut)
 {
 	std::string jsonStr(body.ptr, body.len);
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1082,7 +1082,7 @@ void HttpServer::UserManager(const struct mg_str& body, std::string& strOut)
 	}
 
 	std::string cmd = json_check_string(document, "cmd");
-	rapidjson::StringBuffer response;
+	rapidjson_sip::StringBuffer response;
 	if (strcmp("addUser", cmd.c_str()) == 0)
 		WebAddUserAction(document, response);
 	else if(strcmp("delUser", cmd.c_str()) == 0)
@@ -1091,7 +1091,7 @@ void HttpServer::UserManager(const struct mg_str& body, std::string& strOut)
 		WebChangeUserAction(document, response);
 	else
 	{
-		rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+		rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 		writer.StartObject();
 		writer.Key("code"); writer.Int(-2);
 		writer.Key("msg"); writer.String("");
@@ -1106,7 +1106,7 @@ void HttpServer::zlmHookPublish(const struct mg_str& body, std::string& strOut)
 	cout << "*******************************\n"
 		<< jsonStr << "\n"
 		<< "*******************************\n" << endl;
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1126,8 +1126,8 @@ void HttpServer::zlmHookPublish(const struct mg_str& body, std::string& strOut)
 	std::string strStream = json_check_string(document, "stream");
 	std::string strVhost = json_check_string(document, "vhost");
 		
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(0);
 	writer.Key("add_mute_audio"); writer.Bool(true);
@@ -1154,7 +1154,7 @@ void HttpServer::zlmHookStreamNoneReader(const struct mg_str& body, std::string&
 	cout << "*******************************\n"
 		<< jsonStr << "\n"
 		<< "*******************************\n" << endl;
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1184,8 +1184,8 @@ void HttpServer::zlmHookStreamNoneReader(const struct mg_str& body, std::string&
 		}
 	}
 
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("close"); writer.Bool(true);
 	writer.Key("code"); writer.Int(0);
@@ -1199,7 +1199,7 @@ void HttpServer::zlmHookStreamChanged(const struct mg_str& body, std::string& st
 	cout << "*******************************\n"
 		<< jsonStr << "\n"
 		<< "*******************************\n" << endl;
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1216,7 +1216,7 @@ void HttpServer::zlmHookStreamChanged(const struct mg_str& body, std::string& st
 	std::string strMediaServerId = json_check_string(document, "mediaServerId");
 	if (document.HasMember("originSock") && !document["originSock"].IsNull())
 	{
-		rapidjson::Value& msbody = document["originSock"];
+		rapidjson_sip::Value& msbody = document["originSock"];
 		std::string strIdentifier = json_check_string(msbody, "identifier");
 		std::string strLocal_ip = json_check_string(msbody, "local_ip");
 		int iLocal_port = json_check_int32(msbody, "local_port");
@@ -1233,7 +1233,7 @@ void HttpServer::zlmHookStreamChanged(const struct mg_str& body, std::string& st
 	int iTotalReaderCount = json_check_int32(document, "totalReaderCount");
 	if (document.HasMember("tracks") && document["tracks"].IsArray())
 	{
-		rapidjson::Value& msbody = document["tracks"];
+		rapidjson_sip::Value& msbody = document["tracks"];
 		for (unsigned int i = 0; i < msbody.Size(); i++)
 		{
 			int iChannels = json_check_int32(msbody[i], "channels");
@@ -1272,8 +1272,8 @@ void HttpServer::zlmHookStreamChanged(const struct mg_str& body, std::string& st
 			}
 		}
 	}
-	rapidjson::StringBuffer response;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(response);
+	rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
 	writer.StartObject();
 	writer.Key("code"); writer.Int(0);
 	writer.Key("msg"); writer.String("success");
@@ -1287,7 +1287,7 @@ void HttpServer::zlmHookStreamNotFound(const struct mg_str& body, std::string& s
 	cout << "*******************************\n"
 		<< jsonStr << "\n"
 		<< "*******************************\n" << endl;
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
@@ -1320,7 +1320,7 @@ void HttpServer::zlmHookSendRtpStopped(const struct mg_str& body, std::string& s
 	cout << "*******************************\n"
 		<< jsonStr << "\n"
 		<< "*******************************\n" << endl;
-	rapidjson::Document document;
+	rapidjson_sip::Document document;
 	document.Parse((char*)jsonStr.c_str());
 	if (document.HasParseError())
 	{
