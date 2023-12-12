@@ -19,11 +19,11 @@ public:
 
 	void addDevice(BaseDevice::Ptr);
 	void removeDevice(std::string);
-	BaseDevice::Ptr findDevice(std::string Id);
+	BaseDevice::Ptr findDevice(const std::string Id);
 
 	void addChildDevice(BaseChildDevice*);
 	void removeChildDevice(std::string);
-	BaseChildDevice* findChildDevice(std::string Id);
+	BaseChildDevice* findChildDevice(const std::string Id);
 	void getChildDevice(const std::string &Id, std::vector<BaseChildDevice*> &vcList);
 
 	void addVirtualOrganization(VirtualOrganization);

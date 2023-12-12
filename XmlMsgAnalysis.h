@@ -12,6 +12,4 @@ using namespace std;
 bool AnalyzeReceivedSipMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg);
 
 
-//Subscription
-bool AnalyzeSubscriptionMsg(const char* MsgStr, GB28181XmlMsg& XmlMsg);
 #endif

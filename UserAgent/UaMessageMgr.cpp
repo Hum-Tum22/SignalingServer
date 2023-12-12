@@ -678,3 +678,7 @@ void CUserMessageMrg::DeviceInfoQueryResponseTask(const Uri target, const std::s
         SendResponsePageMsg(target, outStr, MsgCmdType_DeviceInfo, Routlist);
     }
 }
+uint32_t CUserMessageMrg::getMsgId()
+{
+    return mMsgSn++;
+}

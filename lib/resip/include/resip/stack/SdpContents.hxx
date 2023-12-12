@@ -39,6 +39,24 @@ class AttributeHelper
       std::list<std::pair<Data, Data> > mAttributeList;  // used to ensure attribute ordering on encode
       HashMap< Data, std::list<Data> > mAttributes;
 };
+class OtherAttributeHelper
+{
+public:
+   RESIP_HeapCount(OtherAttributeHelper);
+   OtherAttributeHelper();
+   OtherAttributeHelper(const OtherAttributeHelper& rhs);
+   OtherAttributeHelper& operator=(const OtherAttributeHelper& rhs);
+
+   bool exists(const Data& key) const;
+   const std::list<Data>& getValues(const Data& key) const;
+   EncodeStream& encode(EncodeStream& s) const;
+   void parse(ParseBuffer& pb);
+   void addAttribute(const Data& key, const Data& value = Data::Empty);
+   void clearAttribute(const Data& key);
+private:
+   std::list<std::pair<Data, Data> > mAttributeList;  // used to ensure attribute ordering on encode
+   HashMap< Data, std::list<Data> > mAttributes;
+};
 
 /**
    @ingroup sip_payload
@@ -867,6 +885,25 @@ class SdpContents : public Contents
                   friend class Session;
             };
 
+
+            /* @brief  add for 28181
+               y=
+            */
+            class Yssrc
+            {
+            public:
+               Yssrc();
+               Yssrc(const Data& rhs);
+               Yssrc& operator=(const Yssrc& rhs);
+               Data& Value();
+               const Data& Value() const;
+
+               void parse(ParseBuffer& pb);
+               EncodeStream& encode(EncodeStream&) const;
+            protected:
+               Data ystring;
+            };
+
             /** @brief session constructor
               * 
               *   Create a new session from origin line, version, and session anme
@@ -1065,6 +1102,9 @@ class SdpContents : public Contents
               **/
             const std::list<Data>& getValues(const Data& key) const;
 
+            const OtherAttributeHelper& OtherAttrHelper() const { return mOtherAttributeHelper; }
+            OtherAttributeHelper& OtherAttrHelper() { return mOtherAttributeHelper; }
+
             const Direction& getDirection() const;
             /** @brief examine direction for streams of given types
               *
@@ -1120,6 +1160,9 @@ class SdpContents : public Contents
             std::shared_ptr<TrickleIceContents> makeIceFragment(const Data& fragment,
                unsigned int lineIndex, const Data& mid);
 
+            const Yssrc& YSSRC() const;
+            Yssrc& YSSRC();
+
          private:
             int mVersion;
             Origin mOrigin;
@@ -1137,7 +1180,8 @@ class SdpContents : public Contents
             Timezones mTimezones;
             Encryption mEncryption;
             AttributeHelper mAttributeHelper;
-
+            OtherAttributeHelper mOtherAttributeHelper;
+            Yssrc mYssrc;
             friend class SdpContents;
       };
 

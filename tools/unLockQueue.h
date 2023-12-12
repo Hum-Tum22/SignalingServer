@@ -64,7 +64,9 @@ public:
 	T* front(size_t readIndex)
 	{
 		if (readIndex >= MAX_SIZE)
-			readIndex = read % MAX_SIZE;
+		{
+			return NULL;
+		}
 		if ((write - readIndex + MAX_SIZE) % MAX_SIZE >= 1)
 			return &mVector[readIndex];
 		return NULL;

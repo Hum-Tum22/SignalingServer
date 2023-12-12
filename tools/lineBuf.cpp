@@ -7,7 +7,8 @@
 
 LineBuffer::LineBuffer(int size):pBuf(NULL), bufLen(size), wPos(0), rPos(0)
 {
-	pBuf = (char*)malloc(size * sizeof(char));
+	if(size > 0)
+		pBuf = (char*)malloc(size * sizeof(char));
 }
 LineBuffer::~LineBuffer()
 {

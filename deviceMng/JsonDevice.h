@@ -3,6 +3,7 @@
 #include "BaseDevice.h"
 #include "../Plugin/vsk/x86Nvr/jsonSdkInterface.h"
 #include "UserAgent/GB28181Msg.h"
+#include "../uainfo.h"
 
 
 class JsonNvrDevic : public BaseDevice
@@ -60,8 +61,21 @@ public:
 	void Dev_ListIPC(char* Buffer, uint32_t &BufSize, int& err);
 
 	static PTZCONTROL_COMMAND switchFromGB28181(PTZCMDType::GB28181PtzCmd cmd);
+
 	void setStatus(int statu);
 	const int getStatus();
+
+	void setIp(const std::string ip);
+	const std::string& getIp() const;
+
+	void setPort(const short port);
+	const short getPort() const;
+
+	void setUser(const std::string user);
+	const std::string& getUser() const;
+
+	void setPswd(const std::string pswd);
+	const std::string& getPswd() const;
 private:
 	void JsonNvrLogIn(int& err);
 	void JsonNvrLogOut(int& err);
@@ -94,6 +108,8 @@ public:
 
 	void setChannel(int chl);
 	const int getChannel();
+
+	CatalogItem GetCatalogItem(std::string myId);
 private:
 	std::string name;
 	int status;

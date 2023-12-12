@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <atomic>
 #include <map>
+#include <atomic>
 #include "media-source.h"
 #include "../tools/memPool.h"
 #include "../tools/lineBuf.h"
@@ -49,10 +50,11 @@ class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
 	bool vpsspspps;
 
 	size_t frameIndex;
+	size_t lastIdrPos;
 
 	int Init();
 public:
-	FrameMemPool();
+	FrameMemPool(size_t length = 1024*1024*5);
 	~FrameMemPool();
 
 	int InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int gap);
@@ -63,18 +65,20 @@ class MediaStream
 {
 public:
 	using Ptr = std::shared_ptr<MediaStream>;
-	MediaStream(const char* Id);
+	MediaStream(const char* devId, const char* streamId);
 
 
 	virtual ~MediaStream();
 
 	virtual int getvalue() = 0;
-	const std::string getStreamId();
+	virtual time_t LastFrameTime() = 0;
+	const std::string& getStreamId();
+	const std::string& getDeviceId();
 
 	void setStreamHandle(SHANDLE handle);
 	const SHANDLE getStreamHandle();
 
-	void setMediaSource(IMediaSource*s);
+	//void setMediaSource(IMediaSource*s);
 
 	void OnMediaStream(STREAM_CODEC code, uint8_t* data, size_t size, int gap);
 
@@ -82,14 +86,18 @@ public:
 
 	uint32_t createReader();
 	void removeReader(uint32_t handle);
+	void increasing();
+	void reduction();
+	int refNum();
 protected:
 	int     GetReadPos(unsigned int readhandle);
 	void    SetReadPos(unsigned int readhandle, unsigned int Pos);
 	
 private:
+	std::string deviceId;
 	std::string streamId;
+	std::atomic<int> def;
 	SHANDLE streamHandle;
-	IMediaSource* source;
 	FrameMemPool framePool;
 
 	std::atomic<uint32_t> mHandler;

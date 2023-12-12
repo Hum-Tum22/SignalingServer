@@ -52,7 +52,7 @@ public:
 										uint64_t nUserData, void* pUser, JSONLONG* pnPeviewID);
 	typedef int (CALLBACK* Sdk_VskPreview)(JSONLONG UserID, DataPlayCallBack VideoTranCallBack,
 		const char* pTranInfo, uint64_t nUserData, void* pUser, JSONLONG* pnPeviewID);
-	typedef int (CALLBACK* Sdk_StopPreview)(JSONLONG UserID);
+	typedef int (CALLBACK* Sdk_StopPreview)(JSONLONG rthandle);
 
 	typedef int (CALLBACK* Sdk_PlayBackStartByTime)(JSONLONG UserID, const char* pInfo, DataPlayCallBack VideoDataCallBack, PlayBackEndCallBack fun,
 		uint64_t nUserData, void* pUser, uint64_t* pTotalSize, JSONLONG* pnPlaybackID);

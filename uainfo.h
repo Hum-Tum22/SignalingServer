@@ -16,13 +16,13 @@ using namespace std;
 typedef struct  _UaSessionInfo
 {
     _UaSessionInfo() : passwd(""), i_State(0),//m_DialogSet(NULL), 
-        sendhearterrortimes(0) {
+        ReissueRegistrationLater(0) {
         lastsendheartoktime = time(NULL);
         lastSendHeartTime = 0;
         heartTimeOutCount = 0;
     };
     _UaSessionInfo(const Uri& touri, const Uri& fromUri, const Data _passwd) // m_DialogSet(NULL),
-        : toUri(touri), fromUri(fromUri), passwd(_passwd), i_State(0), sendhearterrortimes(0) {
+        : toUri(touri), fromUri(fromUri), passwd(_passwd), i_State(0), ReissueRegistrationLater(0) {
         lastsendheartoktime = time(NULL);
         lastSendHeartTime = 0;
         heartTimeOutCount = 0;
@@ -34,7 +34,7 @@ typedef struct  _UaSessionInfo
     ClientRegistrationHandle mh;
     time_t         lastSendHeartTime;
     time_t         lastsendheartoktime;
-    int            sendhearterrortimes;
+    time_t         ReissueRegistrationLater;
     int            heartTimeOutCount;
     Data regcallid;
 }UaSessionInfo;
@@ -145,17 +145,6 @@ public:
     {
     };
 };
-typedef struct
-{
-    Data m_content;
-    Data m_event;
-    ServerSubscriptionHandle m_sh;
-}ServerSubscriptionInfo;
-typedef struct
-{
-    vector<ServerSubscriptionInfo> Subscrips;
-}ServerSubscriptionInfos;
-
 
 typedef struct
 {

@@ -200,19 +200,15 @@ public:
 };
 typedef struct
 {
-	std::string DeviceID;
+	std::string StartTime;
+	std::string EndTime;
 }CatalogQueryMsg;
 typedef struct
 {
 	std::string DeviceID;
 	std::string status;
 }KeepAliveMsg;
-typedef struct
-{
-	std::string DeviceID;
-	std::string StartTime;
-	std::string EndTime;
-}CatalogSubscriptionMsg;
+
 
 typedef struct _ResponseCatalogMsg
 {

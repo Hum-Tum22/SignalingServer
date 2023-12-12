@@ -3,6 +3,7 @@
 #include "tinyxml2.h"
 #include "uainfo.h"
 #include "deviceMng/VirtualOrganization.h"
+#include "UserAgent/SubscriptionMrg.h"
 
 
 #include <string>
@@ -44,4 +45,14 @@ void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* Dev
 bool CreateDeviceInfoResponse(const char* DeviceId, const uint32_t& sn, const DeviceInfoMsg& devInfoMsg, std::string& outstr);
 
 
+
+
+//notify
+
+bool CreateVirtualOrganizationNotifyCatalog(const char* deviceId, const uint32_t sn, const std::string& ev, const VirtualOrganization& vo, std::string& outstr);
+void AddVirtualOrganizationToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const VirtualOrganization& item, const std::string& ev);
+
+bool CreateNotifyCatalog(const char* user, const uint32_t& sn, const std::string& ev, const CatalogItem& Items, CatalogItemExpandInfo* pExpand, std::string& outstr);	//pExpand摄相机使用
+void AddDeviceItemToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItem& item, const std::string& ev);
+void AddIPCInfoToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItemExpandInfo* expand);
 #endif

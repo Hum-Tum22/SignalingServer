@@ -84,7 +84,7 @@ void IDeviceMngrSvr::online(Device *device)
             //SipServerDeviceInfo* pGBDev = dynamic_cast<SipServerDeviceInfo*>(device);
         }
     }
-    std::cout << "task :" << task << std::endl;
+    //std::cout << "task :" << task << std::endl;
 }
 void IDeviceMngrSvr::offline(string deviceId)
 {

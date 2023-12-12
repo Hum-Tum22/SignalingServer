@@ -492,3 +492,234 @@ bool CreateCatalogQueryRequestMsg(const char* gbid, const uint32_t& sn, std::str
 	}
 	return false;
 }
+bool CreateVirtualOrganizationNotifyCatalog(const char* deviceId, const uint32_t sn, const std::string& ev, const VirtualOrganization& vo, std::string& outstr)
+{
+	try
+	{
+		XMLDocument doc;
+		doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\" encoding=\"GB2312\""));
+		XMLElement* ResponseElement = doc.NewElement("Notify");
+		doc.InsertEndChild(ResponseElement);
+
+		XMLElement* CmdTypeElement = doc.NewElement("CmdType");
+		CmdTypeElement->InsertEndChild(doc.NewText("Catalog"));
+		ResponseElement->InsertEndChild(CmdTypeElement);
+
+		XMLElement* SNElement = doc.NewElement("SN");
+		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
+		ResponseElement->InsertEndChild(SNElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		DeviceIDElement->InsertEndChild(doc.NewText(deviceId));
+		ResponseElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* SumNumElement = doc.NewElement("SumNum");
+		SumNumElement->InsertEndChild(doc.NewText(to_string(1).c_str()));
+		ResponseElement->InsertEndChild(SumNumElement);
+
+		XMLElement* DeviceListElement = doc.NewElement("DeviceList");
+		DeviceListElement->SetAttribute("Num", 1);			//item num
+		ResponseElement->InsertEndChild(DeviceListElement);
+
+		//add item
+
+		AddVirtualOrganizationToNotifyCatalog(doc, DeviceListElement, vo, ev);
+
+		XMLPrinter printer;
+		doc.Print(&printer);
+		outstr = printer.CStr();
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+void AddVirtualOrganizationToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const VirtualOrganization& item, const std::string& ev)
+{
+	try
+	{
+		XMLElement* ItemElement = doc.NewElement("Item");
+		DeviceListElement->InsertEndChild(ItemElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
+		DeviceIDElement->InsertEndChild(doc.NewText(item.DeviceID.c_str()));
+		ItemElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* NameElement = doc.NewElement("Name");
+		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+		ItemElement->InsertEndChild(NameElement);
+
+		XMLElement* ParentIDElement = doc.NewElement("ParentID");
+		ParentIDElement->InsertEndChild(doc.NewText(item.ParentID.c_str()));
+		ItemElement->InsertEndChild(ParentIDElement);
+
+		XMLElement* EventElement = doc.NewElement("Event");
+		EventElement->InsertEndChild(doc.NewText(ev.c_str()));
+		ItemElement->InsertEndChild(EventElement);
+	}
+	catch (...)
+	{
+	}
+}
+bool CreateNotifyCatalog(const char* user, const uint32_t& sn, const std::string& ev, const CatalogItem& Item, CatalogItemExpandInfo* pExpand, std::string& outstr)
+{
+	try
+	{
+		XMLDocument doc;
+		doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\" encoding=\"GB2312\""));
+		XMLElement* NotifyElement = doc.NewElement("Notify");
+		doc.InsertEndChild(NotifyElement);
+
+		XMLElement* CmdTypeElement = doc.NewElement("CmdType");
+		CmdTypeElement->InsertEndChild(doc.NewText("Catalog"));
+		NotifyElement->InsertEndChild(CmdTypeElement);
+
+		XMLElement* SNElement = doc.NewElement("SN");
+		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
+		NotifyElement->InsertEndChild(SNElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		DeviceIDElement->InsertEndChild(doc.NewText(user));
+		NotifyElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* SumNumElement = doc.NewElement("SumNum");
+		SumNumElement->InsertEndChild(doc.NewText(to_string(1).c_str()));
+		NotifyElement->InsertEndChild(SumNumElement);
+
+		XMLElement* DeviceListElement = doc.NewElement("DeviceList");
+		DeviceListElement->SetAttribute("Num", 1);			//item num
+		NotifyElement->InsertEndChild(DeviceListElement);
+
+		//add item
+		AddDeviceItemToNotifyCatalog(doc, DeviceListElement, Item, ev);
+
+		if (pExpand)
+		{
+			AddIPCInfoToNotifyCatalog(doc, NotifyElement, pExpand);
+		}
+
+		XMLPrinter printer;
+		doc.Print(&printer);
+		outstr = printer.CStr();
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+void AddDeviceItemToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItem& item, const std::string& ev)
+{
+	try
+	{
+		XMLElement* ItemElement = doc.NewElement("Item");
+		DeviceListElement->InsertEndChild(ItemElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
+		DeviceIDElement->InsertEndChild(doc.NewText(item.DeviceID.c_str()));
+		ItemElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* EventElement = doc.NewElement("Event");
+		EventElement->InsertEndChild(doc.NewText(ev.c_str()));
+		ItemElement->InsertEndChild(EventElement);
+		
+		if (ev == "UPDATE")
+		{
+			XMLElement* NameElement = doc.NewElement("Name");
+			NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+			ItemElement->InsertEndChild(NameElement);
+
+			XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+			ManufacturerElement->InsertEndChild(doc.NewText(item.Manufacturer.c_str()));
+			ItemElement->InsertEndChild(ManufacturerElement);
+
+			XMLElement* ModelElement = doc.NewElement("Model");
+			ModelElement->InsertEndChild(doc.NewText(item.Model.c_str()));
+			ItemElement->InsertEndChild(ModelElement);
+
+			XMLElement* OwnerElement = doc.NewElement("Owner");
+			OwnerElement->InsertEndChild(doc.NewText(item.Owner.c_str()));
+			ItemElement->InsertEndChild(OwnerElement);
+
+			XMLElement* CivilCodeElement = doc.NewElement("CivilCode");
+			CivilCodeElement->InsertEndChild(doc.NewText(item.CivilCode.c_str()));
+			ItemElement->InsertEndChild(CivilCodeElement);
+
+			XMLElement* BlockElement = doc.NewElement("Block");
+			BlockElement->InsertEndChild(doc.NewText(item.Block.c_str()));
+			ItemElement->InsertEndChild(BlockElement);
+
+			XMLElement* AddressElement = doc.NewElement("Address");
+			AddressElement->InsertEndChild(doc.NewText(item.Address.c_str()));
+			ItemElement->InsertEndChild(AddressElement);
+
+			XMLElement* ParentalElement = doc.NewElement("Parental");
+			ParentalElement->InsertEndChild(doc.NewText(to_string(item.Parental).c_str()));
+			ItemElement->InsertEndChild(ParentalElement);
+
+			XMLElement* ParentIDElement = doc.NewElement("ParentID");
+			ParentIDElement->InsertEndChild(doc.NewText(item.ParentID.c_str()));
+			ItemElement->InsertEndChild(ParentIDElement);
+
+			XMLElement* SafetyWayElement = doc.NewElement("SafetyWay");
+			SafetyWayElement->InsertEndChild(doc.NewText(to_string(item.SafetyWay).c_str()));
+			ItemElement->InsertEndChild(SafetyWayElement);
+
+			XMLElement* RegisterWayElement = doc.NewElement("RegisterWay");
+			RegisterWayElement->InsertEndChild(doc.NewText(to_string(item.RegisterWay).c_str()));
+			ItemElement->InsertEndChild(RegisterWayElement);
+
+			XMLElement* CertNumElement = doc.NewElement("CertNum");
+			CertNumElement->InsertEndChild(doc.NewText(to_string(item.CertNum).c_str()));
+			ItemElement->InsertEndChild(CertNumElement);
+
+			XMLElement* CertifiableElement = doc.NewElement("Certifiable");
+			CertifiableElement->InsertEndChild(doc.NewText(to_string(item.Certifiable).c_str()));
+			ItemElement->InsertEndChild(CertifiableElement);
+
+			XMLElement* ErrCodeElement = doc.NewElement("ErrCode");
+			ErrCodeElement->InsertEndChild(doc.NewText(to_string(item.ErrCode).c_str()));
+			ItemElement->InsertEndChild(ErrCodeElement);
+
+			XMLElement* EndTimeElement = doc.NewElement("EndTime");
+			EndTimeElement->InsertEndChild(doc.NewText(item.EndTime.c_str()));
+			ItemElement->InsertEndChild(EndTimeElement);
+
+			XMLElement* SecrecyElement = doc.NewElement("Secrecy");
+			SecrecyElement->InsertEndChild(doc.NewText(to_string(item.Secrecy).c_str()));
+			ItemElement->InsertEndChild(SecrecyElement);
+
+			XMLElement* IPAddressElement = doc.NewElement("IPAddress");
+			IPAddressElement->InsertEndChild(doc.NewText(item.IPAddress.c_str()));
+			ItemElement->InsertEndChild(IPAddressElement);
+
+			XMLElement* PortElement = doc.NewElement("Port");
+			PortElement->InsertEndChild(doc.NewText(to_string(item.Port).c_str()));
+			ItemElement->InsertEndChild(PortElement);
+
+			XMLElement* PasswordElement = doc.NewElement("Password");
+			PasswordElement->InsertEndChild(doc.NewText(item.Password.c_str()));
+			ItemElement->InsertEndChild(PasswordElement);
+
+			XMLElement* StatusElement = doc.NewElement("Status");
+			StatusElement->InsertEndChild(doc.NewText(item.Status.c_str()));
+			ItemElement->InsertEndChild(StatusElement);
+		}
+
+		/*XMLElement* LongitudeElement = doc.NewElement("Longitude");
+		LongitudeElement->InsertEndChild(doc.NewText(to_string(item.Longitude).c_str()));
+		ItemElement->InsertEndChild(LongitudeElement);
+
+		XMLElement* LatitudeElement = doc.NewElement("Latitude");
+		LatitudeElement->InsertEndChild(doc.NewText(to_string(item.Latitude).c_str()));
+		ItemElement->InsertEndChild(LatitudeElement);*/
+
+	}
+	catch (...)
+	{
+	}
+}
+void AddIPCInfoToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItemExpandInfo* expand)
+{
+}

@@ -104,26 +104,8 @@ UaClientCall::~UaClientCall()
                 //psSource中使用了MediaStream::Ptr   先释放MediaStream::Ptr
                 delete psSource; psSource = NULL;
             }
-            MediaStream::Ptr ms = MediaMng::GetInstance().findStream(streamId);
-            if (ms)
-            {
-                ms->setMediaSource(NULL);
-                BaseChildDevice *childDev = DeviceMng::Instance().findChildDevice(channelId);
-                if (childDev)
-                {
-                    BaseDevice::Ptr parentDev = childDev->getParentDev();
-                    if (parentDev && parentDev->devType == BaseDevice::JSON_NVR)
-                    {
-                        int err = 0;
-                        parentDev->Dev_StopPreview(ms->getStreamHandle(), err);
-                        if (err == 0)
-                        {
-                            MediaMng::GetInstance().removeStream(channelId);
-                        }
-                    }
-                }
-            }
-            mUserAgent.CloseStreamStreamId(channelId);
+            printf("ua call close stream:%s\n", streamId.c_str());
+            mUserAgent.CloseStreamStreamId(streamId);
             mUserAgent.FreeRptPort(myRtpPort);
             /*sipserver::SipServer* pSvr = GetServer();
             ostringstream ss;
@@ -190,12 +172,15 @@ UaClientCall::timerExpired()
         terminateCall();
         isTerminate = false;
     }
-    CALL_STATE state = (CALL_STATE)mUserAgent.getCallStatus(streamId);
-    if (state == CALL_NOT_FOUND || state == CALL_MEDIA_STREAM_CLOSED)
+    auto mdaStream = MediaMng::GetInstance().findStream(streamId);
+    if (mdaStream)
     {
-        if(isTerminate)
+        if (time(0) - mdaStream->LastFrameTime() > 5)
+        {
             terminateCall();
+        }
     }
+
     // start timer for next one
     unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
     mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
@@ -332,24 +317,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     mRequestSdp = offer;
     app = "rtp";
     sessionName = offer.session().name();
-    /*if (offer.session().OtherAttrHelper().exists("y"))
-    {
-        ssrc = *offer.session().OtherAttrHelper().getValues("y").begin();
-    }*/
-    if (ssrc.empty())
-    {
-        std::string sdpline = offer.getBodyData().c_str();
-        std::regex eSsrc("(.*)\ny=(.*)");
-        std::smatch smSsrc;
-
-        std::regex_search(sdpline, smSsrc, eSsrc);
-        if (smSsrc.size() >= 3)
-        {
-            ssrc = smSsrc[2].str().c_str();
-        }
-        std::cout << "sdp:" << sdpline << std::endl;
-        std::cout << "ssrc:" << ssrc <<  "\n" << std::endl;
-    }
+    ssrc = offer.session().YSSRC().Value().c_str();
 
     remoteIp = offer.session().origin().getAddress();
     
@@ -436,10 +404,10 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 {
                     psSource = new PSFileSource("", ssrc.convertInt());
                     psSource->SetTransport("sip", transport);
+                    mdaStream->increasing();
                     psSource->setMediaStream(mdaStream);
-                    //streamInfo->setMediaSource(psSource);
-                    //return true;
                 }
+                std::cout << "found stream :" << channelId << std::endl;
                 handle->provideAnswer(mResponseSdp);
                 ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
                 if (uas && !uas->isAccepted())
@@ -468,7 +436,9 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     {
                         psSource = new PSFileSource("", ssrc.convertInt());
                         psSource->SetTransport("sip", transport);
-                        MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(channelId);
+                        MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
+                        streamInfo->increasing();
+                        printf("xxxxxxxxxxxxxxxxx stream:%s ref:%d\n", streamId.c_str(), streamInfo->refNum());
                         psSource->setMediaStream(streamInfo);
                         //streamInfo->setMediaSource(psSource);
                         //return true;
@@ -476,6 +446,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     //直接回复
                         
                     //mResponseSdp
+                    std::cout << "makeBLeg OK :" << std::endl;
                     handle->provideAnswer(mResponseSdp);
                     ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
                     if (uas && !uas->isAccepted())
@@ -590,7 +561,7 @@ UaClientCall::onNewSession(ClientInviteSessionHandle h, InviteSession::OfferAnsw
    }
    mUserAgent.setCallStatus(streamId, CALL_UAC_NEW_GET1XX);
    m_CallEvt.notify_one();
-   cout << "***************  ******************* 1 " << msg << endl;
+   //cout << "***************  ******************* 1 " << msg << endl;
 }
 
 void
@@ -640,7 +611,7 @@ UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnsw
    }
    mUserAgent.setCallStatus(streamId, CALL_UAS_NEW);
    m_CallEvt.notify_one();
-   cout << "***************  ******************* 2\n" << msg << endl;
+   //cout << "***************  ******************* 2\n" << msg << endl;
 }
 
 void
@@ -664,14 +635,14 @@ UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
             break;
       }
    }
-   cout << "***************  ******************* 3\n" << msg << endl;
+   //cout << "***************  ******************* 3\n" << msg << endl;
 }
 
 void
 UaClientCall::onEarlyMedia(ClientInviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
    InfoLog(<< "onEarlyMedia: msg=" << msg.brief() << ", sdp=" << sdp);
-   cout << "***************  ******************* 4\n" << msg << endl;
+   //cout << "***************  ******************* 4\n" << msg << endl;
 }
 
 void
@@ -686,14 +657,14 @@ UaClientCall::onProvisional(ClientInviteSessionHandle h, const SipMessage& msg)
       return;
    }
    InfoLog(<< "onProvisional: msg=" << msg.brief());
-   cout << "***************  ******************* 5\n" << msg << endl;
+   //cout << "***************  ******************* 5\n" << msg << endl;
    
 }
 
 void
 UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 6 " << msg << endl;
+    //cout << "***************  ******************* 6 " << msg << endl;
     InfoLog(<< "onConnected: msg=" << msg.brief());
     if(!isUACConnected())
     {
@@ -742,24 +713,24 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
         // We already have a connected leg - end this one with a BYE
         h->end();
     }
-   cout << "*************** onConnected ***************************\n"
+   /*cout << "*************** onConnected ***************************\n"
        << msg
-       << "***********************************************\n" << endl;
+       << "***********************************************\n" << endl;*/
 }
 void
 UaClientCall::onConnected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 7\n" << msg << endl;
+    //cout << "***************  ******************* 7\n" << msg << endl;
    InfoLog(<< "onConnected: msg=" << msg.brief());
-   cout << "*************** onConnected 1 ***************************\n"
+   /*cout << "*************** onConnected 1 ***************************\n"
        << msg
-       << "***********************************************\n" << endl;
+       << "***********************************************\n" << endl;*/
    //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED);
 }
 
 void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 8\n" << msg << endl;
+    //cout << "***************  ******************* 8\n" << msg << endl;
     InfoLog(<< "onConnectedConfirmed: msg=" << msg.brief());
     if (msg.isRequest())
     {
@@ -799,22 +770,22 @@ void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage&
     }
     
     
-    cout << "*************** onConnectedConfirmed ***************************\n"
+    /*cout << "*************** onConnectedConfirmed ***************************\n"
         << msg
-        << "***********************************************\n" << endl;
+        << "***********************************************\n" << endl;*/
     //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED_CONFIRMED);
 }
 void
 UaClientCall::onStaleCallTimeout(ClientInviteSessionHandle h)
 {
-    cout << "***************  ******************* 9\n" << endl;
+    //cout << "***************  ******************* 9\n" << endl;
    WarningLog(<< "onStaleCallTimeout");
 }
 
 void
 UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::TerminatedReason reason, const SipMessage* msg)
 {
-    cout << "***************  ******************* 10\n" << endl;
+    //cout << "***************  ******************* 10\n" << endl;
     if (isUACConnected())
     {
         mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
@@ -886,9 +857,9 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
    if(msg)
    {
       InfoLog(<< "onTerminated: reason=" << reasonData << ", msg=" << msg->brief());
-      cout << "*************** onTerminated ***************************\n"
+      /*cout << "*************** onTerminated ***************************\n"
           << *msg
-          << "***********************************************\n" << endl;
+          << "***********************************************\n" << endl;*/
    }
    else
    {
@@ -899,7 +870,7 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
 void
 UaClientCall::onRedirected(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 11\n" << msg << endl;
+    //cout << "***************  ******************* 11\n" << msg << endl;
    // DUM will recurse on redirect requests, so nothing to do here
    InfoLog(<< "onRedirected: msg=" << msg.brief());
 }
@@ -907,7 +878,7 @@ UaClientCall::onRedirected(ClientInviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 12 " << msg << endl;
+    //cout << "***************  ******************* 12 " << msg << endl;
     mUserAgent.setCallStatus(streamId, CALL_UAC_ANSWER_200OK);
    if(isStaleFork(h->getDialogId()))
    {
@@ -934,7 +905,7 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
 void
 UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 13\n" << msg << endl;
+    //cout << "***************  ******************* 13\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -958,15 +929,15 @@ UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpCon
        ReceiveInviteOffRequest(h, msg, sdp);
    }
   
-   cout << "*************** onOffer ***************************\n"
+   /*cout << "*************** onOffer ***************************\n"
        << msg
-       << "***********************************************\n" << endl;
+       << "***********************************************\n" << endl;*/
 }
 
 void
 UaClientCall::onOfferRequired(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 14\n" << msg << endl;
+    //cout << "***************  ******************* 14\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -985,7 +956,7 @@ UaClientCall::onOfferRequired(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onOfferRejected(InviteSessionHandle h, const SipMessage* msg)
 {
-    cout << "***************  ******************* 15\n" << msg << endl;
+    //cout << "***************  ******************* 15\n" << msg << endl;
    if(isStaleFork(h->getDialogId()))
    {
       // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
@@ -1012,7 +983,7 @@ UaClientCall::onOfferRejected(InviteSessionHandle h, const SipMessage* msg)
 void
 UaClientCall::onOfferRequestRejected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 16\n" << msg << endl;
+    //cout << "***************  ******************* 16\n" << msg << endl;
    InfoLog(<< "onOfferRequestRejected: msg=" << msg.brief());
    // This is called when we are waiting to resend a INVITE with no sdp after a glare condition, and we 
    // instead receive an inbound INVITE or UPDATE
@@ -1021,7 +992,7 @@ UaClientCall::onOfferRequestRejected(InviteSessionHandle h, const SipMessage& ms
 void
 UaClientCall::onRemoteSdpChanged(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-    cout << "***************  ******************* 17\n" << msg << endl;
+    //cout << "***************  ******************* 17\n" << msg << endl;
    /// called when a modified SDP is received in a 2xx response to a
    /// session-timer reINVITE. Under normal circumstances where the response
    /// SDP is unchanged from current remote SDP no handler is called
@@ -1035,7 +1006,7 @@ UaClientCall::onRemoteSdpChanged(InviteSessionHandle h, const SipMessage& msg, c
 void
 UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 18\n" << msg << endl;
+    //cout << "***************  ******************* 18\n" << msg << endl;
    InfoLog(<< "onInfo: msg=" << msg.brief());
 
    // Handle message here
@@ -1045,21 +1016,21 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onInfoSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 19\n" << msg << endl;
+    //cout << "***************  ******************* 19\n" << msg << endl;
    InfoLog(<< "onInfoSuccess: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onInfoFailure(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 20\n" << msg << endl;
+    //cout << "***************  ******************* 20\n" << msg << endl;
    WarningLog(<< "onInfoFailure: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onRefer(InviteSessionHandle h, ServerSubscriptionHandle ss, const SipMessage& msg)
 {
-    cout << "***************  ******************* 21\n" << msg << endl;
+    //cout << "***************  ******************* 21\n" << msg << endl;
    InfoLog(<< "onRefer: msg=" << msg.brief());
 
    // Handle Refer request here
@@ -1068,29 +1039,29 @@ UaClientCall::onRefer(InviteSessionHandle h, ServerSubscriptionHandle ss, const 
 void
 UaClientCall::onReferAccepted(InviteSessionHandle h, ClientSubscriptionHandle csh, const SipMessage& msg)
 {
-    cout << "***************  ******************* 22\n" << msg << endl;
+    //cout << "***************  ******************* 22\n" << msg << endl;
    InfoLog(<< "onReferAccepted: msg=" << msg.brief());
 }
 void UaClientCall::onAckReceived(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 23\n" << msg << endl;
+    //cout << "***************  ******************* 23\n" << msg << endl;
     InfoLog(<< "onOffer: " << msg);
 
-    cout << "*************** onReferAccepted ***************************\n"
+    /*cout << "*************** onReferAccepted ***************************\n"
         << msg
-        << "***********************************************\n" << endl;
+        << "***********************************************\n" << endl;*/
 }
 void
 UaClientCall::onReferRejected(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 24\n" << msg << endl;
+    //cout << "***************  ******************* 24\n" << msg << endl;
    WarningLog(<< "onReferRejected: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onReferNoSub(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 25\n" << msg << endl;
+    //cout << "***************  ******************* 25\n" << msg << endl;
    InfoLog(<< "onReferNoSub: msg=" << msg.brief());
 
    // Handle Refer request with (no-subscription indication) here
@@ -1099,7 +1070,7 @@ UaClientCall::onReferNoSub(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onMessage(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 26\n" << msg << endl;
+    //cout << "***************  ******************* 26\n" << msg << endl;
    InfoLog(<< "onMessage: msg=" << msg.brief());
 
    // Handle message here
@@ -1116,7 +1087,7 @@ UaClientCall::onMessage(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onMessageSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
-    cout << "***************  ******************* 27\n" << msg << endl;
+    //cout << "***************  ******************* 27\n" << msg << endl;
     mTimerExpiredCounter = 0;
     mSessionState = msg.header(h_StatusLine).statusCode();
    InfoLog(<< "onMessageSuccess: msg=" << msg.brief());
@@ -1126,7 +1097,7 @@ void
 UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
 {
     mSessionState = msg.header(h_StatusLine).statusCode();
-    cout << "***************  ******************* 28\n" << msg << endl;
+    //cout << "***************  ******************* 28\n" << msg << endl;
     if (mSessionState == 408)
     {
         mTimerExpiredCounter++;
@@ -1141,7 +1112,7 @@ UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
 void
 UaClientCall::onForkDestroyed(ClientInviteSessionHandle h)
 {
-    cout << "***************  ******************* 29\n" << endl;
+    //cout << "***************  ******************* 29\n" << endl;
    InfoLog(<< "onForkDestroyed:");
 }
 
@@ -1168,13 +1139,13 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
 
     }
     
-    cout << "***************  ******************* 30\n" << msgData << endl;
+    //cout << "***************  ******************* 30\n" << msgData << endl;
 }
 
 void 
 UaClientCall::onFlowTerminated(InviteSessionHandle h)
 {
-    cout << "***************  ******************* 31\n" << endl;
+    //cout << "***************  ******************* 31\n" << endl;
    if(h->isConnected())
    {
       NameAddr inviteWithReplacesTarget;

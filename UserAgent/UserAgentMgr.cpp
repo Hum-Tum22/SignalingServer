@@ -39,6 +39,7 @@
 #include "../SipServerConfig.h"
 #include "../SipServer.h"
 #include "../tools/m_Time.h"
+#include "SubscriptionMrg.h"
 
 #include "../deviceMng/JsonDevice.h"
 #include "../media/MediaMng.h"
@@ -167,7 +168,7 @@ public:
         else if (msg.method() == MESSAGE)
         {
             Data destip = Tuple::inet_ntop(destination);
-            cout << destip << endl;
+            //cout << "MESSAGE destip:" << destip << endl;
         }
         else
         {
@@ -404,8 +405,6 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     {
         mDum->addClientSubscriptionHandler(iter, this);
         mDum->addServerSubscriptionHandler(iter, this);
-        ServerSubscriptionInfos svsubinfos;
-        m_SvSubmap[iter] = svsubinfos;
     }
 
     // Set AppDialogSetFactory
@@ -429,7 +428,8 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mDevCfg.HeartBeatCount = SvrCfg.getConfigInt("keepaliveTimeOutNum", 3);
     mDevCfg.HeartBeatInterval = SvrCfg.getConfigInt("keepaliveInterval", 3);
     mDevCfg.Expires = SvrCfg.getConfigInt("Expires", 3);
-    StateThread = std::thread(checkStateThread, this);
+    //StateThread = std::thread(checkStateThread, this);
+    sendNotify();
 }
 UaMgr::~UaMgr()
 {
@@ -485,9 +485,9 @@ void UaMgr::Regist(shared_ptr<UaSessionInfo> ua)
         //regMessage->header(h_Routes).push_front(NameAddr(ua->toUri));
         ua->regcallid = regMessage->header(h_CallID).value();
         ua->heartTimeOutCount = 0;
-        cout << "**************************************\n"
+        /*cout << "**************************************\n"
             << *regMessage
-            << "\n***********************************\n" << endl;
+            << "\n***********************************\n" << endl;*/
     }
     mDum->send(regMessage);
 }
@@ -576,12 +576,42 @@ void __stdcall UaMgr::RegistStateCallBack(const Data& callID, ClientRegistration
 void UaMgr::checkStateThread(UaMgr* chandle)
 {
     int count = 0;
+    time_t lastTime, curTime;
+    lastTime = curTime = time(0);
     while (!chandle->mDumShutdown)
     {
         if (count++ > 10)
         {
             chandle->CheckRegistState();
             count = 0;
+        }
+        curTime = time(0);
+        if (curTime - lastTime > 10)
+        {
+            lastTime = curTime;
+            std::string upID, upHost, upPassword("12345");
+            int upPort = 0;
+            //printf("get cctv node into start \n");
+            int num = chandle->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword, true);
+            //printf("get cctv node into end\n");
+            if (upID.empty() && upHost.empty() && upPassword.empty() && upPort != 0)
+            {
+                Data user(upID);
+                shared_ptr<UaSessionInfo> uaState = chandle->GetNextUaInfoByUser(user);
+                if (uaState && (Data(upHost) != uaState->toUri.host() || upPort != uaState->toUri.port() || uaState->passwd != Data(upPassword)))
+                {
+                    chandle->DoCancelRegist(user);
+                    uaState->toUri.host() = Data(upHost);
+                    uaState->toUri.port() = upPort;
+                    uaState->passwd = Data(upPassword);
+
+                    uaState->heartTimeOutCount = 0;
+                    uaState->lastSendHeartTime = 0;
+                    uaState->lastsendheartoktime = 0;
+                    uaState->i_State = 0;
+                    uaState->ReissueRegistrationLater = time(0) + 60;
+                }
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
@@ -603,6 +633,11 @@ void UaMgr::CheckRegistState()
                     uaState->mh->requestRefresh();
                 }
             }
+        }
+        else if (uaState->ReissueRegistrationLater != 0 && uaState->ReissueRegistrationLater < time(0))
+        {
+            uaState->ReissueRegistrationLater = 0;
+            Regist(uaState);
         }
         else
         {
@@ -722,7 +757,7 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
                 delete Buffer; Buffer = NULL;
                 if (chl >= 0)
                 {
-                    JsonStream::Ptr streamIn = std::make_shared<JsonStream>(channelId.c_str());
+                    JsonStream::Ptr streamIn = std::make_shared<JsonStream>(channelId.c_str(), channelId.c_str());
                     ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
                     if (err == 0)
                     {
@@ -864,21 +899,48 @@ int UaMgr::getCallStatus(std::string streamId)
 //    }
 //    return NULL;
 //}
-bool UaMgr::CloseStreamStreamId(std::string channelId)
+bool UaMgr::CloseStreamStreamId(std::string streamId)
 {
+    MediaStream::Ptr ms = MediaMng::GetInstance().findStream(streamId);
+    if (ms)
+    {
+        ms->reduction();
+        printf("xxxxxxxxxxxxxxxxx close stream:%s ref:%d\n", streamId.c_str(), ms->refNum());
+        if (ms->refNum() == 0)
+        {
+            BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
+            if (childDev)
+            {
+                BaseDevice::Ptr parentDev = childDev->getParentDev();
+                if (parentDev && parentDev->devType == BaseDevice::JSON_NVR)
+                {
+                    int err = 0;
+                    parentDev->Dev_StopPreview(ms->getStreamHandle(), err);
+                    if (err == 0)
+                    {
+                        MediaMng::GetInstance().removeStream(streamId);
+                    }
+                    else
+                    {
+                        printf("stop stream:%s, failed:%d\n", streamId.c_str(), err);
+                    }
+                }
+            }
+        }
+    }
     /*ostringstream ss;
     ss << "http://192.168.1.38:80/index/api/closeRtpServer?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&stream="
         << devId << "_" << channelId;
     string strReponse = GetRequest(ss.str());*/
     CUSTORLOCKGUARD locker(mapStreamMtx);
-    auto it = m_StreamInfoMap.find(channelId);
+    auto it = m_StreamInfoMap.find(streamId);
     if (it != m_StreamInfoMap.end())
     {
         if (1/*--it->second->def == 0*/)
         {
             delete it->second;
         }
-        m_StreamInfoMap.erase(channelId);
+        m_StreamInfoMap.erase(streamId);
     }
     return true;
 }
@@ -1015,19 +1077,9 @@ UaMgr::process(int timeoutMs)
         if (mDumShutdownRequested)
         {
             // unregister
-         if(mRegHandle.isValid())
-         {
-            mRegHandle->end();
-         }
-
-            // end any subscriptions
-            if (mServerSubscriptionHandle.isValid())
+            if(mRegHandle.isValid())
             {
-                mServerSubscriptionHandle->end();
-            }
-            if (mClientSubscriptionHandle.isValid())
-            {
-                mClientSubscriptionHandle->end();
+                mRegHandle->end();
             }
 
             // End all calls - copy list in case delete/unregister of call is immediate
@@ -1065,36 +1117,44 @@ UaMgr::onNotifyTimeout(unsigned int timerId)
 {
     if (timerId == mCurrentNotifyTimerId)
     {
-        //sendNotify();
+        sendNotify();
     }
 }
 
 void
-UaMgr::sendNotify(const Data& event, const Data& content)
+UaMgr::sendNotify()
 {
-    CUSTORLOCKGUARD locker(mapSubMtx);
-    std::map<Data, ServerSubscriptionInfos>::iterator iter = m_SvSubmap.find(event.c_str());
-    if (iter != m_SvSubmap.end())
+
+    CheckRegistState();
+    
+#ifdef QINGDONG_CCTV
+    std::string upID, upHost, upPassword("12345");
+    int upPort = 0;
+    //printf("get cctv node into start \n");
+    int num = getQDCCTVNodeInfo(upID, upHost, upPort, upPassword, true);
+    //printf("get cctv node into end\n");
+    if (upID.empty() && upHost.empty() && upPassword.empty() && upPort != 0)
     {
-        ServerSubscriptionInfos& SubInfos = iter->second;
-        if (!SubInfos.Subscrips.empty())
+        Data user(upID);
+        shared_ptr<UaSessionInfo> uaState = GetNextUaInfoByUser(user);
+        if (uaState && (Data(upHost) != uaState->toUri.host() || upPort != uaState->toUri.port() || uaState->passwd != Data(upPassword)))
         {
-            for (auto it : SubInfos.Subscrips)
-            {
-                PlainContents plain(content.c_str(), Mime("Application", "MANSCDP+xml"));
-                it.m_sh->send(it.m_sh->update(&plain));
-            }
+            DoCancelRegist(user);
+
+            uaState->toUri.host() = Data(upHost);
+            uaState->toUri.port() = upPort;
+            uaState->passwd = Data(upPassword);
+
+            uaState->heartTimeOutCount = 0;
+            uaState->lastSendHeartTime = 0;
+            uaState->lastsendheartoktime = 0;
+            uaState->i_State = 0;
+            uaState->ReissueRegistrationLater = time(0) + 60;
         }
     }
-    if (mServerSubscriptionHandle.isValid())
-    {
-        PlainContents plain("test notify");
-        mServerSubscriptionHandle->send(mServerSubscriptionHandle->update(&plain));
-
-        // start timer for next one
-      std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId));
-      mStack.post(std::move(timer), NotifySendTime, mDum);
-   }
+#endif
+    std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId));
+    mStack.post(std::move(timer), NotifySendTime, mDum);
 }
 
 void
@@ -1184,12 +1244,7 @@ UaMgr::onSuccess(ClientRegistrationHandle h, const SipMessage& msg)
     RegistStateCallBack(msg.header(h_CallID).value(), h, reason, this);
     //mRegHandle = h;
     mRegistrationRetryDelayTime = 0;  // reset
-    Data command;
-    {
-        DataStream ds(command);
-        ds << msg;
-    }
-    cout << command << endl;
+    
     if (msg.exists(h_Vias))
     {
         const Via& via = msg.header(h_Vias).front();
@@ -1450,9 +1505,9 @@ void
 UaMgr::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
 {
     dynamic_cast<UaClientCall*>(h->getAppDialogSet().get())->onReadyToSend(h, msg);
-    std::cout << "*********************************************\n"
+    /*std::cout << "*********************************************\n"
         << msg
-        << "******************************************************\n" << std::endl;
+        << "******************************************************\n" << std::endl;*/
 }
 
 void
@@ -1606,61 +1661,38 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
         return;
     }
     GB28181XmlMsg XmlMsg;
-    if (AnalyzeSubscriptionMsg(content->getBodyData().c_str(), XmlMsg))
+    if (AnalyzeReceivedSipMsg(content->getBodyData().c_str(), XmlMsg))
     {
         string outStr;
         if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
         {
             if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)
             {
-                CatalogSubscriptionMsg* pCatalogSubMsg = (CatalogSubscriptionMsg*)XmlMsg.pPoint;
-                //CreateCatalogSubscriptionResponseMsg(pCatalogSubMsg->DeviceID.c_str(), XmlMsg.sn, outStr);
+                Data eventType = msg.header(h_Event).value();
+                if (eventType == "Catalog" || eventType == "catalagitem")
+                {
+                    Data user = msg.header(h_From).uri().user();
+                    h->setSubscriptionState(Active);
+                    h->send(h->accept(200));
+                    CSubscriptionMrg::Instance().AddCatalogSubscription(user, h, eventType, XmlMsg);
+                    return;
+                }
             }
             else if (XmlMsg.cmdtype == XML_CMDTYPE_ALARM)
             {
-
+                h->setSubscriptionState(Active);
+                h->send(h->accept());
+                return;
             }
-        }
-        h->setSubscriptionState(Active);
-        shared_ptr<SipMessage> msg = h->accept();
-        unique_ptr<Contents> content(new PlainContents(outStr.c_str(), Mime("Application", "MANSCDP+xml")));
-        msg->setContents(std::move(content));
-        h->send(msg);
-    }
-
-    Data event = msg.header(h_Event).value();
-    CUSTORLOCKGUARD locker(mapSubMtx);
-    std::map<Data, ServerSubscriptionInfos>::iterator iter = m_SvSubmap.find(event);
-    if (iter != m_SvSubmap.end())
-    {
-        ServerSubscriptionInfos& SubInfos = iter->second;
-        if (SubInfos.Subscrips.empty())
-        {
-            ServerSubscriptionInfo subinfo;
-            subinfo.m_content = content->getBodyData();
-            subinfo.m_sh = h;
-            SubInfos.Subscrips.push_back(subinfo);
-        }
-        else
-        {
-            bool findflag = false;
-            for (auto it : SubInfos.Subscrips)
+            else if(XmlMsg.cmdtype == XML_CMDTYPE_MOBILE_POSITION)
             {
-                if (it.m_sh.getId() == h.getId())
-                {
-                    findflag = true;
-                    it.m_content = content->getBodyData();
-                }
-            }
-            if (!findflag)
-            {
-                ServerSubscriptionInfo subinfo;
-                subinfo.m_content = content->getBodyData();
-                subinfo.m_sh = h;
-                SubInfos.Subscrips.push_back(subinfo);
+                h->setSubscriptionState(Active);
+                h->send(h->accept());
+                return;
             }
         }
     }
+    h->end();
 }
 
 void
@@ -1713,9 +1745,10 @@ UaMgr::onRefresh(ServerSubscriptionHandle, const SipMessage& msg)
 }
 
 void
-UaMgr::onTerminated(ServerSubscriptionHandle)
+UaMgr::onTerminated(ServerSubscriptionHandle h)
 {
     InfoLog(<< "onTerminated(ServerSubscriptionHandle)");
+    CSubscriptionMrg::Instance().DeleteSubscription(h);
 }
 
 void
@@ -1742,9 +1775,14 @@ UaMgr::onExpiredByClient(ServerSubscriptionHandle, const SipMessage& sub, SipMes
 }
 
 void
-UaMgr::onExpired(ServerSubscriptionHandle, SipMessage& msg)
+UaMgr::onExpired(ServerSubscriptionHandle h, SipMessage& msg)
 {
     InfoLog(<< "onExpired(ServerSubscriptionHandle): " << msg.brief());
+    if (msg.header(h_Expires).value() == 0)
+    {
+        Data ev = msg.header(h_Event).value();
+        CSubscriptionMrg::Instance().DeleteSubscription(h, ev);
+    }
 }
 
 bool
@@ -1849,4 +1887,435 @@ std::string UaMgr::CreateSSRC(std::string name, std::string streamId)
 
     //ssrc += std::str_format("%04d", CreateSSRCseq());
 	return ssrc;
+}
+int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword, bool notify)
+{
+    Data httpUrl("http://");
+
+    Data httphost("192.168.1.223");
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    httphost = svrCfgi.getConfigData("CCTVHOST", httphost);
+    int port = svrCfgi.getConfigInt("CCTVPORT", 8080);
+    sipserver::SipServer* pSvr = GetServer();
+    if (pSvr)
+    {
+        pSvr->mediaIp = httphost.c_str();
+    }
+    httpUrl += httphost;
+    httpUrl += Data(":");
+    httpUrl += Data(port);
+    httpUrl += Data("/device/gbInfo");
+    ////"http://192.168.1.223:20010/device/gbInfo"
+    std::string dirstr = GetRequest(httpUrl.c_str());
+
+    rapidjson_sip::Document document;
+    document.Parse((char*)dirstr.c_str());
+    if (!document.HasParseError())
+    {
+        resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
+        if (document.HasMember("data") && document["data"].IsObject())
+        {
+            rapidjson_sip::Value& body = document["data"];
+            int count = json_check_int32(body, "Count");
+            if (body.HasMember("Data") && body["Data"].IsArray())
+            {
+                rapidjson_sip::Value& msbody = body["Data"];
+                for (size_t i = 0; i < msbody.Size(); i++)
+                {
+                    VirtualOrganization voTop;
+                    voTop.Name = json_check_string(msbody[i], "Title");
+                    voTop.DeviceID = json_check_string(msbody[i], "GBId");
+                    voTop.ParentID = DeviceMng::Instance().getSelfId();
+                    VirtualOrganization *vo = DeviceMng::Instance().findVirtualOrganization(voTop.DeviceID);
+                    if (vo)
+                    {
+                        if (vo->Name != voTop.Name || vo->ParentID != voTop.ParentID)
+                        {
+                            vo->Name = voTop.Name;
+                            vo->ParentID = voTop.ParentID;
+
+                            if (notify)
+                            {
+                                std::string outStr;
+                                CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), voTop, outStr);
+                                CSubscriptionMrg::Instance().NotifyCatalog(outStr, voTop.DeviceID, voTop.ParentID);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        printf("add gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
+                        DeviceMng::Instance().addVirtualOrganization(voTop);
+
+                        if (notify)
+                        {
+                            std::string outStr;
+                            CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), voTop, outStr);
+                            CSubscriptionMrg::Instance().NotifyCatalog(outStr, voTop.DeviceID, voTop.ParentID);
+                        }
+                    }
+
+                    int port = json_check_int32(msbody[i], "ManagePort");
+                    //port = 7000;
+                    std::string user = json_check_string(msbody[i], "ManageUser");
+                    std::string pass = json_check_string(msbody[i], "ManagePass");
+                    std::string nvrIp = json_check_string(msbody[i], "ManageIp");
+                    std::string nvrId = json_check_string(msbody[i], "nvrDid");
+                    int nvrStatus = json_check_int32(msbody[i], "status");
+                    BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(nvrId);
+                    if (dev)
+                    {
+                        if (dev->devType == BaseDevice::JSON_NVR)
+                        {
+                            auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
+                            if (Nvr)
+                            {
+                                Nvr->setStatus(nvrStatus ? 0 : 1);
+                                Nvr->setIp(nvrIp);
+                                Nvr->setPort(port);
+                                Nvr->setUser(user);
+                                Nvr->setPswd(pass);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), nvrIp.c_str(), port, user.c_str(), pass.c_str());
+                        jsonNvr->setStatus(nvrStatus ? 0 : 1);
+                        DeviceMng::Instance().addDevice(jsonNvr);
+                        dev = jsonNvr;
+                    }
+                    if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
+                    {
+                        rapidjson_sip::Value& upbody = msbody[i]["Upward"];
+                        VirtualOrganization subVo;
+                        subVo.Name = json_check_string(upbody, "Title");
+                        subVo.DeviceID = json_check_string(upbody, "GBId");
+                        subVo.ParentID = voTop.DeviceID;
+                        VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
+                        if (sVo)
+                        {
+                            if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                            {
+                                sVo->Name = subVo.Name;
+                                sVo->ParentID = subVo.ParentID;
+
+                                if (notify)
+                                {
+                                    std::string outStr;
+                                    CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
+                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                            DeviceMng::Instance().addVirtualOrganization(subVo);
+
+                            if (notify)
+                            {
+                                std::string outStr;
+                                CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), subVo, outStr);
+                                CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                            }
+                        }
+
+                        if (upbody.HasMember("Data") && upbody["Data"].IsArray())
+                        {
+                            rapidjson_sip::Value& ipcbody = upbody["Data"];
+                            for (size_t j = 0; j < ipcbody.Size(); j++)
+                            {
+                                std::string childName = json_check_string(ipcbody[j], "ipc");
+                                std::string childId = json_check_string(ipcbody[j], "GBId");
+                                int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
+                                ipcStatus = ipcStatus ? 0 : 1;
+
+                                BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                if (child)
+                                {
+                                    if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                    {
+                                        JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                        if (jsonChild)
+                                        {
+                                            if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                            {
+                                                jsonChild->setParentDev(dev);
+                                                jsonChild->setName(childName);
+                                                jsonChild->setStatus(ipcStatus);
+                                                jsonChild->setParentId(subVo.DeviceID);
+
+                                                if (notify)
+                                                {
+                                                    std::string outStr;
+                                                    CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                }
+                                            }
+                                            else if(jsonChild->getStatus() != ipcStatus)
+                                            {
+                                                jsonChild->setStatus(ipcStatus);
+
+                                                if (notify)
+                                                {
+                                                    std::string outStr;
+                                                    CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus?CSubscriptionMrg::EVENT_ON: CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    auto childDev = new JsonChildDevic(childId.c_str());
+                                    childDev->setParentDev(dev);
+                                    childDev->setName(childName);
+                                    childDev->setStatus(ipcStatus);
+                                    childDev->setParentId(subVo.DeviceID);
+                                    DeviceMng::Instance().addChildDevice(childDev);
+                                    printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+
+                                    if (notify)
+                                    {
+                                        std::string outStr;
+                                        CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                        CSubscriptionMrg::Instance().NotifyCatalog(outStr, childDev->getDeviceId(), childDev->getParentId());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
+                    {
+                        rapidjson_sip::Value& downbody = msbody[i]["Downward"];
+                        VirtualOrganization subVo;
+                        subVo.Name = json_check_string(downbody, "Title");
+                        subVo.DeviceID = json_check_string(downbody, "GBId");
+                        subVo.ParentID = voTop.DeviceID;
+                        VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
+                        if (sVo)
+                        {
+                            if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                            {
+                                sVo->Name = subVo.Name;
+                                sVo->ParentID = subVo.ParentID;
+
+                                if (notify)
+                                {
+                                    std::string outStr;
+                                    CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
+                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                            DeviceMng::Instance().addVirtualOrganization(subVo);
+
+                            if (notify)
+                            {
+                                std::string outStr;
+                                CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), subVo, outStr);
+                                CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                            }
+                        }
+                        if (downbody.HasMember("Data") && downbody["Data"].IsArray())
+                        {
+                            rapidjson_sip::Value& ipcbody = downbody["Data"];
+                            for (size_t j = 0; j < ipcbody.Size(); j++)
+                            {
+                                std::string childName = json_check_string(ipcbody[j], "ipc");
+                                std::string childId = json_check_string(ipcbody[j], "GBId");
+                                int ipcStatus = json_check_int32(ipcbody[j], "status");
+                                ipcStatus = ipcStatus ? 0 : 1;
+
+                                BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                if (child)
+                                {
+                                    if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                    {
+                                        JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                        if (jsonChild)
+                                        {
+                                            if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                            {
+                                                jsonChild->setParentDev(dev);
+                                                jsonChild->setName(childName);
+                                                jsonChild->setStatus(ipcStatus);
+                                                jsonChild->setParentId(subVo.DeviceID);
+
+                                                if (notify)
+                                                {
+                                                    std::string outStr;
+                                                    CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                }
+                                            }
+                                            else if (jsonChild->getStatus() != ipcStatus)
+                                            {
+                                                jsonChild->setStatus(ipcStatus);
+
+                                                if (notify)
+                                                {
+                                                    std::string outStr;
+                                                    CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    auto childDev = new JsonChildDevic(childId.c_str());
+                                    childDev->setParentDev(dev);
+                                    childDev->setName(childName);
+                                    childDev->setStatus(ipcStatus);
+                                    childDev->setParentId(subVo.DeviceID);
+                                    DeviceMng::Instance().addChildDevice(childDev);
+                                    printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+
+                                    if (notify)
+                                    {
+                                        std::string outStr;
+                                        CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                        CSubscriptionMrg::Instance().NotifyCatalog(outStr, childDev->getDeviceId(), childDev->getParentId());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
+                    {
+                        rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
+                        VirtualOrganization subVo;
+                        subVo.Name = json_check_string(kkbody, "Title");
+                        subVo.DeviceID = json_check_string(kkbody, "GBId");
+                        subVo.ParentID = voTop.DeviceID;
+                        VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
+                        if (sVo)
+                        {
+                            if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                            {
+                                sVo->Name = subVo.Name;
+                                sVo->ParentID = subVo.ParentID;
+
+                                if (notify)
+                                {
+                                    std::string outStr;
+                                    CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
+                                    CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                            DeviceMng::Instance().addVirtualOrganization(subVo);
+
+                            if (notify)
+                            {
+                                std::string outStr;
+                                CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), subVo, outStr);
+                                CSubscriptionMrg::Instance().NotifyCatalog(outStr, subVo.DeviceID, subVo.ParentID);
+                            }
+                        }
+                        if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
+                        {
+                            rapidjson_sip::Value& ipcbody = kkbody["Data"];
+                            for (size_t j = 0; j < ipcbody.Size(); j++)
+                            {
+                                std::string childName = json_check_string(ipcbody[j], "ipc");
+                                std::string childId = json_check_string(ipcbody[j], "GBId");
+                                int ipcStatus = json_check_int32(ipcbody[j], "status");
+                                ipcStatus = ipcStatus ? 0 : 1;
+                                
+                                BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                if (child)
+                                {
+                                    if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                    {
+                                        JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                        if (jsonChild)
+                                        {
+                                            if (jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
+                                            {
+                                                if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                {
+                                                    jsonChild->setParentDev(dev);
+                                                    jsonChild->setName(childName);
+                                                    jsonChild->setStatus(ipcStatus);
+                                                    jsonChild->setParentId(subVo.DeviceID);
+
+                                                    if (notify)
+                                                    {
+                                                        std::string outStr;
+                                                        CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                        CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                    }
+                                                }
+                                                else if (jsonChild->getStatus() != ipcStatus)
+                                                {
+                                                    jsonChild->setStatus(ipcStatus);
+
+                                                    if (notify)
+                                                    {
+                                                        std::string outStr;
+                                                        CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                                        CSubscriptionMrg::Instance().NotifyCatalog(outStr, jsonChild->getDeviceId(), jsonChild->getParentId());
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    auto childDev = new JsonChildDevic(childId.c_str());
+                                    childDev->setParentDev(dev);
+                                    childDev->setName(childName);
+                                    childDev->setStatus(ipcStatus);
+                                    childDev->setParentId(subVo.DeviceID);
+                                    DeviceMng::Instance().addChildDevice(childDev);
+                                    printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+
+                                    if (notify)
+                                    {
+                                        std::string outStr;
+                                        CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
+                                        CSubscriptionMrg::Instance().NotifyCatalog(outStr, childDev->getDeviceId(), childDev->getParentId());
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            /*"CCTV": {
+                "third.gb28181.server.id": "37028806002001207783",
+                    "third.gb28181.server.ip" : "10.62.23.10",
+                    "third.gb28181.server.port" : "9700"
+            }*/
+            if (body.HasMember("CCTV") && body["CCTV"].IsObject())
+            {
+                rapidjson_sip::Value& cctvBody = body["CCTV"];
+                upID = json_check_string(cctvBody, "third.gb28181.server.id");
+                upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
+                std::string port = json_check_string(cctvBody, "third.gb28181.server.port");
+                upPort = std::stoi(port);
+                std::string pswd = json_check_string(cctvBody, "third.gb28181.server.passwd");
+                if (!pswd.empty())
+                {
+                    upPassword = pswd;
+                }
+            }
+            return count;
+        }
+    }
+    return 0;
 }

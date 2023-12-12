@@ -56,6 +56,8 @@ private:
 	double m_speed;
 	unsigned short m_seq;
 	int mGap;
+	uint64_t frameNum;
+	uint32_t nSsrc;
 
 	uint64_t m_ps_clock;
 	uint64_t m_rtp_clock;

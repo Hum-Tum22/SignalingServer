@@ -1,6 +1,7 @@
 #pragma once
 #include "../MediaStream.h"
 #include "../../deviceMng/JsonDevice.h"
+#include <chrono>
 
 
 class JsonStream : public MediaStream
@@ -131,14 +132,20 @@ class JsonStream : public MediaStream
 	int ReadBasicHeardFormBuf(unsigned char* pbuf, unsigned int pbufsize, DataHeard* pheard);
 	STREAM_CODEC switchFromToGB(int type);
 public:
-	JsonStream(const char* streamId);
+	JsonStream(const char* devId, const char* streamId);
 	virtual ~JsonStream();
 
 	int getvalue() { return 0; }
+	time_t LastFrameTime();
 	static void CALLBACK VskX86NvrRtPreDataCb(unsigned int PlayHandle, uint8_t* pBuffer, unsigned int BufferSize, unsigned int DateType, time_t systime, unsigned int TimeSpace, void *pUser);
 	static void CALLBACK DataPlayCallBack(unsigned int PlayHandle, unsigned int DateType, uint8_t* pBuffer, unsigned int BufferSize, void* pUser);
 
 	void OnVskJsonStream(uint8_t* data, size_t size);
 private:
 	LineBuffer mFrame;
+	time_t lastTime, curTime;
+	uint64_t nFrameNum;
+	uint32_t frameRate;
+	std::chrono::time_point<std::chrono::steady_clock> firstTime;
+	std::chrono::time_point<std::chrono::steady_clock> latestTime;
 };

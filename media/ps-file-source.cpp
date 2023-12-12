@@ -4,12 +4,13 @@
 #include "rtp/lib/rtp/rtp-payload.h"
 #include <assert.h>
 #include <chrono>
+#include <arpa/inet.h>
 
 //extern "C" uint32_t rtp_ssrc(void);
 
 
 PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
-	:m_reader(file), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL),  m_pos(0), m_seq(0), mGap(0)
+	:m_reader(file), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL),  m_pos(0), m_seq(0), mGap(0), frameNum(0), nSsrc(ssrc)
 {
 	m_speed = 1.0;
 	m_status = 0;
@@ -18,6 +19,11 @@ PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
 	m_rtcp_clock = 0;
 
 	//uint32_t ssrc = rtp_ssrc();
+	uint32_t lssrc = ssrc;
+	//if (BYTE_ORDER == LITTLE_ENDIAN)
+	{
+		//lssrc = htonl(ssrc);
+	}
 
 	struct ps_muxer_func_t func;
 	func.alloc = Alloc;
@@ -31,11 +37,11 @@ PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
 		PSFileSource::RTPFree,
 		PSFileSource::RTPPacket,
 	};
-	m_pspacker = rtp_payload_encode_create(RTP_PAYLOAD_MP2P, "MP2P", (uint16_t)ssrc, ssrc, &s_psfunc, this);
+	m_pspacker = rtp_payload_encode_create(RTP_PAYLOAD_MP2P, "MP2P", (uint16_t)lssrc, lssrc, &s_psfunc, this);
 
 	struct rtp_event_t event;
 	event.on_rtcp = OnRTCPEvent;
-	m_rtp = rtp_create(&event, this, ssrc, ssrc, 90000, 4 * 1024, 1);
+	m_rtp = rtp_create(&event, this, lssrc, lssrc, 90000, 4 * 1024, 1);
 	rtp_set_info(m_rtp, "RTSPServer", "szj.h264");
 }
 
@@ -133,10 +139,14 @@ int PSFileSource::Play()
 				printf("data err %x,%x,%x,%x,nalu:%d\n", frame.nalu[0], frame.nalu[1], frame.nalu[2], frame.nalu[3], (frame.nalu[4] & 0x1F));
 				return 0;
 			}
+			if (frame.frameType == GB_CODEC_H264 || frame.frameType == GB_CODEC_H265)
+			{
+				frameNum++;
+			}
 			if (frame.idr)
 			{
 				mGap = frame.gap;
-				printf("--------------- idr frame time:%ld, gap:%d\n", time(0), mGap);
+				printf("--------------- idr frame time:%ld, gap:%d, frameNum:%ju, ssrc:%u\n", time(0), mGap, frameNum, nSsrc);
 			}
 			ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
 			m_rtp_clock += 40;
@@ -286,10 +296,20 @@ int PSFileSource::RTPPacket(void* param, const void* packet, int bytes, uint32_t
 {
 	PSFileSource* self = (PSFileSource*)param;
 	assert(self->m_packet == packet);
-	
+
+	/*const char* rtpPacket = (const char*)packet;
+	printf("rtp packet:");
+	for (int i = 0; i < 12; i++)
+	{
+		printf("%02x ", rtpPacket[i]);
+	}
+	printf("\n");*/
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	int r = self->m_transport->Send(false, packet, bytes);
 	if (r != bytes)
+	{
 		return -1;
+	}
 
 	return rtp_onsend(self->m_rtp, packet, bytes/*, time*/);
 }

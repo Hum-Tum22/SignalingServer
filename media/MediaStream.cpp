@@ -24,16 +24,16 @@ int FrameMemPool::Init264()
 			vframe_t frame;
 			frame.nalu = nalu;
 			frame.bytes = (long)bytes;
-			frame.frameType = 264;
+			frame.frameType = GB_CODEC_H264;
 			frame.time = fgap * frameIndex++;
 			frame.idr = 5 == nal_unit_type; // IDR-frame
 			frame.gap = fgap;
-			//m_videos.push_back(frame);
-			push(frame);
 			if (frame.idr)
 			{
-				//printf("push idr time:%lld\n", time(0));
+				lastIdrPos = getWritePos();
 			}
+			push(frame);
+			
 			
 			nalu = pn;
 		}
@@ -125,7 +125,7 @@ int FrameMemPool::Init265()
 			vframe_t frame;
 			frame.nalu = nalu;
 			frame.bytes = bytes;
-			frame.frameType = 265;
+			frame.frameType = GB_CODEC_H265;
 			frame.time = fgap * count++;
 			frame.gap = fgap;
 			frame.idr = (NAL_IDR_N_LP == nal_unit_type || NAL_IDR_W_RADL == nal_unit_type); // IDR-frame
@@ -139,8 +139,8 @@ int FrameMemPool::Init265()
 	m_duration = fgap * count;
 	return 0;
 }
-FrameMemPool::FrameMemPool() : MemPool(1024*1024*5), unLockQueue(), frameType(GB_CODEC_UNKNOWN), m_duration(0), fgap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
-	, frameIndex(0)//, mFrame(512 * 1024)
+FrameMemPool::FrameMemPool(size_t length) : MemPool(length), unLockQueue(), frameType(GB_CODEC_UNKNOWN), m_duration(0), fgap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
+	, frameIndex(0), lastIdrPos(0)
 {
 }
 FrameMemPool::~FrameMemPool()
@@ -183,6 +183,7 @@ int FrameMemPool::InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int 
 }
 int FrameMemPool::getReader()
 {
+	return lastIdrPos;
 	int size = getMaxSize();
 	vframe_t frame;
 	frame.idr = false;
@@ -197,16 +198,20 @@ int FrameMemPool::getReader()
 	return -1;
 }
 
-MediaStream::MediaStream(const char* Id) :streamId(Id), streamHandle(0), source(NULL) //, m_duration(40)
+MediaStream::MediaStream(const char* devId, const char* streamId) :deviceId(devId), streamId(streamId), def(0), streamHandle(0), /*source(NULL) ,*/ framePool(1024*1024*10)//, m_duration(40)
 {
 }
 MediaStream::~MediaStream()
 {
 
 }
-const std::string MediaStream::getStreamId()
+const std::string& MediaStream::getStreamId()
 {
 	return streamId;
+}
+const std::string& MediaStream::getDeviceId()
+{
+	return deviceId;
 }
 void MediaStream::setStreamHandle(SHANDLE handle)
 {
@@ -216,10 +221,10 @@ const SHANDLE MediaStream::getStreamHandle()
 {
 	return streamHandle;
 }
-void MediaStream::setMediaSource(IMediaSource* s)
-{
-	source = s;
-}
+//void MediaStream::setMediaSource(IMediaSource* s)
+//{
+//	source = s;
+//}
 void MediaStream::OnMediaStream(STREAM_CODEC code, uint8_t* data, size_t size, int gap)
 {
 	framePool.InputFrame(code, data, size, gap);
@@ -256,6 +261,18 @@ uint32_t MediaStream::createReader()
 void MediaStream::removeReader(uint32_t handle)
 {
 	mReaderMap.erase(handle);
+}
+void MediaStream::increasing()
+{
+	def++;
+}
+void MediaStream::reduction()
+{
+	def--;
+}
+int MediaStream::refNum()
+{
+	return def.load();
 }
 int MediaStream::GetReadPos(unsigned int readhandle)
 {

@@ -7,6 +7,7 @@
 #include "rutil/Log.hxx"
 #include "rutil/Logger.hxx"
 #include <mutex>
+#include <atomic>
 
 
 #include "../uainfo.h"
@@ -53,10 +54,11 @@ public:
 public:
 	void RegistPageMsgCallBack(RegistPageMsgStateCallBack fun, void* pUser);
 	void RegistArrivedMsgCallBack(RegistArrivedMsgCallBackFun fun, void* pUser);
+	uint32_t getMsgId();
 protected:
 	std::mutex CallIdmapMtx;
 	map<Data, MsgCmdType> MsgCallIDs;
-	uint32_t mMsgSn;
+	std::atomic<uint32_t> mMsgSn;
 	std::mutex CatalogmapMtx;
 	map<string, CatalogDateQuery*> mCatalogQueryMap;
 private:

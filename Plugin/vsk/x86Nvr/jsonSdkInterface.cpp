@@ -159,6 +159,7 @@ JSONLONG JsonSdkInterface::LogIn(const char* ip, int port, const char* name, con
 				int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
 				if (ret == 0)
 				{
+					printf("json sdk  login ok %ld\n", nLoginID);
 					return nLoginID;
 				}
 				else
@@ -199,6 +200,7 @@ void JsonSdkInterface::LogOut(JSONLONG loginId, int& err)
 			int ret = LogOutFun(loginId);
 			if (ret == 0)
 			{
+				printf("json sdk  logout %ld\n", loginId);
 				return;
 			}
 			else
@@ -242,6 +244,7 @@ JSONLONG JsonSdkInterface::Preview(JSONLONG UserID, int channel, int streamId, D
 			int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
+				printf("json sdk  preview ok %ld\n", hHandle);
 				return hHandle;
 			}
 			else
@@ -285,6 +288,7 @@ JSONLONG JsonSdkInterface::VskPreview(JSONLONG UserID, int channel, int streamId
 			int ret = VskPreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
+				printf("json sdk vsk preview ok %ld\n", hHandle);
 				return hHandle;
 			}
 			else
@@ -297,7 +301,7 @@ JSONLONG JsonSdkInterface::VskPreview(JSONLONG UserID, int channel, int streamId
 		err = -1;
 	return 0;
 }
-void JsonSdkInterface::StopPreview(JSONLONG UserID, int& err)
+void JsonSdkInterface::StopPreview(JSONLONG rthandle, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -306,11 +310,12 @@ void JsonSdkInterface::StopPreview(JSONLONG UserID, int& err)
 		{
 			StopPreviewFun = (Sdk_StopPreview)LoadSharedLibFun(m_hDll, "JsonSdk_VideoTranspondStop");
 		}
-		if (UserID && StopPreviewFun)
+		if (rthandle && StopPreviewFun)
 		{
-			int ret = StopPreviewFun(UserID);
+			int ret = StopPreviewFun(rthandle);
 			if (ret == 0)
 			{
+				printf("json sdk stop preview ok %ld\n", rthandle);
 				return ;
 			}
 			err = ret;

@@ -141,7 +141,7 @@ protected:
     //void addTransport(TransportType type, int port);
     friend class NotifyTimer;
     void onNotifyTimeout(unsigned int timerId);
-    //void sendNotify();
+    void sendNotify();
     friend class CallTimer;
     void onCallTimeout(UaClientCall* call);
 
@@ -158,7 +158,6 @@ protected:
     bool mDumShutdown;
     ClientRegistrationHandle mRegHandle;
     ClientSubscriptionHandle mClientSubscriptionHandle;
-    ServerSubscriptionHandle mServerSubscriptionHandle;
     unsigned int mRegistrationRetryDelayTime;
     unsigned int mCurrentNotifyTimerId;
 
@@ -194,7 +193,7 @@ public:
     void setCallStatus(std::string streamId, int status);
     int getCallStatus(std::string streamId);
     //UaClientCall* reTurnCallByStreamId(std::string streamId);
-    bool CloseStreamStreamId(std::string channelId);
+    bool CloseStreamStreamId(std::string streamdId);
 
     /*streamStatus getPlaybackStatus(std::string streamId);
     UaClientCall* reTurnCallByPlaybackStreamId(std::string streamId);
@@ -212,15 +211,14 @@ public:
 
 
     
-
+    int getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword, bool notify = false);
 public:
     resip::ThreadIf* mDumThread;
     CUserMessageMrg* mMessageMgr;
     resip::Uri mAor;
     std::mutex mapMtx;
     std::map<Data, shared_ptr<UaSessionInfo>> UserAgentInfoMap;
-    std::mutex mapSubMtx;
-    std::map<Data, ServerSubscriptionInfos> m_SvSubmap;
+
     std::mutex mapStreamMtx;
     std::map<std::string, BaseDevice*> m_StreamInfoMap;
 

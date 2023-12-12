@@ -104,10 +104,6 @@
 #include "MySqlDb.hxx"
 #endif
 
-#include "myjsondef.h"
-#include "writer.h"
-#include "stringbuffer.h"
-#include "document.h"
 
 #if defined(USE_SSL)
 #include "repro/stateAgents/CertServer.hxx"
@@ -153,7 +149,7 @@ public:
         // Log any errors to the screen 
         if (level <= Log::Err)
         {
-            resipCout << messageWithHeaders << endl;
+            resipCout << "ReproLogger:" << messageWithHeaders << endl;
         }
         return true;
     }
@@ -169,33 +165,33 @@ public:
         InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
-        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
+        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
     }
     virtual void outboundRetransmit(const Tuple& source, const Tuple& destination, const SendData& data)
     {
         InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << data.data
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
-        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
+        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << data.data
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
     }
     virtual void inboundMessage(const Tuple& source, const Tuple& destination, const SipMessage& msg)
     {
         InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*");
-        cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
+        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
             << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
             << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;
+            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
     }
 };
 
@@ -319,7 +315,8 @@ SipServer::run(int argc, char** argv)
         *mProxyConfig,
         mArgv[0],
         isEqualNoCase(loggingType, "file") ? &g_ReproLogger : 0);*/
-    Log::initialize(Log::Cout, Log::Stack, "gb28181");
+    Log::initialize(Log::File, Log::Debug, "gb28181", "gb28181.log");
+    Log::setMaxByteCount(52428800);
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 
@@ -428,15 +425,15 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("admin123");
+    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("12345");
     int upPort = 5060;
     Data passwd("12345");
-#ifdef QINGDONG_CCTC
-    getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
+#ifdef QINGDONG_CCTV
+    mUserAgent->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
 #endif
 
     Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
-#ifdef QINGDONG_CCTC
+#ifdef QINGDONG_CCTV
     target.user() = upID.c_str();
     target.host() = upHost.c_str();
     target.port() = upPort;
@@ -2033,158 +2030,4 @@ bool SipServer::operator()(resip::StatisticsMessage& statsMessage)
 SipServer* GetServer()
 {
     return SipServer::Instance();
-}
-
-int SipServer::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword)
-{
-    Data httpUrl("http://");
-
-    Data httphost("192.168.1.223");
-    httphost = mProxyConfig->getConfigData("CCTVHOST", httphost);
-    int port = mProxyConfig->getConfigInt("CCTVPORT", 8080);
-    mediaIp = httphost.c_str();
-    httpUrl += httphost;
-    httpUrl += Data(":");
-    httpUrl += Data(port);
-    httpUrl += Data("/device/gbInfo");
-    ////"http://192.168.1.223:20010/device/gbInfo"
-    std::string dirstr = GetRequest(httpUrl.c_str());
-
-    rapidjson_sip::Document document;
-    document.Parse((char*)dirstr.c_str());
-    if (!document.HasParseError())
-    {
-        if (document.HasMember("data") && document["data"].IsObject())
-        {
-            rapidjson_sip::Value& body = document["data"];
-            int count = json_check_int32(body, "Count");
-            if (body.HasMember("Data") && body["Data"].IsArray())
-            {
-                rapidjson_sip::Value& msbody = body["Data"];
-                for (size_t i = 0; i < msbody.Size(); i++)
-                {
-                    VirtualOrganization voTop;
-                    voTop.Name = json_check_string(msbody[i], "Title");
-                    voTop.DeviceID = json_check_string(msbody[i], "GBId");
-                    voTop.ParentID = DeviceMng::Instance().getSelfId();
-                    //printf("gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
-                    DeviceMng::Instance().addVirtualOrganization(voTop);
-
-                    int port = json_check_int32(msbody[i], "ManagePort");
-                    //port = 7000;
-                    std::string user = json_check_string(msbody[i], "ManageUser");
-                    std::string pass = json_check_string(msbody[i], "ManagePass");
-                    std::string nvrIp = json_check_string(msbody[i], "ManageIp");
-                    std::string nvrId = json_check_string(msbody[i], "nvrDid");
-                    int nvrStatus = json_check_int32(msbody[i], "status");
-                    auto dev = std::make_shared<JsonNvrDevic>(nvrId.c_str(), nvrIp.c_str(), port, user.c_str(), pass.c_str());
-                    dev->setStatus(nvrStatus ? 0 : 1);
-                    DeviceMng::Instance().addDevice(dev);
-                    if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
-                    {
-                        rapidjson_sip::Value& upbody = msbody[i]["Upward"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(upbody, "Title");
-                        subVo.DeviceID = json_check_string(upbody, "GBId");
-                        subVo.ParentID = voTop.DeviceID;
-                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
-                        DeviceMng::Instance().addVirtualOrganization(subVo);
-                        
-                        if (upbody.HasMember("Data") && upbody["Data"].IsArray())
-                        {
-                            rapidjson_sip::Value& ipcbody = upbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                std::string name = json_check_string(ipcbody[j], "ipc");
-                                std::string childId = json_check_string(ipcbody[j], "GBId");
-                                printf("gbid name:%s %s\n", childId.c_str(), name.c_str());
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
-                                ipcStatus = ipcStatus ? 0 : 1;
-                                auto childDev = new JsonChildDevic(childId.c_str());
-                                childDev->setParentDev(dev);
-                                childDev->setName(name);
-                                childDev->setStatus(ipcStatus);
-                                childDev->setParentId(subVo.DeviceID);
-                                DeviceMng::Instance().addChildDevice(childDev);
-                            }
-                        }
-                    }
-                    if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
-                    {
-                        rapidjson_sip::Value& downbody = msbody[i]["Downward"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(downbody, "Title");
-                        subVo.DeviceID = json_check_string(downbody, "GBId");
-                        subVo.ParentID = voTop.DeviceID;
-                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
-                        DeviceMng::Instance().addVirtualOrganization(subVo);
-                        if (downbody.HasMember("Data") && downbody["Data"].IsArray())
-                        {
-                            rapidjson_sip::Value& ipcbody = downbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                std::string childName = json_check_string(ipcbody[j], "ipc");
-                                std::string childId = json_check_string(ipcbody[j], "GBId");
-                                printf("gbid name:%s %s\n", childId.c_str(), childName.c_str());
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");
-                                ipcStatus = ipcStatus ? 0 : 1;
-                                auto childDev = new JsonChildDevic(childId.c_str());
-                                childDev->setParentDev(dev);
-                                childDev->setName(childName);
-                                childDev->setStatus(ipcStatus);
-                                childDev->setParentId(subVo.DeviceID);
-                                DeviceMng::Instance().addChildDevice(childDev);
-                            }
-                        }
-                    }
-                    if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
-                    {
-                        rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
-                        VirtualOrganization subVo;
-                        subVo.Name = json_check_string(kkbody, "Title");
-                        subVo.DeviceID = json_check_string(kkbody, "GBId");
-                        subVo.ParentID = voTop.DeviceID;
-                        //printf("gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
-                        DeviceMng::Instance().addVirtualOrganization(subVo);
-                        if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
-                        {
-                            rapidjson_sip::Value& ipcbody = kkbody["Data"];
-                            for (size_t j = 0; j < ipcbody.Size(); j++)
-                            {
-                                std::string childName = json_check_string(ipcbody[j], "ipc");
-                                std::string childId = json_check_string(ipcbody[j], "GBId");
-                                printf("gbid name:%s %s\n", childId.c_str(), childName.c_str());
-                                int ipcStatus = json_check_int32(ipcbody[j], "status");
-                                ipcStatus = ipcStatus ? 0 : 1;
-                                auto childDev = new JsonChildDevic(childId.c_str());
-                                childDev->setParentDev(dev);
-                                childDev->setName(childName);
-                                childDev->setStatus(ipcStatus);
-                                childDev->setParentId(subVo.DeviceID);
-                                DeviceMng::Instance().addChildDevice(childDev);
-                            }
-                        }
-                    }
-
-                }
-            }
-
-            /*"CCTV": {
-                "third.gb28181.server.id": "37028806002001207783",
-                    "third.gb28181.server.ip" : "10.62.23.10",
-                    "third.gb28181.server.port" : "9700"
-            }*/
-            if (body.HasMember("CCTV") && body["CCTV"].IsObject())
-            {
-                rapidjson_sip::Value& cctvBody = body["CCTV"];
-                upID = json_check_string(cctvBody, "third.gb28181.server.id");
-                upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
-                std::string port  = json_check_string(cctvBody, "third.gb28181.server.port");
-                upPort = std::stoi(port);
-                //upPassword = json_check_string(cctvBody, "third.gb28181.server.passwd");
-            }
-            return count;
-        }
-    }
-    return 0;
 }

@@ -3,7 +3,7 @@
 //#include "ctypedef.h"
 //#include "port/ip-route.h"
 
-RTPUdpTransport::RTPUdpTransport()
+RTPUdpTransport::RTPUdpTransport():packetNum(0)
 {
 }
 
@@ -11,6 +11,21 @@ RTPUdpTransport::~RTPUdpTransport()
 {
 	rtp_socket_->close();
 	rtcp_socket_->close();
+	int squeSize = mSqueue.size();
+	int freeQueSize = mFreeQueue.size();
+	printf("free mSqueue size:%d mFreeQueue size:%d\n", squeSize, freeQueSize);
+	while (!mSqueue.empty())
+	{
+		rtpPacket* packet = NULL;
+		mSqueue.dequeue(packet);
+		delete packet;
+	}
+	while (!mFreeQueue.empty())
+	{
+		rtpPacket* packet = NULL;
+		mFreeQueue.dequeue(packet);
+		delete packet;
+	}
 }
 
 int RTPUdpTransport::Init(unsigned short localport[2], const char* ip, unsigned short port[2])
@@ -42,22 +57,49 @@ int RTPUdpTransport::Send(bool rtcp, const void* data, size_t bytes)
 {
 	if (!rtcp)
 	{
-		rtp_socket_->async_send_to(asio::buffer(data, bytes), rtp_peer_endpoint_,
+		/*if (packetNum != 0)
+		{
+			rtpPacket* packet = NULL;
+			if (mFreeQueue.empty())
+			{
+				packet = new rtpPacket();
+			}
+			else
+			{
+				mFreeQueue.dequeue(packet);
+			}
+			if (packet && packet->buffer && bytes <= 1500)
+			{
+				memcpy((void*)packet->buffer, data, bytes);
+				packet->dataSize = bytes;
+				mSqueue.enqueue(packet);
+			}
+			else
+			{
+				printf("packet:%p, bytes:%Zu\n", packet, bytes);
+			}
+			return bytes;
+		}
+		packetNum++;*/
+		rtp_socket_->send_to(asio::buffer(data, bytes), rtp_peer_endpoint_);
+		/*rtp_socket_->async_send_to(asio::buffer(data, bytes), rtp_peer_endpoint_,
 			[this](const asio::error_code& error, std::size_t bytes_transferred)
 			{
 				if (!error)
 				{
-
+					packetNum--;
+					doRtpSend();
 				}
 				else
 				{
 					rtp_socket_->close();
 				}
-			});
+			});*/
 	}
 	else
 	{
-		rtcp_socket_->async_send_to(asio::buffer(data, bytes), rtp_peer_endpoint_,
+		rtcp_socket_->send_to(asio::buffer(data, bytes), rtcp_peer_endpoint_);
+		/*rtcp_socket_->async_send_to(asio::buffer(data, bytes), rtcp_peer_endpoint_,
 			[this](const asio::error_code& error, std::size_t bytes_transferred)
 			{
 				if (!error)
@@ -68,7 +110,7 @@ int RTPUdpTransport::Send(bool rtcp, const void* data, size_t bytes)
 				{
 					rtcp_socket_->close();
 				}
-			});
+			});*/
 	}
 	return bytes;
 	//return socket_sendto(m_socket[i], data, bytes, 0, (sockaddr*)&m_addr[i], m_addrlen[i]);
@@ -77,4 +119,32 @@ void RTPUdpTransport::run()
 {
 	//io_service.run();
 	io_service.run_one();
+}
+void RTPUdpTransport::doRtpSend()
+{
+	if (mSqueue.empty())
+	{
+		return;
+	}
+	else
+	{
+		rtpPacket* packet = NULL;
+		mSqueue.dequeue(packet);
+		if (!packet)
+			return;
+		rtp_socket_->async_send_to(asio::buffer(packet->buffer, packet->dataSize), rtp_peer_endpoint_,
+			[&,this](const asio::error_code& error, std::size_t bytes_transferred)
+			{
+				if (!error)
+				{
+					packetNum--;
+					doRtpSend();
+				}
+				else
+				{
+					rtp_socket_->close();
+				}
+				mFreeQueue.enqueue(packet);
+			});
+	}
 }

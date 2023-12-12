@@ -45,7 +45,7 @@ void DeviceMng::removeDevice(std::string Id)
 	GMUTEX lock(devMtx);
 	mDeviceMap.erase(Id);
 }
-BaseDevice::Ptr DeviceMng::findDevice(std::string Id)
+BaseDevice::Ptr DeviceMng::findDevice(const std::string Id)
 {
 	GMUTEX lock(devMtx);
 	auto it = mDeviceMap.find(Id);
@@ -66,7 +66,7 @@ void DeviceMng::removeChildDevice(std::string Id)
 	GMUTEX lock(childMtx);
 	mChildMap.erase(Id);
 }
-BaseChildDevice* DeviceMng::findChildDevice(std::string Id)
+BaseChildDevice* DeviceMng::findChildDevice(const std::string Id)
 {
 	GMUTEX lock(childMtx);
 	auto it = mChildMap.find(Id);

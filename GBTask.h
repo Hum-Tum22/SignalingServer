@@ -21,7 +21,7 @@ public:
 		}
 		//GetServer()->GetMsgManager()->SendRequestPageMsg(toUri, OutStr, MsgCmdType_Catalog);
 		//this->setResult(NULL);
-		std::cout << "query catalog :" << DeviceId << std::endl;
+		//std::cout << "query catalog :" << DeviceId << std::endl;
 		return true;
 	}
 	bool TaskClose()

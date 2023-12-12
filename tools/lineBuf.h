@@ -1,11 +1,11 @@
-
+#pragma once
 
 
 
 class LineBuffer
 {
 public:
-	LineBuffer(int size);
+	LineBuffer(int size = 0);
 	~LineBuffer();
 	char *Buf();
 	int BufSize();

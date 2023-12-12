@@ -16,7 +16,10 @@ public:
 	void removeStream(std::string Id);
 	MediaStream::Ptr findStream(std::string Id);
 
+	void checkStreamStatus();
+
 private:
 	std::mutex stmMtx;
 	std::map<std::string, MediaStream::Ptr> mStreamMap;
+	bool statusRun;
 };

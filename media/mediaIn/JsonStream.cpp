@@ -149,14 +149,17 @@ unsigned int JsonStream::DataHeard::GetFrameBufSize()
 	return 0;// GetHeaderLen() + framelen + VKDATA2ENDLEN;
 }
 
-JsonStream::JsonStream(const char* streamId) :MediaStream(streamId), mFrame(512 * 1024)
+JsonStream::JsonStream(const char* devId, const char* streamId) :MediaStream(devId, streamId), mFrame(512 * 1024), lastTime(0), curTime(0), nFrameNum(0), frameRate(0)
 {
 }
 JsonStream::~JsonStream()
 {
 
 }
-
+time_t JsonStream::LastFrameTime()
+{
+	return curTime;
+}
 
 void CALLBACK JsonStream::VskX86NvrRtPreDataCb(unsigned int PlayHandle, uint8_t* pBuffer, unsigned int BufferSize, unsigned int DateType, time_t systime, unsigned int TimeSpace, void *pUser)
 {
@@ -176,6 +179,18 @@ void CALLBACK JsonStream::DataPlayCallBack(unsigned int PlayHandle, unsigned int
 }
 void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 {
+	curTime = time(0);
+	if (lastTime == 0)
+	{
+		lastTime = time(0);
+	}
+	if (curTime - lastTime > 5)
+	{
+		int interval = (std::chrono::duration_cast<std::chrono::milliseconds>(latestTime - firstTime)).count();
+		frameRate = nFrameNum*1000 / (interval);
+		printf("recved json stream data frame rate:%u, frame num:%ju, interval:%d, last:%lld,cur:%lld\n", frameRate, nFrameNum, interval, lastTime, curTime);
+		lastTime = curTime;
+	}
 	DataHeard xDataHeard;
 	xDataHeard.Clear();
 
@@ -211,20 +226,43 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 			}
 			else
 			{
+				if (nFrameNum == 0)
+				{
+					firstTime = std::chrono::steady_clock::now();
+				}
+				nFrameNum++;
+				latestTime = std::chrono::steady_clock::now();
+				int gap = 0;
+				if (frameRate == 0)
+				{
+					if (xDataHeard.framerate > 0)
+					{
+						gap = 1000 / xDataHeard.framerate;
+					}
+					else
+					{
+						gap = xDataHeard.gapms > 0 ? xDataHeard.gapms : 40;
+					}
+				}
+				else
+				{
+					gap = 1000 / frameRate;
+				}
+				
 				if (xDataHeard.framet == H264E_NALU_ISLICE)
 				{
-					printf("json idr:%ld\n", time(0));
+					printf("json idr:%ld, gapms:%d rate:%d\n", time(0), gap, frameRate);
 					if (mFrame.freeSize() < xDataHeard.framelen)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
 					mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
-					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), gap);
 					mFrame.clear();
 				}
 				else
 				{
-					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, gap);
 				}
 			}
 		}
@@ -236,6 +274,28 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 			}
 			else
 			{
+				if (nFrameNum == 0)
+				{
+					firstTime = std::chrono::steady_clock::now();
+				}
+				nFrameNum++;
+				latestTime = std::chrono::steady_clock::now();
+				int gap = 0;
+				if (frameRate == 0)
+				{
+					if (xDataHeard.framerate > 0)
+					{
+						gap = 1000 / xDataHeard.framerate;
+					}
+					else
+					{
+						gap = xDataHeard.gapms > 0 ? xDataHeard.gapms : 40;
+					}
+				}
+				else
+				{
+					gap = 1000 / frameRate;
+				}
 				if (xDataHeard.framet == H265_NALU_ISLICE || xDataHeard.framet == H265_NALU_ISLICE_MAX)
 				{
 					if (mFrame.freeSize() < xDataHeard.framelen)
@@ -243,12 +303,12 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
 					mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
-					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t*)mFrame.data(), mFrame.dataSize(), gap);
 					mFrame.clear();
 				}
 				else
 				{
-					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+					OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, gap);
 				}
 			}
 		}
