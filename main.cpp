@@ -12,6 +12,7 @@
 #include "rutil/WinLeakCheck.hxx"
 #include "SipServer.h"
 #include "http.h"
+#include "ws.h"
 #include "SipServerConfig.h"
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
@@ -49,6 +50,7 @@ int main(int argc, char** argv)
             exit(-1);
         }
         //HttpServer httpSv(pSipSvr->gbHttpPort);
+        WsServer s(9002);
         pSipSvr->mainLoop();
 
         pSipSvr->shutdown();

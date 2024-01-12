@@ -34,7 +34,7 @@ typedef enum
 	GB_CODEC_H264,
 	GB_CODEC_H265,
 }STREAM_CODEC;
-class FrameMemPool : public MemPool, public unLockQueue<vframe_t>
+class FrameMemPool : public avMemPool, public unLockQueue<vframe_t>
 {
 	//int Init();
 	int Init264();
@@ -59,6 +59,9 @@ public:
 
 	int InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int gap);
 	int getReader();
+
+	void setGap(int gap);
+	const int getGap();
 };
 using SHANDLE = unsigned long;
 class MediaStream
@@ -77,6 +80,12 @@ public:
 
 	void setStreamHandle(SHANDLE handle);
 	const SHANDLE getStreamHandle();
+
+	void setFrameRate(int fRate);
+	const int getFrameRate();
+
+	void setStreamType(int lv);
+	const int getStreamType();
 
 	//void setMediaSource(IMediaSource*s);
 
@@ -98,6 +107,7 @@ private:
 	std::string streamId;
 	std::atomic<int> def;
 	SHANDLE streamHandle;
+	int streamType;
 	FrameMemPool framePool;
 
 	std::atomic<uint32_t> mHandler;

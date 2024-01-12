@@ -177,6 +177,10 @@ void CALLBACK JsonStream::DataPlayCallBack(unsigned int PlayHandle, unsigned int
 		pThis->OnVskJsonStream(pBuffer, (size_t)BufferSize);
 	}
 }
+void CALLBACK JsonStream::PlayBackEndCb(unsigned int pbhandle, int errorcode, void* puser)
+{
+
+}
 void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 {
 	curTime = time(0);
@@ -187,8 +191,11 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 	if (curTime - lastTime > 5)
 	{
 		int interval = (std::chrono::duration_cast<std::chrono::milliseconds>(latestTime - firstTime)).count();
-		frameRate = nFrameNum*1000 / (interval);
-		printf("recved json stream data frame rate:%u, frame num:%ju, interval:%d, last:%lld,cur:%lld\n", frameRate, nFrameNum, interval, lastTime, curTime);
+		if (getFrameRate() == 0)
+			frameRate = nFrameNum * 1000 / (interval);
+		else
+			frameRate = getFrameRate();
+		printf("recved json stream data frame rate:%u, frame num:%ju, interval:%d, last:%ld,cur:%ld\n", frameRate, nFrameNum, interval, lastTime, curTime);
 		lastTime = curTime;
 	}
 	DataHeard xDataHeard;
@@ -251,7 +258,7 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 				
 				if (xDataHeard.framet == H264E_NALU_ISLICE)
 				{
-					printf("json idr:%ld, gapms:%d rate:%d\n", time(0), gap, frameRate);
+					printf("json idr:%ld, gapms:%d rate:%d, utc:%ju\n", time(0), gap, frameRate, xDataHeard.KeyFramE.timestamp);
 					if (mFrame.freeSize() < xDataHeard.framelen)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);

@@ -62,8 +62,11 @@ public:
 
 	//bool NotifyAlarm(AlarmInfo& stAlarmInfo);
 	bool NotifyCatalog(const std::string& content, const std::string& devid, const std::string& parentid);
+	bool NotifyCatalogByHandle(resip::ServerSubscriptionHandle &m_ssph, const std::string& content);
 
 	bool AddCatalogSubscription(resip::Data user, resip::ServerSubscriptionHandle m_ssph, resip::Data eventtype, const GB28181XmlMsg&);
 	void DeleteSubscription(resip::ServerSubscriptionHandle ssph, resip::Data& ev);
 	void DeleteSubscription(resip::ServerSubscriptionHandle ssph);
+
+	bool existsSubscription(resip::Data user, resip::ServerSubscriptionHandle ssph, resip::Data eventtype);
 };

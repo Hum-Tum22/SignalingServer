@@ -391,7 +391,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             //channelId = "37028806251320111506";
             
             remoteId = subjectArray[2];
-            streamId = channelId;
+            streamId = channelId + "_" + std::to_string(0);
             auto mdaStream = MediaMng::GetInstance().findStream(streamId);
             if (mdaStream)
             {
@@ -434,12 +434,15 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     unsigned short peerport[2] = { remotePort, ++remotePort };
                     if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
                     {
-                        psSource = new PSFileSource("", ssrc.convertInt());
-                        psSource->SetTransport("sip", transport);
                         MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
-                        streamInfo->increasing();
-                        printf("xxxxxxxxxxxxxxxxx stream:%s ref:%d\n", streamId.c_str(), streamInfo->refNum());
-                        psSource->setMediaStream(streamInfo);
+                        if (streamInfo)
+                        {
+                            psSource = new PSFileSource("", ssrc.convertInt());
+                            psSource->SetTransport("sip", transport);
+                            streamInfo->increasing();
+                            printf("xxxxxxxxxxxxxxxxx stream:%s ref:%d\n", streamId.c_str(), streamInfo->refNum());
+                            psSource->setMediaStream(streamInfo);
+                        }
                         //streamInfo->setMediaSource(psSource);
                         //return true;
                     }

@@ -20,12 +20,14 @@ typedef struct  _UaSessionInfo
         lastsendheartoktime = time(NULL);
         lastSendHeartTime = 0;
         heartTimeOutCount = 0;
+        cctvNum = 0;
     };
     _UaSessionInfo(const Uri& touri, const Uri& fromUri, const Data _passwd) // m_DialogSet(NULL),
         : toUri(touri), fromUri(fromUri), passwd(_passwd), i_State(0), ReissueRegistrationLater(0) {
         lastsendheartoktime = time(NULL);
         lastSendHeartTime = 0;
         heartTimeOutCount = 0;
+        cctvNum = 0;
     }
     Uri toUri;
     Uri fromUri;
@@ -36,7 +38,9 @@ typedef struct  _UaSessionInfo
     time_t         lastsendheartoktime;
     time_t         ReissueRegistrationLater;
     int            heartTimeOutCount;
+    int cctvNum;
     Data regcallid;
+    Data ssName;
 }UaSessionInfo;
 typedef struct _DevConfig
 {

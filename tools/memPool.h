@@ -11,10 +11,10 @@
 
 
 //template <typename T>
-class MemPool
+class avMemPool
 {
 public:
-	MemPool(size_t size = 0) : buf(NULL), bm_ptr(NULL), curBuf(NULL)
+	avMemPool(size_t size = 0) : buf(NULL), bm_ptr(NULL), curBuf(NULL)
 		,bufSize(size), readPtr(NULL), readSize(0)
 	{
 		//6M Kbps  =>11M 缓存15s
@@ -26,8 +26,9 @@ public:
 		bm_ptr = new uint8_t[bufSize];
 		curBuf = buf;
 		rPos = wPos = frPos = fwPos = 0;
+		printf("new avMemPool buf:%p, bm_ptr:%p, curBuf:%p\n", buf, bm_ptr, curBuf);
 	};
-	~MemPool()
+	~avMemPool()
 	{
 		if (buf)
 		{
@@ -37,7 +38,7 @@ public:
 		{
 			delete bm_ptr; bm_ptr = NULL;
 		}
-		printf("delete MemPool\n");
+		printf("delete avMemPool\n");
 	}
 	int wirteData(void* data, size_t size)
 	{

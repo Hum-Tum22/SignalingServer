@@ -25,6 +25,7 @@ public:
 	void removeChildDevice(std::string);
 	BaseChildDevice* findChildDevice(const std::string Id);
 	void getChildDevice(const std::string &Id, std::vector<BaseChildDevice*> &vcList);
+	BaseChildDevice* findChildDeviceByCCTVDeviceId(const std::string Id);
 
 	void addVirtualOrganization(VirtualOrganization);
 	void removeVirtualOrganization(std::string);

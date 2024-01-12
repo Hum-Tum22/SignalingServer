@@ -137,8 +137,34 @@ void JsonNvrDevic::JsonNvrLogOut(int& err)
 	if (err == 0 && mLoginId == 0)
 	{
 		JsonSdkInterface::Instance().LogOut(mLoginId, err);
-		if (err == 3001)
+		if (err == 3001 || err == 2007)
 		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+			mLoginId = 0;
+		}
+	}
+}
+void JsonNvrDevic::GetChannelEncoderParam(int channel, char* pBuffer, uint32_t* pInfoSize, int& err)
+{
+	err = 0;
+	if (!JsonSdkInterface::Instance().SdkIsInit())
+	{
+		JsonSdkInterface::Instance().InitSdk(err);
+	}
+	if (err == 0 && mLoginId == 0)
+	{
+		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+		if (err != 0)
+		{
+			return;
+		}
+	}
+	if (mLoginId > 0)
+	{
+		JsonSdkInterface::Instance().GetChannelEncoderParam(mLoginId, channel, pBuffer, pInfoSize, err);
+		if (err == 3001 || err == 2007)
+		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -161,8 +187,9 @@ ULHandle JsonNvrDevic::Dev_Preview(int channelId, int streamType, void* VideoTra
 	if (mLoginId > 0)
 	{
 		ULHandle ulPreviewHandle = JsonSdkInterface::Instance().VskPreview(mLoginId, channelId, streamType, (DataPlayCallBack)VideoTranCallBack, pUser, err);
-		if (err == 3001)
+		if (err == 3001 || err == 2007)
 		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 		return ulPreviewHandle;
@@ -179,8 +206,9 @@ void JsonNvrDevic::Dev_StopPreview(ULHandle handle, int& err)
 	if (mLoginId > 0)
 	{
 		JsonSdkInterface::Instance().StopPreview(handle, err);
-		if (err == 3001)
+		if (err == 3001 || err == 2007)
 		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -204,19 +232,67 @@ ULHandle JsonNvrDevic::Dev_PlayBack(int channelId, long start, long end, void* V
 	if (mLoginId > 0)
 	{
 		ULHandle ulPreviewHandle = JsonSdkInterface::Instance().PlayBack(mLoginId, channelId, start, end, (DataPlayCallBack)VideoTranCallBack, (PlayBackEndCallBack)fun, pUser, err);
-		if (err == 3001)
+		if (err == 3001 || err == 2007)
 		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 		return ulPreviewHandle;
 	}
 	return 0;
 }
-void JsonNvrDevic::Dev_StopPlayBack(ULHandle, int& err)
+void JsonNvrDevic::Dev_StopPlayBack(ULHandle handle, int& err)
 {
+	err = 0;
+	if (!JsonSdkInterface::Instance().SdkIsInit())
+	{
+		JsonSdkInterface::Instance().InitSdk(err);
+	}
+	if (mLoginId > 0)
+	{
+		JsonSdkInterface::Instance().StopPlayBack(handle, err);
+		if (err == 3001 || err == 2007)
+		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+			mLoginId = 0;
+		}
+	}
 }
-
-ULHandle JsonNvrDevic::Dev_Download(int channelId, long start, long end, DownloadData VideoTranCallBack, DownloadEnd fun, void* pUser, int& err)
+void JsonNvrDevic::Dev_PlayBackCtrl(ULHandle handle, int cmd, int param1, int param2, int& err)
+{
+	err = 0;
+	if (!JsonSdkInterface::Instance().SdkIsInit())
+	{
+		JsonSdkInterface::Instance().InitSdk(err);
+	}
+	if (mLoginId > 0)
+	{
+		JsonSdkInterface::Instance().PlayBackCtrl(handle, cmd, param1, param2, err);
+		if (err == 3001 || err == 2007)
+		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+			mLoginId = 0;
+		}
+	}
+}
+void JsonNvrDevic::Dev_PbCtrlTimePos(ULHandle handle, time_t pos, int& err)
+{
+	err = 0;
+	if (!JsonSdkInterface::Instance().SdkIsInit())
+	{
+		JsonSdkInterface::Instance().InitSdk(err);
+	}
+	if (mLoginId > 0)
+	{
+		JsonSdkInterface::Instance().setTimePos(handle, pos, err);
+		if (err == 3001 || err == 2007)
+		{
+			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+			mLoginId = 0;
+		}
+	}
+}
+ULHandle JsonNvrDevic::Dev_Download(int channelId, long start, long end, void* VideoTranCallBack, void* fun, void* pUser, int& err)
 {
 	return 0;
 }
@@ -253,8 +329,9 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t &BufSize, int& err)
 		if (err != 0)
 		{
 			printf("json sdk get ipc list err:%d\n", err);
-			if (err == 3001)
+			if (err == 3001 || err == 2007)
 			{
+				JsonSdkInterface::Instance().LogOut(mLoginId, err);
 				mLoginId = 0;
 			}
 		}

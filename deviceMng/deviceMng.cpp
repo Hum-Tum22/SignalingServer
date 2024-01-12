@@ -1,4 +1,5 @@
 #include "deviceMng.h"
+#include "JsonDevice.h"
 
 DeviceMng& DeviceMng::Instance()
 {
@@ -110,7 +111,30 @@ void DeviceMng::getChildDevice(const std::string &Id, std::vector<BaseChildDevic
 		}
 	}
 }
-
+BaseChildDevice* DeviceMng::findChildDeviceByCCTVDeviceId(const std::string Id)
+{
+	if (!Id.empty())
+	{
+		printf("findChildDeviceByCCTVDeviceId find id:%s\n", Id.c_str());
+		std::map<std::string, BaseChildDevice*> ChildMap;
+		{
+			GMUTEX lock(childMtx);
+			ChildMap = mChildMap;
+		}
+		for (auto& it : ChildMap)
+		{
+			if (it.second->getParentDev() && it.second->getParentDev()->devType == BaseDevice::JSON_NVR)
+			{
+				JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(it.second);
+				if (pChild && pChild->getName() == Id)
+				{
+					return it.second;
+				}
+			}
+		}
+	}
+	return NULL;
+}
 void DeviceMng::addVirtualOrganization(VirtualOrganization vo)
 {
 	GMUTEX lock(childMtx);

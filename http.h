@@ -4,6 +4,13 @@
 #include <mutex>
 #include <thread>
 
+#include "myjsondef.h"
+#include "writer.h"
+#include "stringbuffer.h"
+#include "document.h"
+
+#include "media/MediaMng.h"
+
 extern "C"
 {
 #include "mongoose.h"
@@ -29,11 +36,12 @@ public:
     uint64_t mTimeout_ms;
     std::string mResponse;
 };
+
+
 class HttpServer
 {
 private:
     static void HandleDefault(struct mg_connection* c, int ev, void* ev_data, void* fn_data);
-    static void WebsocketMessageProcess(struct mg_connection* websocketC, char* message, int len);
 
     static void DeviceOnLineState(const struct mg_str & body, std::string &strOut);
     static void DeviceChannelList(const struct mg_str& body, std::string& strOut);
@@ -48,7 +56,15 @@ private:
     static void zlmHookStreamNotFound(const struct mg_str& body, std::string& strOut);
     static void zlmHookSendRtpStopped(const struct mg_str& body, std::string& strOut);
 
+
     bool init(const string& rootpath = "./", const string& indexfile = "index");
+
+
+	static MediaStream::Ptr StartLiveStream(std::string channelId, int streamId);
+	//static void RtPreviewThread(WsStreamInfo* smInfo);
+
+
+	//static bool CloseStreamByStreamId(MediaStream::Ptr& ms);
 private:
     std::string m_address;
     std::string m_doc_root;
@@ -63,5 +79,9 @@ public:
 
     void loop();
     static void StartFun(void *data);
+	/*static int WebsocketMessage(struct mg_connection* c, const char* message, size_t len);
+	static int RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& document, rapidjson_sip::Writer<rapidjson_sip::StringBuffer>& writer);
+	static int PlayBackAction(WsStreamInfo* sinfo, rapidjson_sip::Document& document, rapidjson_sip::Writer<rapidjson_sip::StringBuffer>& writer);
+	static int PlayBackControlAction(WsStreamInfo* sinfo, rapidjson_sip::Document& document, rapidjson_sip::Writer<rapidjson_sip::StringBuffer>& writer);*/
 };
 #endif

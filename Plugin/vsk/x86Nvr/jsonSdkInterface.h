@@ -26,12 +26,15 @@ public:
 	JSONLONG LogIn(const char* ip, int port, const char* name, const char* pswd, int& err);
 	void LogOut(JSONLONG, int& err);
 
+	void GetChannelEncoderParam(JSONLONG UserID, JSONLONG chid, char* pInfo, uint32_t* pInfoSize, int& err);
 	JSONLONG Preview(JSONLONG UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, void* pUser, int& err);
 	JSONLONG VskPreview(JSONLONG UserID, int channel, int streamId, DataPlayCallBack VideoTranCallBack, void* pUser, int& err);
 	void StopPreview(JSONLONG, int& err);
 
 	JSONLONG PlayBack(JSONLONG UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, void* pUser, int& err);
 	void StopPlayBack(JSONLONG, int& err);
+	void PlayBackCtrl(JSONLONG, int cmd, int param1, int param2, int& err);
+	void setTimePos(JSONLONG, time_t t, int& err);
 
 	JSONLONG Download(JSONLONG UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, void* pUser, int& err);
 	void StopDownload(JSONLONG, int& err);
@@ -48,6 +51,7 @@ public:
 										char* pNvrCapabilitiesBuf, uint32_t* pNvrCapabilitiesBufSize);
 	typedef int (CALLBACK* Sdk_Logout)(JSONLONG UserID);
 
+	typedef int (CALLBACK* Sdk_GetVideoEncoderChannelParam)(JSONLONG UserID, JSONLONG chid, char* pInfo, uint32_t* pInfoSize);
 	typedef int (CALLBACK* Sdk_Preview)(JSONLONG UserID, DataVideoAudioCallBackEx VideoTranCallBack, const char* pTranInfo, 
 										uint64_t nUserData, void* pUser, JSONLONG* pnPeviewID);
 	typedef int (CALLBACK* Sdk_VskPreview)(JSONLONG UserID, DataPlayCallBack VideoTranCallBack,
@@ -57,6 +61,8 @@ public:
 	typedef int (CALLBACK* Sdk_PlayBackStartByTime)(JSONLONG UserID, const char* pInfo, DataPlayCallBack VideoDataCallBack, PlayBackEndCallBack fun,
 		uint64_t nUserData, void* pUser, uint64_t* pTotalSize, JSONLONG* pnPlaybackID);
 	typedef int (CALLBACK* Sdk_PlayBackStop)(JSONLONG UserID);
+	typedef int (CALLBACK* Sdk_PlayBackCtrl)(JSONLONG PlayHandle, const char* pInfo);
+	typedef int (CALLBACK* Sdk_TimePos)(JSONLONG PlayHandle, time_t postime);
 
 	typedef int (CALLBACK* Sdk_Download)(JSONLONG userID, const char* pInfo, DataPlayCallBack DownloadDataCallBack, PlayBackEndCallBack fun,
 											char* pSavedFileName, void* pUser, int FileType, uint64_t* pTotalSize, JSONLONG* pnDownID);
@@ -79,12 +85,15 @@ private:
 	Sdk_Login LoginFun;
 	Sdk_Logout LogOutFun;
 
+	Sdk_GetVideoEncoderChannelParam GetChannelParam;
 	Sdk_Preview PreviewFun;
 	Sdk_VskPreview VskPreviewFun;
 	Sdk_StopPreview StopPreviewFun;
 
 	Sdk_PlayBackStartByTime PlayBackFun;
 	Sdk_PlayBackStop StopPlayBackFun;
+	Sdk_PlayBackCtrl PlayBackCtrlFun;
+	Sdk_TimePos setTimePosFun;
 
 	Sdk_Download DownloadFun;
 	Sdk_DownloadStop StopDownloadFun;

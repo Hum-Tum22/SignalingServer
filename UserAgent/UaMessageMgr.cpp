@@ -512,8 +512,8 @@ void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType Pt
         auto parentDev = child->getParentDev();
         if (parentDev || parentDev->devType == BaseDevice::JSON_NVR)
         {
-            JsonNvrDevic::Ptr Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
-            if (Nvr)
+            auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
+            if (JsonNvr)
             {
                 JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
                 if (jsonChild)
@@ -527,7 +527,7 @@ void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType Pt
                         {
                             int err = 0;
                             int arg = lrArg > 0 ? lrArg : udarg;
-                            Nvr->Dev_PTZCtrl(channel, JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd), arg, err);
+                            JsonNvr->Dev_PTZCtrl(channel, JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd), arg, err);
                             if (err != 0)
                             {
                                 printf(" ptz ctrl err:%d, arg:%d\n", err, arg);

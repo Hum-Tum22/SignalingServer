@@ -25,10 +25,13 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 	StopPreviewFun = NULL;
 	PlayBackFun = NULL;
 	StopPlayBackFun = NULL;
+	PlayBackCtrlFun = NULL;
+	setTimePosFun = NULL;
 	DownloadFun = NULL;
 	StopDownloadFun = NULL;
 	PtzCtrlFun = NULL;
 	ListIPCFun = NULL;
+	GetChannelParam = NULL;
 #ifdef _WIN32
 	m_hDll = LoadLibrary(L"sdkJson.dll");
 #else
@@ -164,7 +167,7 @@ JSONLONG JsonSdkInterface::LogIn(const char* ip, int port, const char* name, con
 				}
 				else
 				{
-					printf("json sdk  login err:%d\n", err);
+					printf("json sdk  login err:%d\n", ret);
 					err = ret;
 				}
 			}
@@ -212,6 +215,33 @@ void JsonSdkInterface::LogOut(JSONLONG loginId, int& err)
 	else
 		err = -1;
 	return ;
+}
+void JsonSdkInterface::GetChannelEncoderParam(JSONLONG UserID, JSONLONG chid, char* pInfo, uint32_t* pInfoSize, int& err)
+{
+	err = 0;
+	if (m_hDll && IsInit)
+	{
+		if (!GetChannelParam)
+		{
+			GetChannelParam = (Sdk_GetVideoEncoderChannelParam)LoadSharedLibFun(m_hDll, "JsonSdk_GetVideoEncoderChannelParam");
+		}
+		if (UserID && GetChannelParam)
+		{
+			int ret = GetChannelParam(UserID, chid, pInfo, pInfoSize);
+			if (ret == 0)
+			{
+				printf("json sdk  get channel encoder param ok \n");
+				return;
+			}
+			else
+				err = ret;
+		}
+		else
+			err = -2;
+	}
+	else
+		err = -1;
+	return;
 }
 JSONLONG JsonSdkInterface::Preview(JSONLONG UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, void* pUser, int& err)
 {
@@ -334,7 +364,7 @@ JSONLONG JsonSdkInterface::PlayBack(JSONLONG UserID, int channel, long start, lo
 	{
 		if (!PlayBackFun)
 		{
-			PlayBackFun = (Sdk_PlayBackStartByTime)LoadSharedLibFun(m_hDll, "JsonSdk_PlayBackStartByTime");
+			PlayBackFun = (Sdk_PlayBackStartByTime)LoadSharedLibFun(m_hDll, "JsonSdk_PlayBackStartByTimeEx");
 		}
 		if (UserID && PlayBackFun)
 		{
@@ -357,7 +387,7 @@ JSONLONG JsonSdkInterface::PlayBack(JSONLONG UserID, int channel, long start, lo
 			std::string strJsonReq = buffer.GetString();
 			JSONLONG hHandle = 0;
 			uint64_t  nTotalFileSize = 0;
-			int ret = PlayBackFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, 0, this, &nTotalFileSize, &hHandle);
+			int ret = PlayBackFun(UserID, strJsonReq.c_str(), VideoTranCallBack, fun, 0, pUser, &nTotalFileSize, &hHandle);
 			if (ret == 0)
 			{
 				return hHandle;
@@ -396,7 +426,70 @@ void JsonSdkInterface::StopPlayBack(JSONLONG UserID, int& err)
 	err = -1;
 	return ;
 }
+void JsonSdkInterface::PlayBackCtrl(JSONLONG UserID, int cmd, int param1, int param2, int& err)
+{
+	err = 0;
+	if (m_hDll && IsInit)
+	{
+		if (!PlayBackCtrlFun)
+		{
+			PlayBackCtrlFun = (Sdk_PlayBackCtrl)LoadSharedLibFun(m_hDll, "JsonSdk_PlayBackCtrlEx");
+		}
+		if (UserID && PlayBackCtrlFun)
+		{
+			//ReqStartPlaybackStreamTime
+			rapidjson_sip::StringBuffer buffer;
+			rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(buffer);
+			writer.StartObject();
+			writer.Key("code");
+			writer.Int(cmd);
+			writer.Key("param1");
+			writer.Int(param1);
+			writer.Key("param2");
+			writer.Int(param2);
+			writer.EndObject();
 
+			std::string strJsonReq = buffer.GetString();
+			JSONLONG hHandle = 0;
+			uint64_t  nTotalFileSize = 0;
+			int ret = PlayBackCtrlFun(UserID, strJsonReq.c_str());
+			if (ret != 0)
+			{
+				err = ret;
+			}
+			return;
+		}
+		err = -2;
+		return;
+	}
+	err = -1;
+	return;
+}
+void JsonSdkInterface::setTimePos(JSONLONG pbhandle, time_t t, int& err)
+{
+	err = 0;
+	if (m_hDll && IsInit)
+	{
+		if (!setTimePosFun)
+		{
+			setTimePosFun = (Sdk_TimePos)LoadSharedLibFun(m_hDll, "JsonSdk_SetTimePlayBackPos");
+		}
+		if (pbhandle && setTimePosFun)
+		{
+			uint64_t  nTotalFileSize = 0;
+			int ret = setTimePosFun(pbhandle, t);
+			if (ret != 0)
+			{
+				err = ret;
+			}
+			return;
+		}
+		err = -2;
+		return;
+	}
+	err = -1;
+	return;
+}
 JSONLONG JsonSdkInterface::Download(JSONLONG UserID, int channel, long start, long end, DataPlayCallBack VideoTranCallBack, PlayBackEndCallBack fun, void* pUser, int& err)
 {
 	err = 0;

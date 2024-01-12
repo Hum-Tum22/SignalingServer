@@ -1,6 +1,8 @@
 #include "MediaStream.h"
 #include <assert.h>
 #include "videoNalu.hpp"
+#include <thread>
+#include <chrono>
 
 
 int FrameMemPool::Init264()
@@ -139,7 +141,7 @@ int FrameMemPool::Init265()
 	m_duration = fgap * count;
 	return 0;
 }
-FrameMemPool::FrameMemPool(size_t length) : MemPool(length), unLockQueue(), frameType(GB_CODEC_UNKNOWN), m_duration(0), fgap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
+FrameMemPool::FrameMemPool(size_t length) : avMemPool(length), unLockQueue(), frameType(GB_CODEC_UNKNOWN), m_duration(0), fgap(40), sps(NULL), pps(NULL), vps(NULL), spslen(0), ppslen(0), vpslen(0), vpsspspps(true)
 	, frameIndex(0), lastIdrPos(0)
 {
 }
@@ -178,7 +180,8 @@ int FrameMemPool::InputFrame(STREAM_CODEC type, uint8_t* data, size_t size, int 
 	{
 		frameType = type;
 	}
-	fgap = gap;
+	if(fgap == 0)
+		fgap = gap;
 	return wirteData(data, size);
 }
 int FrameMemPool::getReader()
@@ -197,8 +200,16 @@ int FrameMemPool::getReader()
 	}
 	return -1;
 }
+void FrameMemPool::setGap(int gap)
+{
+	fgap = gap;
+}
+const int FrameMemPool::getGap()
+{
+	return fgap;
+}
 
-MediaStream::MediaStream(const char* devId, const char* streamId) :deviceId(devId), streamId(streamId), def(0), streamHandle(0), /*source(NULL) ,*/ framePool(1024*1024*10)//, m_duration(40)
+MediaStream::MediaStream(const char* devId, const char* streamId) :deviceId(devId), streamId(streamId), def(0), streamHandle(0), streamType(0), framePool(1024*1024*10)//, m_duration(40)
 {
 }
 MediaStream::~MediaStream()
@@ -221,13 +232,45 @@ const SHANDLE MediaStream::getStreamHandle()
 {
 	return streamHandle;
 }
+void MediaStream::setFrameRate(int fps)
+{
+	if (fps > 0)
+	{
+		framePool.setGap(1 / fps);
+	}
+}
+const int MediaStream::getFrameRate()
+{
+	return framePool.getGap();
+}
+void MediaStream::setStreamType(int lv)
+{
+	streamType = lv;
+}
+const int MediaStream::getStreamType()
+{
+	return streamType;
+}
 //void MediaStream::setMediaSource(IMediaSource* s)
 //{
 //	source = s;
 //}
 void MediaStream::OnMediaStream(STREAM_CODEC code, uint8_t* data, size_t size, int gap)
 {
-	framePool.InputFrame(code, data, size, gap);
+	if (streamType == 0)
+	{
+		framePool.InputFrame(code, data, size, gap);
+	}
+	else if (streamType == 1)
+	{
+		framePool.InputFrame(code, data, size, gap);
+		//if()
+		//std::this_thread::sleep_for(std::chrono::milliseconds(40));
+	}
+	else
+	{
+		framePool.InputFrame(code, data, size, gap);
+	}
 }
 int MediaStream::GetNextFrame(uint32_t handle, vframe_t& frame)
 {

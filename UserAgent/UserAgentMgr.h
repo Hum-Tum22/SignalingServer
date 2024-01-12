@@ -51,6 +51,9 @@ public:
     DialogUsageManager& getDialogUsageManager() { return *mDum; }
     std::shared_ptr<UserProfile> getIncomingUserProfile(const SipMessage& msg) { return mProfile; } // This test program only uses the one global Master Profile - just return it
 
+    void UacTimerTask();
+    void UaInfoUpdate();
+    int NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle &ssph);
 protected:
     // Postable Handler ////////////////////////////////////////////////////////////
     virtual void post(Message*);  // Used to receive Connection Terminated messages
@@ -140,8 +143,8 @@ protected:
 protected:
     //void addTransport(TransportType type, int port);
     friend class NotifyTimer;
-    void onNotifyTimeout(unsigned int timerId);
-    void sendNotify();
+    void onNotifyTimeout(unsigned int timerId, resip::ServerSubscriptionHandle& h);
+    void sendNotify(resip::ServerSubscriptionHandle& h);
     friend class CallTimer;
     void onCallTimeout(UaClientCall* call);
 
@@ -175,11 +178,11 @@ public:
         _UERAGERNT_CALL_OK,
     }streamStatus;
     bool run();
-    void DoRegist(const Uri& target, const Uri& fromUri, const Data& passwd);
+    void DoRegist(const Uri& target, const Data& passwd, const Data& defaultSesName = Data::Empty);
     shared_ptr<UaSessionInfo> GetUaInfoByUser(const Data& user);
     shared_ptr<UaSessionInfo> GetNextUaInfoByUser(const Data& user);
     shared_ptr<UaSessionInfo> GetUaInfoByCallID(const Data& callID);
-    void sendNotify(const Data& event, const Data& content);
+    void removeUser(const Data& user);
     void Regist(shared_ptr<UaSessionInfo> ua);
     void reRegist(shared_ptr<UaSessionInfo> ua);
     void DoCancelRegist(const Data& targetuser);
@@ -203,8 +206,9 @@ public:
     void FreeRptPort(unsigned int uiRtpPort);
     std::string CreateSSRC(std::string name, std::string streamId);
 
+    void checkStateThread();
 
-    static void checkStateThread(UaMgr* chandle);
+
     static void __stdcall RegistStateCallBack(const Data& callID, ClientRegistrationHandle h, int reason, void* pUserData);
     static void __stdcall RegistPageMsgCallBack(const Data& UasName, const MsgCmdType& MsgCmdType, int reason, void* pUserData);
     static void __stdcall RegistArrivedMsgCallBack(ServerPagerMessageHandle h, const resip::SipMessage& message, void* pUserData);
@@ -228,6 +232,7 @@ public:
     resip::Uri mContact;
     resip::Uri mOutboundProxy;
     DevConfig mDevCfg;
+    bool statuThreadFlag;
     std::thread StateThread;
     resip::Uri mSubscribeTarget;
     resip::Uri mCallTarget;

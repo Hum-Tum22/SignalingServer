@@ -7,11 +7,11 @@ class BaseDevice
 {
 public:
     using Ptr = std::shared_ptr<BaseDevice>;
-    using previewCb = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
+    /*using previewCb = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
     using PbCbData = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
     using PbCbEnd = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
     using DownloadData = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
-    using DownloadEnd = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;
+    using DownloadEnd = std::function<void(uint32_t handle, const uint8_t* pBuffer, unsigned int BufferSize, void* pUser)>;*/
     typedef enum
     {
         JSON_NVR,
@@ -22,7 +22,7 @@ public:
     DEVTYPE_X devType;
     const std::string deviceId;
 
-    virtual bool DevConnect() = 0;
+    /*virtual bool DevConnect() = 0;
     virtual bool DevDisConnect() = 0;
 
     virtual ULHandle Dev_Preview(int channelId, int streamType, void* fun, void* pUser, int& err) = 0;
@@ -36,7 +36,7 @@ public:
 
     virtual void Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argument, int& err) = 0;
 
-    virtual void Dev_ListIPC(char*Buffer, uint32_t &BufSize, int& err) = 0;
+    virtual void Dev_ListIPC(char*Buffer, uint32_t &BufSize, int& err) = 0;*/
 };
 
 

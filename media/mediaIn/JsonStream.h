@@ -139,7 +139,7 @@ public:
 	time_t LastFrameTime();
 	static void CALLBACK VskX86NvrRtPreDataCb(unsigned int PlayHandle, uint8_t* pBuffer, unsigned int BufferSize, unsigned int DateType, time_t systime, unsigned int TimeSpace, void *pUser);
 	static void CALLBACK DataPlayCallBack(unsigned int PlayHandle, unsigned int DateType, uint8_t* pBuffer, unsigned int BufferSize, void* pUser);
-
+	static void CALLBACK PlayBackEndCb(unsigned int pbhandle, int errorcode, void* puser);
 	void OnVskJsonStream(uint8_t* data, size_t size);
 private:
 	LineBuffer mFrame;

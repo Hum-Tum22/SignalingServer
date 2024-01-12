@@ -17,6 +17,11 @@ public:
 	MediaStream::Ptr findStream(std::string Id);
 
 	void checkStreamStatus();
+	MediaStream::Ptr createLiveStream(std::string deviceId, int streamId);
+	MediaStream::Ptr createVodStream(std::string deviceId, time_t start, time_t end);
+	bool CloseStreamByStreamId(MediaStream::Ptr& ms);
+
+	std::string getStreamId(const std::string& deviceId, time_t start, time_t end);
 
 private:
 	std::mutex stmMtx;

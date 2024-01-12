@@ -425,34 +425,34 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("12345");
-    int upPort = 5060;
-    Data passwd("12345");
-#ifdef QINGDONG_CCTV
-    mUserAgent->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
-#endif
-
-    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
-#ifdef QINGDONG_CCTV
-    target.user() = upID.c_str();
-    target.host() = upHost.c_str();
-    target.port() = upPort;
-    passwd = upPassword.c_str();
-#else
-    Data upId("34020000002000000002");
-    target.user() = mProxyConfig->getConfigData("UPID", upId);
-    Data uphost("192.168.1.223");
-    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
-    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
-    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
-#endif
-    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
-    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
-    Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
-    if(!(target.user().empty() || target.user().size() < 20))
-    {
-        mUserAgent->DoRegist(target, fromUri, passwd);
-    }
+//    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("12345");
+//    int upPort = 5060;
+//    Data passwd("12345");
+//#ifdef QINGDONG_CCTV
+//    mUserAgent->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
+//#endif
+//
+//    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
+//#ifdef QINGDONG_CCTV
+//    target.user() = upID.c_str();
+//    target.host() = upHost.c_str();
+//    target.port() = upPort;
+//    passwd = upPassword.c_str();
+//#else
+//    Data upId("34020000002000000002");
+//    target.user() = mProxyConfig->getConfigData("UPID", upId);
+//    Data uphost("192.168.1.223");
+//    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
+//    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
+//    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
+//#endif
+//    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
+//    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
+//    Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
+//    if(!(target.user().empty() || target.user().size() < 20))
+//    {
+//        mUserAgent->DoRegist(target, fromUri, passwd);
+//    }
     mRunning = true;
 
     return true;
