@@ -53,7 +53,7 @@ public:
 
     void UacTimerTask();
     void UaInfoUpdate();
-    int NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle &ssph);
+    int NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle &ssph, bool all = false);
 protected:
     // Postable Handler ////////////////////////////////////////////////////////////
     virtual void post(Message*);  // Used to receive Connection Terminated messages
@@ -144,7 +144,7 @@ protected:
     //void addTransport(TransportType type, int port);
     friend class NotifyTimer;
     void onNotifyTimeout(unsigned int timerId, resip::ServerSubscriptionHandle& h);
-    void sendNotify(resip::ServerSubscriptionHandle& h);
+    void sendNotify(resip::ServerSubscriptionHandle& h, bool all = false);
     friend class CallTimer;
     void onCallTimeout(UaClientCall* call);
 

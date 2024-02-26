@@ -195,7 +195,7 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 			frameRate = nFrameNum * 1000 / (interval);
 		else
 			frameRate = getFrameRate();
-		printf("recved json stream data frame rate:%u, frame num:%ju, interval:%d, last:%ld,cur:%ld\n", frameRate, nFrameNum, interval, lastTime, curTime);
+		//printf("recved json stream data frame rate:%u, frame num:%ju, interval:%d, last:%ld,cur:%ld\n", frameRate, nFrameNum, interval, lastTime, curTime);
 		lastTime = curTime;
 	}
 	DataHeard xDataHeard;
@@ -258,7 +258,7 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 				
 				if (xDataHeard.framet == H264E_NALU_ISLICE)
 				{
-					printf("json idr:%ld, gapms:%d rate:%d, utc:%ju\n", time(0), gap, frameRate, xDataHeard.KeyFramE.timestamp);
+					//printf("json idr:%ld, gapms:%d rate:%d, utc:%ju\n", time(0), gap, frameRate, xDataHeard.KeyFramE.timestamp);
 					if (mFrame.freeSize() < xDataHeard.framelen)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);

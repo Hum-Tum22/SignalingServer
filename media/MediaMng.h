@@ -21,7 +21,7 @@ public:
 	MediaStream::Ptr createVodStream(std::string deviceId, time_t start, time_t end);
 	bool CloseStreamByStreamId(MediaStream::Ptr& ms);
 
-	std::string getStreamId(const std::string& deviceId, time_t start, time_t end);
+	std::string CreateStreamId(const std::string& deviceId, time_t start, time_t end);
 
 private:
 	std::mutex stmMtx;

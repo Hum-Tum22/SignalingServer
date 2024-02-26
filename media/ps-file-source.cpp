@@ -52,7 +52,8 @@ PSFileSource::~PSFileSource()
 	if (loop.joinable())
 	{
 		loop.join();
-	}	
+	}
+	printf("--- transport end PSFileSource\n");
 	if (media)
 	{
 		media->removeReader(readhandle);
@@ -68,6 +69,7 @@ void PSFileSource::run()
 {
 	IsRun = true;
 	loop = std::thread(&PSFileSource::SourceLoop, this);
+	printf("--- transport start PSFileSource\n");
 	
 }
 void PSFileSource::SourceLoop()
@@ -146,7 +148,7 @@ int PSFileSource::Play()
 			if (frame.idr)
 			{
 				mGap = frame.gap;
-				printf("--------------- idr frame time:%ld, gap:%d, frameNum:%ju, ssrc:%u\n", time(0), mGap, frameNum, nSsrc);
+				//printf("--------------- idr frame time:%ld, gap:%d, frameNum:%ju, ssrc:%u\n", time(0), mGap, frameNum, nSsrc);
 			}
 			ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
 			m_rtp_clock += 40;

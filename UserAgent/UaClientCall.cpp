@@ -72,14 +72,17 @@ UaClientCall::UaClientCall(UaMgr& userAgent)
     mUserAgent(userAgent),
     mTimerExpiredCounter(0),
     mPlacedCall(false),
-    mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty), mSessionState(-1)
+    mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty), rtp_ctx(NULL), psSource(NULL), mSessionState(-1),
+    remotePort(0), startTime(0), stopTime(0), rtpType(0), devPort(0), myRtpPort(0)
 {
+    InfoLog(<< " --- UaClientCall new " << myRtpPort);
    mUserAgent.registerCall(this);
    psSource = NULL;
 }
 
 UaClientCall::~UaClientCall()
 {
+    InfoLog(<< " --- UaClientCall free " << myRtpPort);
     mUserAgent.unregisterCall(this);
     if (isUACConnected())
     {
@@ -90,6 +93,7 @@ UaClientCall::~UaClientCall()
                 mInviteSessionHandle->end();
             }
             mUserAgent.FreeRptPort(myRtpPort);
+            InfoLog(<< " rtp port free " << myRtpPort);
             mUserAgent.CloseStreamStreamId(streamId);
             closeMediaStream();
             myRtpPort = 0;
@@ -107,6 +111,7 @@ UaClientCall::~UaClientCall()
             printf("ua call close stream:%s\n", streamId.c_str());
             mUserAgent.CloseStreamStreamId(streamId);
             mUserAgent.FreeRptPort(myRtpPort);
+            InfoLog(<< " rtp port free " << myRtpPort);
             /*sipserver::SipServer* pSvr = GetServer();
             ostringstream ss;
             ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
@@ -309,7 +314,7 @@ void UaClientCall::closeMediaStream()
 }
 bool UaClientCall::makeBLeg()
 {
-    return mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, mUserAgent.GetAvailableRtpPort(), 0, this);
+    return mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, 0/*mUserAgent.GetAvailableRtpPort()*/, 0, this);
 }
 void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, const resip::SipMessage& msg, const resip::SdpContents& offer)
 {
@@ -366,18 +371,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
 
     //创建answer sdp
     mResponseSdp = offer;
-    myRtpPort = mUserAgent.GetAvailableRtpPort();
-    SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
-    for (auto& iter : medialist)
-    {
-        if (iter.exists("recvonly"))
-        {
-            iter.clearAttribute("recvonly");
-            iter.addAttribute("sendonly");
-        }
-        iter.setPort(myRtpPort);
-        break;
-    }
+    
     mResponseSdp.session().connection().setAddress(DnsUtil::getLocalIpAddress());
     mResponseSdp.session().origin().setAddress(DnsUtil::getLocalIpAddress());
 
@@ -397,9 +391,31 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             {
                 //流存在//直接回复
                 //mResponseSdp
+                myRtpPort = mUserAgent.GetAvailableRtpPort();
+                InfoLog(<< " rtp port use " << myRtpPort);
+                if (myRtpPort == 0)
+                {
+                    WarningCategory warning;
+                    warning.hostname() = DnsUtil::getLocalIpAddress();
+                    warning.code() = 488;
+                    warning.text() = "Port exhausted!";
+                    handle->reject(488, &warning);
+                    return;
+                }
+                SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
+                for (auto& iter : medialist)
+                {
+                    if (iter.exists("recvonly"))
+                    {
+                        iter.clearAttribute("recvonly");
+                        iter.addAttribute("sendonly");
+                    }
+                    iter.setPort(myRtpPort);
+                    break;
+                }
                 auto transport = std::make_shared<RTPUdpTransport>();
-                unsigned short localport[2] = { myRtpPort, ++myRtpPort };
-                unsigned short peerport[2] = { remotePort, ++remotePort };
+                unsigned short localport[2] = { myRtpPort, myRtpPort + 1};
+                unsigned short peerport[2] = { remotePort, remotePort + 1 };
                 if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
                 {
                     psSource = new PSFileSource("", ssrc.convertInt());
@@ -429,9 +445,31 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 }
                 else
                 {
+                    myRtpPort = mUserAgent.GetAvailableRtpPort();
+                    InfoLog(<< " rtp port use " << myRtpPort);
+                    if (myRtpPort == 0)
+                    {
+                        WarningCategory warning;
+                        warning.hostname() = DnsUtil::getLocalIpAddress();
+                        warning.code() = 488;
+                        warning.text() = "Port exhausted!";
+                        handle->reject(488, &warning);
+                        return;
+                    }
+                    SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
+                    for (auto& iter : medialist)
+                    {
+                        if (iter.exists("recvonly"))
+                        {
+                            iter.clearAttribute("recvonly");
+                            iter.addAttribute("sendonly");
+                        }
+                        iter.setPort(myRtpPort);
+                        break;
+                    }
                     auto transport = std::make_shared<RTPUdpTransport>();
-                    unsigned short localport[2] = { myRtpPort, ++myRtpPort };
-                    unsigned short peerport[2] = { remotePort, ++remotePort };
+                    unsigned short localport[2] = { myRtpPort, myRtpPort + 1 };
+                    unsigned short peerport[2] = { remotePort, remotePort + 1};
                     if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
                     {
                         MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
@@ -461,6 +499,12 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         }
         else if (sessionName == Data("Playback"))
         {
+            WarningCategory warning;
+            warning.hostname() = DnsUtil::getLocalIpAddress();
+            warning.code() = 488;
+            warning.text() = "playback not suppered!";
+            handle->reject(488, &warning);
+            return;
             if (offer.session().getTimes().size() == 2)
             {
                 startTime = offer.session().getTimes().front().getStart();

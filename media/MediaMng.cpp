@@ -132,7 +132,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
 			if (Nvr)
 			{
 				int err = 0, chl = -1;
-				uint32_t msgSize = 1024 * 8 * 3;
+				uint32_t msgSize = 4 * 1024 * 1024;
 				char* Buffer = new char[msgSize];
 				Nvr->Dev_ListIPC(Buffer, msgSize, err);
 				if (err == 0)
@@ -147,6 +147,11 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
 							for (uint32_t i = 0; i < body.Size(); i++)
 							{
 								std::string devNum = json_check_string(body[i], "device_number");
+								std::size_t sPos = devNum.find(" ");
+								if (sPos != std::string::npos)
+								{
+									devNum = devNum.substr(0, sPos);
+								}
 								JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
 								if (devNum == pChild->getName())
 								{
@@ -201,20 +206,27 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
 					}
 					std::string streamId = deviceId + "_" + std::to_string(streamNo);
 					JsonStream::Ptr streamIn = std::make_shared<JsonStream>(deviceId.c_str(), streamId.c_str());
-					ULHandle playhandle = Nvr->Dev_Preview(chl, streamNo, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
-					if (err == 0)
+					if (streamIn)
 					{
-						DebugLog(<< "child device pull stream ok streameId:" << deviceId << " " << streamId);
-						streamIn->setStreamHandle(playhandle);
-						streamIn->setStreamType(0);
-						streamIn->setFrameRate(fps);
-						MediaMng::GetInstance().addStream(streamIn);
-						return streamIn;
+						ULHandle playhandle = Nvr->Dev_Preview(chl, streamNo, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
+						if (err == 0)
+						{
+							DebugLog(<< "child device pull stream ok streameId:" << deviceId << " " << streamId);
+							streamIn->setStreamHandle(playhandle);
+							streamIn->setStreamType(0);
+							streamIn->setFrameRate(fps);
+							MediaMng::GetInstance().addStream(streamIn);
+							return streamIn;
+						}
+						else
+						{
+							DebugLog(<< "child device pull stream failed err:" << deviceId << ", " << err);
+							return NULL;
+						}
 					}
 					else
 					{
-						DebugLog(<< "child device pull stream failed err:" << deviceId << "" << err);
-						return NULL;
+						DebugLog(<< "create media stream failed ");
 					}
 				}
 				else
@@ -257,7 +269,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
 			if (Nvr)
 			{
 				int err = 0, chl = -1;
-				uint32_t msgSize = 1024 * 8 * 3;
+				uint32_t msgSize = 4 * 1024 * 1024;
 				char* Buffer = new char[msgSize];
 				Nvr->Dev_ListIPC(Buffer, msgSize, err);
 				if (err == 0)
@@ -272,6 +284,11 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
 							for (uint32_t i = 0; i < body.Size(); i++)
 							{
 								std::string devNum = json_check_string(body[i], "device_number");
+								std::size_t sPos = devNum.find(" ");
+								if (sPos != std::string::npos)
+								{
+									devNum = devNum.substr(0, sPos);
+								}
 								JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
 								if (devNum == pChild->getName())
 								{
@@ -313,7 +330,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
 					//	}
 					//}
 
-					std::string streamId = getStreamId(deviceId, start, end);
+					std::string streamId = CreateStreamId(deviceId, start, end);
 
 					JsonStream::Ptr streamIn = std::make_shared<JsonStream>(deviceId.c_str(), streamId.c_str());
 					ULHandle playhandle = Nvr->Dev_PlayBack(chl, start, end, (void*)JsonStream::DataPlayCallBack, NULL/*(void*)JsonStream::PlayBackEndCb*/, (void*)streamIn.get(), err);
@@ -342,7 +359,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
 	}
 	return NULL;
 }
-std::string MediaMng::getStreamId(const std::string& deviceId, time_t start, time_t end)
+std::string MediaMng::CreateStreamId(const std::string& deviceId, time_t start, time_t end)
 {
 	std::stringstream ss;
 	ss << std::put_time(localtime(&start), "%Y-%m-%dT%H-%M-%S");

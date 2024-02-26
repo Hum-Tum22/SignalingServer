@@ -1,5 +1,7 @@
 #include "UaMessageMgr.h"
 #include "resip/stack/PlainContents.hxx"
+#include <rutil/Log.hxx>
+#include <rutil/Logger.hxx>
 #include "../MsgContentXml.h"
 #include "../XmlMsgAnalysis.h"
 #include "../device/DeviceManager.h"
@@ -17,6 +19,8 @@
 #include "../deviceMng/JsonDevice.h"
 
 using namespace std;
+using namespace resip;
+#define RESIPROCATE_SUBSYSTEM Subsystem::TEST
 
 CUserMessageMrg::CUserMessageMrg(DialogUsageManager& dum):mDum(dum), mMsgSn(1)
 {
@@ -35,7 +39,7 @@ CUserMessageMrg::CUserMessageMrg(DialogUsageManager& dum):mDum(dum), mMsgSn(1)
 // session  message
 void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const resip::SipMessage& message)
 {
-    if (message.isClientTransaction())
+    /*if (message.isClientTransaction())
     {
         cout << "onMessageArrived isClientTransaction: " << message << endl;
     }
@@ -62,7 +66,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
     if (message.hasForceTarget())
     {
         cout << "onMessageArrived ForceTarget: " << message.getForceTarget() << endl;
-    }
+    }*/
     Contents* body = message.getContents();
     if (!body || body->getBodyData().empty())
     {
@@ -353,15 +357,16 @@ void CUserMessageMrg::SendHeart(shared_ptr<UaSessionInfo> uaState, const DevConf
             }
             cpmh.get()->page(std::move(content));
             uaState->lastSendHeartTime = time(0);
+            InfoLog(<< "send keepalive : " << uaState->toUri.user());
         }
     }
 #ifdef MESSAGE_FROM_TO_DOMAIN
     Uri from = cpmh.get()->getMessageRequest().header(h_From).uri();
-    if (from.user().size() > 8)
-        cpmh.get()->getMessageRequest().header(h_From).uri().host() = from.user().substr(0, 8);
+    if (from.user().size() > 10)
+        cpmh.get()->getMessageRequest().header(h_From).uri().host() = from.user().substr(0, 10);
     Uri to = cpmh.get()->getMessageRequest().header(h_To).uri();
-    if (to.user().size() > 8)
-        cpmh.get()->getMessageRequest().header(h_To).uri().host() = to.user().substr(0, 8);
+    if (to.user().size() > 10)
+        cpmh.get()->getMessageRequest().header(h_To).uri().host() = to.user().substr(0, 10);
 #endif
 }
 MsgCmdType CUserMessageMrg::PopMsgTypeByCallID(const Data& callID)
