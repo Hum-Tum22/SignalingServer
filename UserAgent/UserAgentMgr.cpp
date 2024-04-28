@@ -1592,6 +1592,7 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
         h->end();
         return;
     }
+    uint32_t expires = msg.header(h_Expires).value();
     GB28181XmlMsg XmlMsg;
     if (AnalyzeReceivedSipMsg(content->getBodyData().c_str(), XmlMsg))
     {
@@ -1603,6 +1604,12 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
                 Data eventType = msg.header(h_Event).value();
                 if (eventType == "Catalog" || eventType == "catalagitem")
                 {
+                    if(expires == 0)
+                    {
+                        CSubscriptionMrg::Instance().DeleteSubscription(h);
+                        // ThreadPool::Instance().submit(std::bind(&CSubscriptionMrg::DeleteSubscription, CSubscriptionMrg::Instance().getThis(), h));
+                        return;
+                    }
                     Data user = msg.header(h_From).uri().user();
                     h->setSubscriptionState(Active);
                     h->send(h->accept(200));
@@ -1623,17 +1630,20 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
             {
                 h->setSubscriptionState(Active);
                 h->send(h->accept());
+                // h->send(h->reject(404));
                 return;
             }
             else if(XmlMsg.cmdtype == XML_CMDTYPE_MOBILE_POSITION)
             {
-                h->setSubscriptionState(Active);
-                h->send(h->accept());
+                // h->setSubscriptionState(Active);
+                // h->send(h->accept());
+                h->send(h->reject(404));
                 return;
             }
         }
     }
     h->end();
+    // h->send(h->reject(404));
 }
 
 void
@@ -1688,8 +1698,8 @@ UaMgr::onRefresh(ServerSubscriptionHandle, const SipMessage& msg)
 void
 UaMgr::onTerminated(ServerSubscriptionHandle h)
 {
-    InfoLog(<< "onTerminated(ServerSubscriptionHandle)");
-    CSubscriptionMrg::Instance().DeleteSubscription(h);
+    InfoLog(<< "onTerminated(ServerSubscriptionHandle)" << "handle id:" << h.getId());
+    CSubscriptionMrg::Instance().removeSubscriptionHandle(h);
 }
 
 void
@@ -1736,12 +1746,12 @@ UaMgr::onExpiredByClient(ServerSubscriptionHandle, const SipMessage& sub, SipMes
 void
 UaMgr::onExpired(ServerSubscriptionHandle h, SipMessage& msg)
 {
-    InfoLog(<< "onExpired(ServerSubscriptionHandle): " << msg.brief());
-    if (msg.header(h_Expires).value() == 0)
-    {
-        Data ev = msg.header(h_Event).value();
-        CSubscriptionMrg::Instance().DeleteSubscription(h, ev);
-    }
+    InfoLog(<< "onExpired(ServerSubscriptionHandle): " << msg.brief() << " msg:" << msg);
+    // if (msg.header(h_Expires).value() == 0)
+    // {
+    //     Data ev = msg.header(h_Event).value();
+    //     CSubscriptionMrg::Instance().DeleteSubscription(h, ev);
+    // }
 }
 
 bool
@@ -1881,6 +1891,10 @@ void getJsonNvrChannelStatus(BaseDevice::Ptr &dev, std::map<std::string, int> &s
                         }
                     }
                 }
+            }
+            if(Buffer)
+            {
+                delete[] Buffer; Buffer = NULL;
             }
         }
     }

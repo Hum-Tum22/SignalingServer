@@ -316,7 +316,7 @@ void CSubscriptionMrg::DeleteSubscription(resip::ServerSubscriptionHandle ssph, 
 	}
 	DebugLog(<< " CSubscriptionMrg end delete event:" << ev);
 }
-void CSubscriptionMrg::DeleteSubscription(resip::ServerSubscriptionHandle ssph)
+void CSubscriptionMrg::DeleteSubscription(resip::ServerSubscriptionHandle &ssph)
 {
 	DebugLog(<< " CSubscriptionMrg start delete handle:" << ssph.get());
 	try
@@ -371,6 +371,62 @@ void CSubscriptionMrg::DeleteSubscription(resip::ServerSubscriptionHandle ssph)
 
 	}
 	DebugLog(<< " CSubscriptionMrg end delete handle:" << ssph.get());
+}
+void CSubscriptionMrg::removeSubscriptionHandle(resip::ServerSubscriptionHandle ssph)
+{
+	DebugLog(<< " CSubscriptionMrg start remove handle:" << ssph.get());
+	try
+	{
+		{
+			CUSTORLOCKGUARD alocker(mAlarmMtx);
+			DebugLog(<< " CSubscriptionMrg start 1111 remove handle:" << ssph.get());
+			auto iter = AlarmSubscriptionMap.begin();
+			while (iter != AlarmSubscriptionMap.end())
+			{
+				DebugLog(<< " CSubscriptionMrg start 2 remove handle:" << ssph.get());
+				auto tempItem = std::next(iter);
+				DebugLog(<< " CSubscriptionMrg start 3 remove handle:" << ssph.get());
+				if (iter->second.m_ssph == ssph)
+				{
+					DebugLog(<< " CSubscriptionMrg start 4 remove handle:" << ssph.get());
+					AlarmSubscriptionMap.erase(iter);
+					DebugLog(<< " CSubscriptionMrg start 5 remove handle:" << ssph.get());
+				}
+				iter = tempItem;
+			}
+		}
+		
+		{
+			DebugLog(<< " CSubscriptionMrg --- 1 remove handle:" << ssph.get());
+			CUSTORLOCKGUARD clocker(mCatalogSubMapMtx);
+			DebugLog(<< " CSubscriptionMrg --- 2 remove handle:" << ssph.get());
+			auto iterC = CatalogSubscriptionMap.begin();
+			while (iterC != CatalogSubscriptionMap.end())
+			{
+				DebugLog(<< " CSubscriptionMrg --- 3 remove handle:" << ssph.get());
+				auto tempItem = std::next(iterC);
+				DebugLog(<< " CSubscriptionMrg --- 4 remove handle:" << ssph.get());
+				if (iterC->second.m_ssph == ssph)
+				{
+					DebugLog(<< " CSubscriptionMrg --- 5 remove handle:" << ssph.get());
+					CatalogSubscriptionMap.erase(iterC);
+					DebugLog(<< " CSubscriptionMrg --- 6 remove handle:" << ssph.get());
+				}
+				iterC = tempItem;
+			}
+		}
+		DebugLog(<< " CSubscriptionMrg --- end 7 remove handle:" << ssph.get());
+		// if (ssph.isValid())
+		// {
+		// 	ssph->end();
+		// }
+		DebugLog(<< " CSubscriptionMrg --- end 8 remove handle:" << ssph.get());
+	}
+	catch (...)
+	{
+
+	}
+	DebugLog(<< " CSubscriptionMrg end remove handle:" << ssph.get());
 }
 std::string CSubscriptionMrg::eventToString(NOTIFY_EVENT ev)
 {

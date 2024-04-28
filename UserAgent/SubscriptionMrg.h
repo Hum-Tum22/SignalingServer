@@ -66,7 +66,9 @@ public:
 
 	bool AddCatalogSubscription(resip::Data user, resip::ServerSubscriptionHandle m_ssph, resip::Data eventtype, const GB28181XmlMsg&);
 	void DeleteSubscription(resip::ServerSubscriptionHandle ssph, resip::Data& ev);
-	void DeleteSubscription(resip::ServerSubscriptionHandle ssph);
+	void DeleteSubscription(resip::ServerSubscriptionHandle &ssph);
+
+	void removeSubscriptionHandle(resip::ServerSubscriptionHandle ssph);
 
 	bool existsSubscription(resip::Data user, resip::ServerSubscriptionHandle ssph, resip::Data eventtype);
 };

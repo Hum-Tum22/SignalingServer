@@ -65,6 +65,7 @@ void DeviceMng::addChildDevice(BaseChildDevice* child)
 void DeviceMng::removeChildDevice(std::string Id)
 {
 	GMUTEX lock(childMtx);
+	delete mChildMap[Id];
 	mChildMap.erase(Id);
 }
 BaseChildDevice* DeviceMng::findChildDevice(const std::string Id)
