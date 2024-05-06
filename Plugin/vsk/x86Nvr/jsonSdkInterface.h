@@ -23,8 +23,8 @@ public:
 	void InitSdk(int &err);
 	void SdkClear(int& err);
 
-	JSONLONG LogIn(const char* ip, int port, const char* name, const char* pswd, int& err);
-	void LogOut(JSONLONG, int& err);
+	JSONLONG JsonSdkLogIn(const char* ip, int port, const char* name, const char* pswd, int& err);
+	void JsonSdkLogOut(JSONLONG, int& err);
 
 	void GetChannelEncoderParam(JSONLONG UserID, JSONLONG chid, char* pInfo, uint32_t* pInfoSize, int& err);
 	JSONLONG Preview(JSONLONG UserID, int channel, int streamId, DataVideoAudioCallBackEx VideoTranCallBack, void* pUser, int& err);

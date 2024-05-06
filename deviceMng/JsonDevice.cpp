@@ -1,4 +1,5 @@
 #include "JsonDevice.h"
+#include "SelfLog.h"
 #include "../media/mediaIn/JsonStream.h"
 #include "../tools/CodeConversion.h"
 
@@ -120,7 +121,7 @@ void JsonNvrDevic::JsonNvrLogIn(int& err)
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
 		if (err != 0)
 		{
 
@@ -136,10 +137,10 @@ void JsonNvrDevic::JsonNvrLogOut(int& err)
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		JsonSdkInterface::Instance().LogOut(mLoginId, err);
+        JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -153,7 +154,7 @@ void JsonNvrDevic::GetChannelEncoderParam(int channel, char* pBuffer, uint32_t* 
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
 		if (err != 0)
 		{
 			return;
@@ -164,7 +165,7 @@ void JsonNvrDevic::GetChannelEncoderParam(int channel, char* pBuffer, uint32_t* 
 		JsonSdkInterface::Instance().GetChannelEncoderParam(mLoginId, channel, pBuffer, pInfoSize, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -178,7 +179,7 @@ ULHandle JsonNvrDevic::Dev_Preview(int channelId, int streamType, void* VideoTra
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
 		if (err != 0)
 		{
 
@@ -189,7 +190,7 @@ ULHandle JsonNvrDevic::Dev_Preview(int channelId, int streamType, void* VideoTra
 		ULHandle ulPreviewHandle = JsonSdkInterface::Instance().VskPreview(mLoginId, channelId, streamType, (DataPlayCallBack)VideoTranCallBack, pUser, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 		return ulPreviewHandle;
@@ -208,7 +209,7 @@ void JsonNvrDevic::Dev_StopPreview(ULHandle handle, int& err)
 		JsonSdkInterface::Instance().StopPreview(handle, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -223,7 +224,7 @@ ULHandle JsonNvrDevic::Dev_PlayBack(int channelId, long start, long end, void* V
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
 		if (err != 0)
 		{
 
@@ -234,7 +235,7 @@ ULHandle JsonNvrDevic::Dev_PlayBack(int channelId, long start, long end, void* V
 		ULHandle ulPreviewHandle = JsonSdkInterface::Instance().PlayBack(mLoginId, channelId, start, end, (DataPlayCallBack)VideoTranCallBack, (PlayBackEndCallBack)fun, pUser, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 		return ulPreviewHandle;
@@ -253,7 +254,7 @@ void JsonNvrDevic::Dev_StopPlayBack(ULHandle handle, int& err)
 		JsonSdkInterface::Instance().StopPlayBack(handle, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -270,7 +271,7 @@ void JsonNvrDevic::Dev_PlayBackCtrl(ULHandle handle, int cmd, int param1, int pa
 		JsonSdkInterface::Instance().PlayBackCtrl(handle, cmd, param1, param2, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -287,7 +288,7 @@ void JsonNvrDevic::Dev_PbCtrlTimePos(ULHandle handle, time_t pos, int& err)
 		JsonSdkInterface::Instance().setTimePos(handle, pos, err);
 		if (err == 3001 || err == 2007)
 		{
-			JsonSdkInterface::Instance().LogOut(mLoginId, err);
+            JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 			mLoginId = 0;
 		}
 	}
@@ -311,15 +312,15 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t &BufSize, int& err)
 		JsonSdkInterface::Instance().InitSdk(err);
 		if (err != 0)
 		{
-			printf("json sdk init err:%d\n", err);
+            LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
 		}
 	}
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
 		if (err != 0)
 		{
-			printf("json sdk login err:%d\n", err);
+            LogOut("SDK", L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
 		}
 	}
 	if (mLoginId > 0)
@@ -328,10 +329,10 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t &BufSize, int& err)
 		JsonSdkInterface::Instance().ListIPC(mLoginId, Buffer, &size, err);
 		if (err != 0)
 		{
-			printf("json sdk get ipc list err:%d\n", err);
+            LogOut("SDK", L_ERROR, "json sdk get ipc list err:%d, ip:%s", err, mIP.c_str());
 			if (err == 3001 || err == 2007)
 			{
-				JsonSdkInterface::Instance().LogOut(mLoginId, err);
+                JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 				mLoginId = 0;
 			}
 		}

@@ -13,6 +13,8 @@
 #include <cmath>
 #include <random>
 #include "SafeQueue.h"
+#include "SelfLog.h"
+#include <string.h>
 
 using Task = std::function<void()>;
 
@@ -58,11 +60,12 @@ private:
 
 public:
     // 线程池构造函数
-    ThreadPool(const int n_threads = 4);
+    ThreadPool(const int n_threads = 8);
 
     ThreadPool(const ThreadPool &) = delete;
 
     ThreadPool(ThreadPool &&) = delete;
+	~ThreadPool();
 
     ThreadPool &operator=(const ThreadPool &) = delete;
 
@@ -77,23 +80,24 @@ public:
     auto submit(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
     {
         // Create a function with bounded parameter ready to execute
+        LogOut("THREAD", L_DEBUG, "threadPool submit queue size:%d\n", m_queue.size());
         std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...); // 连接函数和参数定义，特殊函数类型，避免左右值错误
-
+        // LogOut("MQTT", L_DEBUG, "111 threadPool submit queue size:%d\n", m_queue.size());
         // Encapsulate it into a shared pointer in order to be able to copy construct
         auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
-
+        // LogOut("MQTT", L_DEBUG, "222 threadPool submit queue size:%d\n", m_queue.size());
         // Warp packaged task into void function
         std::function<void()> warpper_func = [task_ptr]()
         {
             (*task_ptr)();
         };
-
+        // LogOut("MQTT", L_DEBUG, "333 threadPool submit queue size:%d\n", m_queue.size());
         // 队列通用安全封包函数，并压入安全队列
         m_queue.enqueue(warpper_func);
-
+        // LogOut("MQTT", L_DEBUG, "444 threadPool submit queue size:%d\n", m_queue.size());
         // 唤醒一个等待中的线程
         m_conditional_lock.notify_one();
-
+        LogOut("THREAD", L_DEBUG, "555 threadPool submit queue size:%d\n", m_queue.size());
 		//std::cout << "idle thread:" << m_idleThreadSize << " task count:" << m_queue.size() << std::endl;
         // 返回先前注册的任务指针
         return task_ptr->get_future();

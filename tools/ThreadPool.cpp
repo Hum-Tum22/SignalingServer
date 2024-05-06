@@ -52,14 +52,44 @@ ThreadPool::ThreadPool(const int n_threads):m_shutdown(false)
 	int num = std::thread::hardware_concurrency();
 	m_initThreadSize = n_threads > num ? num : n_threads;
 	m_threadSizeThreshHold = num + 1;
+	int priorityNum = m_initThreadSize < 4 ? 1: (m_initThreadSize/4);
 	for (int i = 0; i < m_initThreadSize; ++i)
     {
-        m_threads.push_back(std::thread(ThreadWorker(this, i))); // 分配工作线程
+		std::thread t(ThreadWorker(this, i));
+		// if(priorityNum > i)
+		// {
+		// 	// 修改线程的调度策略和优先级
+		// 	int policy = SCHED_FIFO;//SCHED_RR; // 设置为轮流调度
+		// 	int priority = 10; // 设置优先级为 10
+		// 	pthread_attr_t attr;
+		// 	pthread_attr_init(&attr);
+		// 	pthread_attr_setschedpolicy(&attr, policy);
+		// 	sched_param param;
+		// 	param.sched_priority = priority;
+		// 	pthread_attr_setschedparam(&attr, &param);
+		// 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+		// 	pthread_t thread_handle = t.native_handle();
+		// 	pthread_setschedparam(thread_handle, policy, &param);
+		// }
+#ifndef _WIN32		
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+		CPU_SET(i,&cpuset);
+		int rc =pthread_setaffinity_np(t.native_handle(),sizeof(cpu_set_t), &cpuset);
+		if (rc != 0)
+		{
+			LogOut("THREAD", L_ERROR, "Error calling pthread_setaffinity_np:%d", rc);
+		}
+#endif
+        m_threads.push_back(std::move(t)); // 分配工作线程
 		m_curThreadSize++;
 		m_idleThreadSize++;
 	}
 }
-
+ThreadPool::~ThreadPool()
+{
+	shutdown();
+}
 void ThreadPool::shutdown()
 {
     m_shutdown = true;

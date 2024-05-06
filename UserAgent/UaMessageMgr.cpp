@@ -511,7 +511,8 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
 }
 void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType PtzCmd, int ControlPriority)
 {
-    BaseChildDevice *child = DeviceMng::Instance().findChildDevice(deviceId);
+    LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%d, ControlPriority:%d", deviceId, PtzCmd, ControlPriority);
+    BaseChildDevice* child = DeviceMng::Instance().findChildDevice(deviceId);
     if (child)
     {
         auto parentDev = child->getParentDev();
@@ -535,22 +536,22 @@ void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType Pt
                             JsonNvr->Dev_PTZCtrl(channel, JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd), arg, err);
                             if (err != 0)
                             {
-                                printf(" ptz ctrl err:%d, arg:%d\n", err, arg);
+                                LogOut("CTRL", L_ERROR, " ptz ctrl err:%d, arg:%d", err, arg);
                             }
                         }
                         else
                         {
-                            printf("ptz cmd:%d channel:%d status:%d\n", cmd, channel, jsonChild->getStatus());
+                            LogOut("CTRL", L_ERROR, "ptz cmd:%d channel:%d status:%d", cmd, channel, jsonChild->getStatus());
                         }
                     }
                     else
                     {
-                        printf("json channel:%d status:%d\n", channel, jsonChild->getStatus());
+                        LogOut("CTRL", L_ERROR, "json channel:%d status:%d", channel, jsonChild->getStatus());
                     }
                 }
                 else
                 {
-                    printf("jsonChild is null\n");
+                    LogOut("CTRL", L_ERROR, "jsonChild is null\n");
                 }
             }
         }

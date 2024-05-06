@@ -25,7 +25,7 @@ int main()
 	JSONLONG mLoginId = 0;
 	if (err == 0 && mLoginId == 0)
 	{
-		mLoginId = JsonSdkInterface::Instance().LogIn(ip.c_str(), port, user.c_str(), pswd.c_str(), err);
+		mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(ip.c_str(), port, user.c_str(), pswd.c_str(), err);
 		if (err != 0)
 		{
 			printf("json sdk login err:%d\n", err);
@@ -47,7 +47,7 @@ int main()
 		}
 		printf("%s\n", Buffer);
 	}
-	JsonSdkInterface::Instance().LogOut(mLoginId, err);
+	JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
 	JsonSdkInterface::Instance().SdkClear(err);
 	return 0;
 }

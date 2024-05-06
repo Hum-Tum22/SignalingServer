@@ -100,6 +100,7 @@
 #include "http.h"
 #include "deviceMng/deviceMng.h"
 #include "deviceMng/JsonDevice.h"
+#include "SelfLog.h"
 #ifdef USE_MYSQL
 #include "MySqlDb.hxx"
 #endif
@@ -162,36 +163,58 @@ public:
     virtual ~ReproSipMessageLoggingHandler() {}
     virtual void outboundMessage(const Tuple& source, const Tuple& destination, const SipMessage& msg)
     {
-        InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
-        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "OUTBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
+        Data srcMsg, dstMsg, strMsg;
+        {
+            oDataStream str(srcMsg);
+            str << source;
+            str.flush();
+        }
+        {
+            oDataStream str(dstMsg);
+            str << destination;
+            str.flush();
+        }
+        {
+            oDataStream str(strMsg);
+            str << msg;
+            str.flush();
+        }
+        LogOut("SIPMSG", L_DEBUG, "OUTBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
     virtual void outboundRetransmit(const Tuple& source, const Tuple& destination, const SendData& data)
     {
-        InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << data.data
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
-        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "OUTBOUND(retransmit): Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << data.data
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
+        Data srcMsg, dstMsg, strMsg;
+        {
+            oDataStream str(srcMsg);
+            str << source;
+            str.flush();
+        }
+        {
+            oDataStream str(dstMsg);
+            str << destination;
+            str.flush();
+        }
+        LogOut("SIPMSG", L_DEBUG, "OUTBOUND(retransmit): Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), data.data.c_str());
     }
     virtual void inboundMessage(const Tuple& source, const Tuple& destination, const SipMessage& msg)
     {
-        InfoLog(<< "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*\r\n");
-        /*cout << "\r\n*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*v*\r\n"
-            << "INBOUND: Src=" << source << ", Dst=" << destination << "\r\n\r\n"
-            << msg
-            << "*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*" << endl;*/
+        Data srcMsg, dstMsg, strMsg;
+        {
+            oDataStream str(srcMsg);
+            str << source;
+            str.flush();
+        }
+        {
+            oDataStream str(dstMsg);
+            str << destination;
+            str.flush();
+        }
+        {
+            oDataStream str(strMsg);
+            str << msg;
+            str.flush();
+        }
+        LogOut("SIPMSG", L_DEBUG, "INBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
 };
 
@@ -317,6 +340,29 @@ SipServer::run(int argc, char** argv)
         isEqualNoCase(loggingType, "file") ? &g_ReproLogger : 0);*/
     Log::initialize(Log::File, Log::Debug, "gb28181", "gb28181.log");
     Log::setMaxByteCount(52428800);
+
+    int fileNum = mProxyConfig->getConfigInt("LogFileNum", 2);
+    LogFileNumSet(fileNum);
+    int fileSize = mProxyConfig->getConfigInt("LogFileSize", 10);
+    LogFileSizeSet(fileSize);
+    int output = mProxyConfig->getConfigInt("LogOutPutType", 2);
+    LogTargetSet(output);
+    resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", "./", true);
+    resip::Data logFileName = mProxyConfig->getConfigData("LogName", "File", true);
+    LogPathNameSet(logPath.c_str(), logFileName.c_str());
+    int level = mProxyConfig->getConfigInt("HTTP", L_ERROR);
+    LogLevelSet("HTTP", level);
+    level = mProxyConfig->getConfigInt("SIPMSG", L_ERROR);
+    LogLevelSet("SIPMSG", level);
+    level = mProxyConfig->getConfigInt("CTRL", L_ERROR);
+    LogLevelSet("CTRL", level);
+    level = mProxyConfig->getConfigInt("SDK", L_ERROR);
+    LogLevelSet("SDK", level);
+    level = mProxyConfig->getConfigInt("MEDIA", L_ERROR);
+    LogLevelSet("MEDIA", level);
+    // BLL represents "Business Logic Layer."
+    level = mProxyConfig->getConfigInt("BLL", L_ERROR);
+    LogLevelSet("BLL", level);
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 

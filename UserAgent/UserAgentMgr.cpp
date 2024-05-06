@@ -30,6 +30,7 @@
 #endif
 #endif
 
+#include "CodeConversion.h"
 #include "UaClientCall.h"
 #include "../XmlMsgAnalysis.h"
 #include "../MsgContentXml.h"
@@ -41,6 +42,7 @@
 #include "../tools/m_Time.h"
 #include "../tools/ThreadPool.h"
 #include "SubscriptionMrg.h"
+#include "SelfLog.h"
 
 #include "../deviceMng/JsonDevice.h"
 #include "../media/MediaMng.h"
@@ -79,19 +81,19 @@ public:
         int method = msg.method();
         if (method == REGISTER)
         {
-            printf("\n");
+            LogOut("HTTP", L_DEBUG, "REGISTER");
         }
         else if (method == MESSAGE)
         {
-            printf("\n");
+            LogOut("HTTP", L_DEBUG, "MESSAGE");
         }
         if (msg.isRequest())
         {
-            printf("\n");
+            LogOut("HTTP", L_DEBUG, "isRequest");
         }
         else if (msg.isResponse())
         {
-            printf("\n");
+            LogOut("HTTP", L_DEBUG, "isResponse");
         }
         switch (msg.method())
         {
@@ -651,124 +653,6 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
     {
         return true;
     }
-    //BaseDevice::Ptr parentDev = NULL;
-    //BaseChildDevice *childDev = NULL;
-    //if (devId.empty())
-    //{
-    //    if (!channelId.empty())
-    //    {
-    //        childDev = DeviceMng::Instance().findChildDevice(channelId);
-    //        if (childDev)
-    //        {
-    //            parentDev = childDev->getParentDev();
-    //        }
-    //        else
-    //        {
-    //            printf("%s child device not found\n", channelId.c_str());
-    //            return false;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        printf("channelId is null\n");
-    //        return false;
-    //    }
-    //}
-    //else
-    //{
-    //    parentDev = DeviceMng::Instance().findDevice(devId);
-    //    if (!parentDev)
-    //    {
-    //        printf("%s device not found\n", devId.c_str());
-    //    }
-    //}
-    //
-    //if (parentDev)
-    //{
-    //    if (parentDev->devType == BaseDevice::JSON_NVR)
-    //    {
-    //        auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
-    //        if (Nvr)
-    //        {
-    //            int err = 0, chl = -1;
-    //            uint32_t msgSize = 1024*8*3;
-    //            //char Buffer[msgSize] = { 0 };
-    //            char* Buffer = new char[msgSize];
-    //            Nvr->Dev_ListIPC(Buffer, msgSize, err);
-    //            if (err == 0)
-    //            {
-    //                rapidjson_sip::Document document;
-    //                document.Parse(Buffer);
-    //                if (!document.HasParseError())
-    //                {
-    //                    if (document.HasMember("ipc_list") && document["ipc_list"].IsArray())
-    //                    {
-    //                        rapidjson_sip::Value& body = document["ipc_list"];
-    //                        for (uint32_t i = 0; i < body.Size(); i++)
-    //                        {
-    //                            std::string devNum = json_check_string(body[i], "device_number");
-    //                            JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
-    //                            if (devNum == pChild->getName())
-    //                            {
-    //                                int enable_flag = json_check_int32(body[i], "enable_flag");
-    //                                if (enable_flag == 2)
-    //                                {
-    //                                    int child = json_check_int32(body[i], "chid");
-    //                                    int online = json_check_int32(body[i], "online_status");
-    //                                    if (online == 1)
-    //                                    {
-    //                                        std::string Id = json_check_string(body[i], "device_id");
-    //                                        chl = child;
-    //                                        pChild->setStatus(1);
-    //                                    }
-    //                                    else
-    //                                    {
-    //                                        pChild->setStatus(0);
-    //                                        printf("%s %s child device offline\n", channelId.c_str(), devNum.c_str());
-    //                                    }
-    //                                }
-    //                                else
-    //                                {
-    //                                    printf("%s %s child device enable_flag :%d\n", channelId.c_str(), devNum.c_str(), enable_flag);
-    //                                }
-    //                                break;
-    //                            }
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //            else
-    //            {
-    //                printf("%s get channel info err: %d\n", channelId.c_str(), err);
-    //            }
-    //            delete Buffer; Buffer = NULL;
-    //            if (chl >= 0)
-    //            {
-    //                JsonStream::Ptr streamIn = std::make_shared<JsonStream>(channelId.c_str(), channelId.c_str());
-    //                ULHandle playhandle = Nvr->Dev_Preview(chl, streamId, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
-    //                if (err == 0)
-    //                {
-    //                    //parent->streamStatus = UaClientCall::CALL_MY_MEDIA_OK;
-    //                    //create mediain
-    //                    printf("%s child device pull stream ok\n", channelId.c_str());
-    //                    streamIn->setStreamHandle(playhandle);
-    //                    MediaMng::GetInstance().addStream(streamIn);
-    //                    return true;
-    //                }
-    //                else
-    //                {
-    //                    //delete streamIn; streamIn = NULL;
-    //                    printf("%s child device pull stream failed err:%d\n", channelId.c_str(), err);
-    //                    return false;
-    //                }
-    //            }
-    //            else
-    //            {
-    //                printf("%s child device channel not found\n", channelId.c_str());
-    //            }
-    //        }
-    //    }
-    //}
     return false;
 }
 bool UaMgr::RequestVodStream(std::string devId, std::string devIp, int devPort, std::string channelId, std::string streamId, int sdpPort, int rtpType, unsigned long stime, unsigned long etime)
@@ -1071,17 +955,6 @@ UaMgr::sendNotify(resip::ServerSubscriptionHandle& h, bool all)
 {
     //NotifyQDCCTVNodeInfo(h, all);
     ThreadPool::Instance().submit(std::bind(&UaMgr::NotifyQDCCTVNodeInfo, this, h, all));
-
-    /*auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&t), "%Y年%m月%d日%H时%M分%S秒");
-    std::string str_time = ss.str();
-    printf("NotifySendTime %s\n", str_time.c_str());
-    if (h.isValid())
-    {
-        std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId, h));
-        mStack.post(std::move(timer), NotifySendTime, mDum);
-    }*/
 }
 
 void
@@ -1886,7 +1759,7 @@ void getJsonNvrChannelStatus(BaseDevice::Ptr &dev, std::map<std::string, int> &s
                                 devNum = devNum.substr(0, sPos);
                             }
                             int online = json_check_int32(body[i], "online_status");
-                            printf("ipc list name status:%s, %d\n", devNum.c_str(), online);
+                            LogOut("HTTP", L_DEBUG, "ipc list name status:%s, %d", devNum.c_str(), online);
                             statusMap[devNum] = online;
                         }
                     }
@@ -1917,8 +1790,8 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     httpUrl += Data(port);
     httpUrl += Data("/device/gbInfo");
     Data host = DnsUtil::getLocalIpAddress();
-    printf("get local ip:%s\n", host.c_str());
     Data Uid = host.md5().uppercase();
+    LogOut("HTTP", L_DEBUG, "get local ip:%s, url:%s, uid:%s", host.c_str(), httpUrl.c_str(), Uid.c_str());
     ////"http://192.168.1.223:20010/device/gbInfo?serverUid="
 
     rapidjson_sip::StringBuffer buffer;
@@ -1931,20 +1804,22 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
 
     std::string dirstr = PostRequest(httpUrl.c_str(), std::string(buffer.GetString(), buffer.GetLength()));
 
+    dirstr = Utf8ToGbk(dirstr);
+    LogOut("HTTP", L_DEBUG, "gbinfo response:%s", dirstr.c_str());
     if (!dirstr.empty())
     {
         rapidjson_sip::Document document;
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
         if (document.HasParseError() || !document.IsObject())
         {
-            printf("json error:%s,    res:%d\n", dirstr.c_str(), res);
+            LogOut("HTTP", L_DEBUG, "json error:%s,    res:%d", dirstr.c_str(), res);
         }
         else
         {
             int errCode = json_check_int32(document, "code");
             if (errCode != 200)
             {
-                printf("json code :%d\n", errCode);
+                LogOut("HTTP", L_DEBUG, "json code :%d", errCode);
             }
             resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
             if (document.HasMember("data") && document["data"].IsObject())
@@ -1958,11 +1833,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                     {
                         VirtualOrganization voTop;
                         voTop.Name = json_check_string(msbody[i], "Title");
-                        std::size_t sPos = voTop.Name.find(" ");
-                        if (sPos != std::string::npos)
-                        {
-                            voTop.Name = voTop.Name.substr(0, sPos);
-                        }
+                        // std::size_t sPos = voTop.Name.find(" ");
+                        // if (sPos != std::string::npos)
+                        // {
+                        //     voTop.Name = voTop.Name.substr(0, sPos);
+                        // }
                         voTop.DeviceID = json_check_string(msbody[i], "GBId");
                         voTop.ParentID = DeviceMng::Instance().getSelfId();
                         VirtualOrganization* vo = DeviceMng::Instance().findVirtualOrganization(voTop.DeviceID);
@@ -1972,12 +1847,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             {
                                 vo->Name = voTop.Name;
                                 vo->ParentID = voTop.ParentID;
-                                printf("update gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
+                                LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", voTop.DeviceID.c_str(), voTop.Name.c_str());
                             }
                         }
                         else
                         {
-                            printf("add gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
+                            LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", voTop.DeviceID.c_str(), voTop.Name.c_str());
                             DeviceMng::Instance().addVirtualOrganization(voTop);
                         }
 
@@ -1987,11 +1862,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                         std::string pass = json_check_string(msbody[i], "ManagePass");
                         std::string nvrIp = json_check_string(msbody[i], "ManageIp");
                         std::string nvrId = json_check_string(msbody[i], "nvrDid");
-                        sPos = nvrId.find(" ");
-                        if (sPos != std::string::npos)
-                        {
-                            nvrId = nvrId.substr(0, sPos);
-                        }
+                        // sPos = nvrId.find(" ");
+                        // if (sPos != std::string::npos)
+                        // {
+                        //     nvrId = nvrId.substr(0, sPos);
+                        // }
                         int nvrStatus = json_check_int32(msbody[i], "status");
                         BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(nvrId);
                         if (dev)
@@ -2014,7 +1889,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), nvrIp.c_str(), port, user.c_str(), pass.c_str());
                             jsonNvr->setStatus(nvrStatus ? 0 : 1);
                             DeviceMng::Instance().addDevice(jsonNvr);
-                            printf("add nvr id:%s\n", nvrId.c_str());
+                            LogOut("HTTP", L_DEBUG, "add nvr id:%s", nvrId.c_str());
                             dev = jsonNvr;
                         }
                         if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
@@ -2022,11 +1897,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             rapidjson_sip::Value& upbody = msbody[i]["Upward"];
                             VirtualOrganization subVo;
                             subVo.Name = json_check_string(upbody, "Title");
-                            sPos = subVo.Name.find(" ");
-                            if (sPos != std::string::npos)
-                            {
-                                subVo.Name = subVo.Name.substr(0, sPos);
-                            }
+                            // sPos = subVo.Name.find(" ");
+                            // if (sPos != std::string::npos)
+                            // {
+                            //     subVo.Name = subVo.Name.substr(0, sPos);
+                            // }
                             subVo.DeviceID = json_check_string(upbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
@@ -2036,12 +1911,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
-                                    printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 }
                             }
                             else
                             {
-                                printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
 
@@ -2051,11 +1926,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 for (size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
-                                    sPos = childName.find(" ");
-                                    if (sPos != std::string::npos)
-                                    {
-                                        childName = childName.substr(0, sPos);
-                                    }
+                                    // sPos = childName.find(" ");
+                                    // if (sPos != std::string::npos)
+                                    // {
+                                    //     childName = childName.substr(0, sPos);
+                                    // }
                                     std::string childId = json_check_string(ipcbody[j], "GBId");
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
                                     ipcStatus = ipcStatus ? 0 : 1;
@@ -2074,12 +1949,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                     jsonChild->setName(childName);
                                                     jsonChild->setStatus(ipcStatus);
                                                     jsonChild->setParentId(subVo.DeviceID);
-                                                    printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
                                                 else if (jsonChild->getStatus() != ipcStatus)
                                                 {
                                                     jsonChild->setStatus(ipcStatus);
-                                                    printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                    LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
                                             }
                                         }
@@ -2092,7 +1967,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                         childDev->setStatus(ipcStatus);
                                         childDev->setParentId(subVo.DeviceID);
                                         DeviceMng::Instance().addChildDevice(childDev);
-                                        printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                        LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                     }
                                 }
                             }
@@ -2102,11 +1977,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             rapidjson_sip::Value& downbody = msbody[i]["Downward"];
                             VirtualOrganization subVo;
                             subVo.Name = json_check_string(downbody, "Title");
-                            sPos = subVo.Name.find(" ");
-                            if (sPos != std::string::npos)
-                            {
-                                subVo.Name = subVo.Name.substr(0, sPos);
-                            }
+                            // sPos = subVo.Name.find(" ");
+                            // if (sPos != std::string::npos)
+                            // {
+                            //     subVo.Name = subVo.Name.substr(0, sPos);
+                            // }
                             subVo.DeviceID = json_check_string(downbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
@@ -2116,12 +1991,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
-                                    printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 }
                             }
                             else
                             {
-                                printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
                             if (downbody.HasMember("Data") && downbody["Data"].IsArray())
@@ -2130,11 +2005,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 for (size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
-                                    sPos = childName.find(" ");
-                                    if (sPos != std::string::npos)
-                                    {
-                                        childName = childName.substr(0, sPos);
-                                    }
+                                    // sPos = childName.find(" ");
+                                    // if (sPos != std::string::npos)
+                                    // {
+                                    //     childName = childName.substr(0, sPos);
+                                    // }
                                     std::string childId = json_check_string(ipcbody[j], "GBId");
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");
                                     ipcStatus = ipcStatus ? 0 : 1;
@@ -2153,12 +2028,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                     jsonChild->setName(childName);
                                                     jsonChild->setStatus(ipcStatus);
                                                     jsonChild->setParentId(subVo.DeviceID);
-                                                    printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
                                                 else if (jsonChild->getStatus() != ipcStatus)
                                                 {
                                                     jsonChild->setStatus(ipcStatus);
-                                                    printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                    LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
                                             }
                                         }
@@ -2171,7 +2046,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                         childDev->setStatus(ipcStatus);
                                         childDev->setParentId(subVo.DeviceID);
                                         DeviceMng::Instance().addChildDevice(childDev);
-                                        printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                        LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                     }
                                 }
                             }
@@ -2181,11 +2056,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
                             VirtualOrganization subVo;
                             subVo.Name = json_check_string(kkbody, "Title");
-                            sPos = subVo.Name.find(" ");
-                            if (sPos != std::string::npos)
-                            {
-                                subVo.Name = subVo.Name.substr(0, sPos);
-                            }
+                            // sPos = subVo.Name.find(" ");
+                            // if (sPos != std::string::npos)
+                            // {
+                            //     subVo.Name = subVo.Name.substr(0, sPos);
+                            // }
                             subVo.DeviceID = json_check_string(kkbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
@@ -2195,12 +2070,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
-                                    printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 }
                             }
                             else
                             {
-                                printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
                             if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
@@ -2209,11 +2084,11 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 for (size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
-                                    sPos = childName.find(" ");
-                                    if (sPos != std::string::npos)
-                                    {
-                                        childName = childName.substr(0, sPos);
-                                    }
+                                    // sPos = childName.find(" ");
+                                    // if (sPos != std::string::npos)
+                                    // {
+                                    //     childName = childName.substr(0, sPos);
+                                    // }
                                     std::string childId = json_check_string(ipcbody[j], "GBId");
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");
                                     ipcStatus = ipcStatus ? 0 : 1;
@@ -2234,12 +2109,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                         jsonChild->setName(childName);
                                                         jsonChild->setStatus(ipcStatus);
                                                         jsonChild->setParentId(subVo.DeviceID);
-                                                        printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                     }
                                                     else if (jsonChild->getStatus() != ipcStatus)
                                                     {
                                                         jsonChild->setStatus(ipcStatus);
-                                                        printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                     }
                                                 }
                                             }
@@ -2253,7 +2128,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                         childDev->setStatus(ipcStatus);
                                         childDev->setParentId(subVo.DeviceID);
                                         DeviceMng::Instance().addChildDevice(childDev);
-                                        printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                        LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                     }
                                 }
                             }
@@ -2279,7 +2154,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                     {
                         upPassword = pswd;
                     }
-                    printf("upId:%s, uphost:%s,upport:%d,pswd:%s\n", upID.c_str(), upHost.c_str(), upPort, upPassword.c_str());
+                    LogOut("HTTP", L_DEBUG, "upId:%s, uphost:%s,upport:%d,pswd:%s", upID.c_str(), upHost.c_str(), upPort, upPassword.c_str());
                     Uri target;
                     target.user() = upID.c_str();
                     target.host() = upHost.c_str();
@@ -2292,7 +2167,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     }
     else
     {
-        printf("/device/gbInfo not response\n");
+        LogOut("HTTP", L_DEBUG, "/device/gbInfo not response");
     }
     return 0;
 }
@@ -2314,7 +2189,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     httpUrl += Data(port);
     httpUrl += Data("/device/gbInfo");
     Data host = DnsUtil::getLocalIpAddress();
-    printf("get local ip:%s\n", host.c_str());
+    LogOut("HTTP", L_DEBUG, "get local ip:%s", host.c_str());
     Data Uid = host.md5().uppercase();
     ////"http://192.168.1.223:20010/device/gbInfo?serverUid="
 
@@ -2331,6 +2206,8 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     std::string str_time = ss.str(); 
 
     std::string dirstr = PostRequest(httpUrl.c_str(), std::string(buffer.GetString(), buffer.GetLength()));
+    dirstr = Utf8ToGbk(dirstr);
+    LogOut("HTTP", L_DEBUG, "notify gbinfo response:%s", dirstr.c_str());
     int count = 0;
     if (!dirstr.empty())
     {
@@ -2338,7 +2215,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
         if (document.HasParseError() || !document.IsObject())
         {
-            printf("json error:%s,    res:%d, %s\n", dirstr.c_str(), res, str_time.c_str());
+            LogOut("HTTP", L_DEBUG, "json error:%s,    res:%d, %s", dirstr.c_str(), res, str_time.c_str());
         }
         else
         {
@@ -2371,7 +2248,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                 {
                                     vo->Name = voTop.Name;
                                     vo->ParentID = voTop.ParentID;
-                                    printf("update gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", voTop.DeviceID.c_str(), voTop.Name.c_str());
 
                                     std::string outStr;
                                     CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), voTop, outStr);
@@ -2380,7 +2257,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                             }
                             else
                             {
-                                printf("add gbid name:%s %s\n", voTop.DeviceID.c_str(), voTop.Name.c_str());
+                                LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", voTop.DeviceID.c_str(), voTop.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(voTop);
 
                                 std::string outStr;
@@ -2421,7 +2298,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                 auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), nvrIp.c_str(), port, user.c_str(), pass.c_str());
                                 jsonNvr->setStatus(nvrStatus ? 0 : 1);
                                 DeviceMng::Instance().addDevice(jsonNvr);
-                                printf("add nvr id:%s\n", nvrId.c_str());
+                                LogOut("HTTP", L_DEBUG, "add nvr id:%s", nvrId.c_str());
                                 dev = jsonNvr;
                             }
                             std::map<std::string, int> statusMap;
@@ -2445,7 +2322,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
-                                        printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                         std::string outStr;
                                         CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
                                         CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
@@ -2453,7 +2330,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                 }
                                 else
                                 {
-                                    printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                     DeviceMng::Instance().addVirtualOrganization(subVo);
 
                                     std::string outStr;
@@ -2495,7 +2372,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                         jsonChild->setName(childName);
                                                         jsonChild->setStatus(ipcStatus);
                                                         jsonChild->setParentId(subVo.DeviceID);
-                                                        printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                         std::string outStr;
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2505,7 +2382,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                     {
 
                                                         jsonChild->setStatus(ipcStatus);
-                                                        printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                         std::string outStr;
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2522,7 +2399,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                             childDev->setStatus(ipcStatus);
                                             childDev->setParentId(subVo.DeviceID);
                                             DeviceMng::Instance().addChildDevice(childDev);
-                                            printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                            LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                             std::string outStr;
                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2550,7 +2427,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
-                                        printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
 
                                         std::string outStr;
                                         CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
@@ -2559,7 +2436,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                 }
                                 else
                                 {
-                                    printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                     DeviceMng::Instance().addVirtualOrganization(subVo);
 
                                     std::string outStr;
@@ -2599,7 +2476,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                         jsonChild->setName(childName);
                                                         jsonChild->setStatus(ipcStatus);
                                                         jsonChild->setParentId(subVo.DeviceID);
-                                                        printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                         std::string outStr;
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2608,7 +2485,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                     else if (isAll || jsonChild->getStatus() != ipcStatus)
                                                     {
                                                         jsonChild->setStatus(ipcStatus);
-                                                        printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                        LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                         std::string outStr;
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2625,7 +2502,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                             childDev->setStatus(ipcStatus);
                                             childDev->setParentId(subVo.DeviceID);
                                             DeviceMng::Instance().addChildDevice(childDev);
-                                            printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                            LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                             std::string outStr;
                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2653,7 +2530,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
-                                        printf("update gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                        LogOut("HTTP", L_DEBUG, "update gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
 
                                         std::string outStr;
                                         CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), subVo, outStr);
@@ -2662,7 +2539,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                 }
                                 else
                                 {
-                                    printf("add gbid name:%s %s\n", subVo.DeviceID.c_str(), subVo.Name.c_str());
+                                    LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                     DeviceMng::Instance().addVirtualOrganization(subVo);
 
                                     std::string outStr;
@@ -2705,7 +2582,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                             jsonChild->setName(childName);
                                                             jsonChild->setStatus(ipcStatus);
                                                             jsonChild->setParentId(subVo.DeviceID);
-                                                            printf("update gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                            LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                             std::string outStr;
                                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2714,7 +2591,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                         else if (isAll || jsonChild->getStatus() != ipcStatus)
                                                         {
                                                             jsonChild->setStatus(ipcStatus);
-                                                            printf("status change gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                                            LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                                             std::string outStr;
                                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(ipcStatus ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2732,7 +2609,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                             childDev->setStatus(ipcStatus);
                                             childDev->setParentId(subVo.DeviceID);
                                             DeviceMng::Instance().addChildDevice(childDev);
-                                            printf("add gbid name:%s %s status:%d\n", childId.c_str(), childName.c_str(), ipcStatus);
+                                            LogOut("HTTP", L_DEBUG, "add gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
 
                                             std::string outStr;
                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), childDev->GetCatalogItem(myId.c_str()), NULL, outStr);
@@ -2748,16 +2625,16 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
             }
             else
             {
-                printf("json code :%d, str_time :%s\n", errCode, str_time.c_str());
+                LogOut("HTTP", L_DEBUG, "json code :%d, str_time :%s", errCode, str_time.c_str());
             }
         }
     }
     else
     {
-        printf("/device/gbInfo not response\n");
+        LogOut("HTTP", L_DEBUG, "/device/gbInfo not response");
     }
 
-    printf("NotifySendTime %s\n", str_time.c_str());
+    LogOut("HTTP", L_DEBUG, "NotifySendTime %s", str_time.c_str());
     if (ssph.isValid())
     {
         std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId, ssph));
@@ -2768,14 +2645,12 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
 void UaMgr::UaInfoUpdate()
 {
 #ifdef QINGDONG_CCTV
-    std::string upID, upHost, upPassword("12345");
+    std::string upID, upHost, upPassword("admin123");
     int upPort = 0;
-    //printf("get cctv node into start \n");
     int num = getQDCCTVNodeInfo(upID, upHost, upPort, upPassword, false);
-    //printf("get cctv node into end\n");
     if (upID.empty())
     {
-        printf("get cctv upId null\n");
+        LogOut("HTTP", L_DEBUG, "get cctv upId null");
         Data user;
         shared_ptr<UaSessionInfo> uaState;
         while ((uaState = GetNextUaInfoByUser(user)) != NULL)
@@ -2786,20 +2661,20 @@ void UaMgr::UaInfoUpdate()
                 //DoCancelRegist(user);
                 uaState->cctvNum = 0;
                 //removeUser(user);
-                printf("unregist and remove user:%s\n", user.c_str());
+                LogOut("HTTP", L_DEBUG, "unregist and remove user:%s", user.c_str());
             }
         }
     }
     else
     {
-        printf("get cctv upId == :%s\n", upID.c_str());
+        LogOut("HTTP", L_DEBUG, "get cctv upId == :%s", upID.c_str());
         Data user(upID);
         shared_ptr<UaSessionInfo> uaState = GetUaInfoByUser(user);
         if (uaState)
         {
             if (Data(upHost) != uaState->toUri.host() || upPort != uaState->toUri.port() || uaState->passwd != Data(upPassword))
             {
-                printf("unregist user :%s host:%s port:%d\n", user.c_str(), upHost.c_str(), upPort);
+                LogOut("HTTP", L_DEBUG, "unregist user :%s host:%s port:%d", user.c_str(), upHost.c_str(), upPort);
                 DoCancelRegist(user);
 
                 uaState->toUri.host() = Data(upHost);
@@ -2815,13 +2690,13 @@ void UaMgr::UaInfoUpdate()
             else
             {
 
-                printf("user :%s host:%s new host:%s, port:%d new port:%d ---- statusCode:%d, \n", user.c_str(), uaState->toUri.host().c_str(), upHost.c_str(),
+                LogOut("HTTP", L_DEBUG, "user :%s host:%s new host:%s, port:%d new port:%d ---- statusCode:%d", user.c_str(), uaState->toUri.host().c_str(), upHost.c_str(),
                     uaState->toUri.port(), upPort, uaState->i_State);
             }
         }
         else
         {
-            printf("DoRegist   error \n");
+            LogOut("HTTP", L_DEBUG, "DoRegist   error");
         }
     }
 #endif

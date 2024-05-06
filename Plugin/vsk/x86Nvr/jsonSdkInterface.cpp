@@ -4,6 +4,7 @@
 #include "../../../lib/rapidjson/stringbuffer.h"
 #include "../../../lib/rapidjson/writer.h"
 #include "include/base64.h"
+#include "SelfLog.h"
 #include <errno.h>
 #include <exception>
 #include <iostream>
@@ -38,7 +39,7 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
 	m_hDll = dlopen("libsdkJson.so", RTLD_NOW);
 	if (!m_hDll)
 	{
-		printf("sdkJson.so load err:%s\n", dlerror());
+        LogOut("SDK", L_ERROR, "sdkJson.so load err:%s", dlerror());
 	}
 #endif
 }
@@ -81,20 +82,20 @@ void JsonSdkInterface::InitSdk(int& err)
 			}
 			else
 			{
-				printf("json sdk init err:%d\n", err);
+                LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
 				err = ret;
 			}
 		}
 		else
 		{
-			printf("get JsonSdk_Initate err:%d\n", err);
+            LogOut("SDK", L_ERROR, "get JsonSdk_Initate err:%d", err);
 			err = -2;
 		}
 	}
 	else
 	{
 		err = -1;
-		printf("Load json sdk err:%d\n", err);
+        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
 	}
 }
 void JsonSdkInterface::SdkClear(int& err)
@@ -125,7 +126,7 @@ void JsonSdkInterface::SdkClear(int& err)
 	else
 		err = -1;
 }
-JSONLONG JsonSdkInterface::LogIn(const char* ip, int port, const char* name, const char* pswd, int& err)
+JSONLONG JsonSdkInterface::JsonSdkLogIn(const char* ip, int port, const char* name, const char* pswd, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -162,34 +163,34 @@ JSONLONG JsonSdkInterface::LogIn(const char* ip, int port, const char* name, con
 				int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
 				if (ret == 0)
 				{
-					printf("json sdk  login ok %ld\n", nLoginID);
+                    LogOut("SDK", L_DEBUG, "json sdk  login ok %ld", nLoginID);
 					return nLoginID;
 				}
 				else
 				{
-					printf("json sdk  login err:%d\n", ret);
+                    LogOut("SDK", L_ERROR, "json sdk  login err:%d", ret);
 					err = ret;
 				}
 			}
 			catch (std::exception& e)
-			{
-				std::cout << "Standard exception: " << e.what() << std::endl;
+            {
+                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
 			}
 		}
 		else
 		{
-			printf("get JsonSdk_Login err:%d\n", err);
+            LogOut("SDK", L_ERROR, "get JsonSdk_Login err:%d", err);
 			err = -2;
 		}
 	}
 	else
 	{
 		err = -1;
-		printf("Load json sdk err:%d\n", err);
+        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
 	}
 	return 0;
 }
-void JsonSdkInterface::LogOut(JSONLONG loginId, int& err)
+void JsonSdkInterface::JsonSdkLogOut(JSONLONG loginId, int& err)
 {
 	err = 0;
 	if (m_hDll && IsInit)
@@ -203,7 +204,7 @@ void JsonSdkInterface::LogOut(JSONLONG loginId, int& err)
 			int ret = LogOutFun(loginId);
 			if (ret == 0)
 			{
-				printf("json sdk  logout %ld\n", loginId);
+                LogOut("SDK", L_ERROR, "json sdk  logout %ld", loginId);
 				return;
 			}
 			else
@@ -230,7 +231,7 @@ void JsonSdkInterface::GetChannelEncoderParam(JSONLONG UserID, JSONLONG chid, ch
 			int ret = GetChannelParam(UserID, chid, pInfo, pInfoSize);
 			if (ret == 0)
 			{
-				printf("json sdk  get channel encoder param ok \n");
+                LogOut("SDK", L_ERROR, "json sdk  get channel encoder param ok");
 				return;
 			}
 			else
@@ -274,7 +275,7 @@ JSONLONG JsonSdkInterface::Preview(JSONLONG UserID, int channel, int streamId, D
 			int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
-				printf("json sdk  preview ok %ld\n", hHandle);
+                LogOut("SDK", L_ERROR, "json sdk  preview ok %ld", hHandle);
 				return hHandle;
 			}
 			else
@@ -318,11 +319,14 @@ JSONLONG JsonSdkInterface::VskPreview(JSONLONG UserID, int channel, int streamId
 			int ret = VskPreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
 			if (ret == 0)
 			{
-				printf("json sdk vsk preview ok %ld\n", hHandle);
+                LogOut("SDK", L_ERROR, "json sdk vsk preview ok %ld", hHandle);
 				return hHandle;
 			}
-			else
-				err = ret;
+            else
+            {
+                err = ret;
+                LogOut("SDK", L_ERROR, "preview err %d", ret);
+            }
 		}
 		else
 			err = -2;
@@ -345,11 +349,12 @@ void JsonSdkInterface::StopPreview(JSONLONG rthandle, int& err)
 			int ret = StopPreviewFun(rthandle);
 			if (ret == 0)
 			{
-				printf("json sdk stop preview ok %ld\n", rthandle);
+                LogOut("SDK", L_ERROR, "json sdk stop preview ok %ld", rthandle);
 				return ;
 			}
-			err = ret;
-			return ;
+            err = ret;
+            LogOut("SDK", L_ERROR, "stop preview err %d", ret);
+            return;
 		}
 		err = -2;
 		return ;
@@ -392,8 +397,9 @@ JSONLONG JsonSdkInterface::PlayBack(JSONLONG UserID, int channel, long start, lo
 			{
 				return hHandle;
 			}
-			err = ret;
-			return 0;
+            err = ret;
+            LogOut("SDK", L_ERROR, "play back err %d", ret);
+            return 0;
 		}
 		err = -2;
 		return 0;
@@ -417,8 +423,9 @@ void JsonSdkInterface::StopPlayBack(JSONLONG UserID, int& err)
 			{
 				return ;
 			}
-			err = ret;
-			return ;
+            err = ret;
+            LogOut("SDK", L_ERROR, "stop play back err %d", ret);
+            return;
 		}
 		err = -2;
 		return ;
@@ -455,8 +462,9 @@ void JsonSdkInterface::PlayBackCtrl(JSONLONG UserID, int cmd, int param1, int pa
 			int ret = PlayBackCtrlFun(UserID, strJsonReq.c_str());
 			if (ret != 0)
 			{
-				err = ret;
-			}
+                err = ret;
+                LogOut("SDK", L_ERROR, "play back ctrl err %d", ret);
+            }
 			return;
 		}
 		err = -2;
@@ -480,8 +488,9 @@ void JsonSdkInterface::setTimePos(JSONLONG pbhandle, time_t t, int& err)
 			int ret = setTimePosFun(pbhandle, t);
 			if (ret != 0)
 			{
-				err = ret;
-			}
+                err = ret;
+                LogOut("SDK", L_ERROR, "set time pos err %d", ret);
+            }
 			return;
 		}
 		err = -2;
@@ -525,8 +534,9 @@ JSONLONG JsonSdkInterface::Download(JSONLONG UserID, int channel, long start, lo
 			{
 				return hHandle;
 			}
-			err = ret;
-			return 0;
+            err = ret;
+            LogOut("SDK", L_ERROR, "download err %d", ret);
+            return 0;
 		}
 		err = -2;
 		return 0;
@@ -550,8 +560,9 @@ void JsonSdkInterface::StopDownload(JSONLONG UserID, int& err)
 			{
 				return;
 			}
-			err = ret;
-			return;
+            err = ret;
+            LogOut("SDK", L_ERROR, "stop download err %d", ret);
+            return;
 		}
 		err = -2;
 		return;
@@ -569,14 +580,22 @@ void JsonSdkInterface::PTZCtrl(JSONLONG UserID, uint32_t Channel, uint32_t PTZCo
 			PtzCtrlFun = (Sdk_PTZCtrl)LoadSharedLibFun(m_hDll, "JsonSdk_PTZCtrl");
 		}
 		if (UserID && PtzCtrlFun)
-		{
-			int ret = PtzCtrlFun(UserID, Channel, PTZCommand, Argument);
-			if (ret == 0)
-			{
-				return;
-			}
-			err = ret;
-			return;
+        {
+            try
+            {
+                int ret = PtzCtrlFun(UserID, Channel, PTZCommand, Argument);
+                if (ret == 0)
+                {
+                    return;
+                }
+                err = ret;
+                LogOut("SDK", L_ERROR, "ptz ctrl err %d", ret);
+                return;
+            }
+            catch (std::exception& e)
+            {
+                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
+            }
 		}
 		err = -2;
 		return;
@@ -604,20 +623,20 @@ void JsonSdkInterface::ListIPC(JSONLONG UserID, char* pIPCServerList, uint32_t* 
 				}
 				else
 				{
-					printf("json sdk  get ipc list err:%d\n", err);
+                    LogOut("SDK", L_ERROR, "json sdk  get ipc list err:%d", err);
 					err = ret;
 				}
 			}
 			catch (std::exception& e)
-			{
-				std::cout << "Standard exception: " << e.what() << std::endl;
+            {
+                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
 			}
 			
 			return;
 		}
 		else
 		{
-			printf("get JsonSdk_ListIPC err:%d\n", err);
+            LogOut("SDK", L_ERROR, "get JsonSdk_ListIPC err:%d", err);
 			err = -2;
 		}
 		return;
@@ -625,7 +644,7 @@ void JsonSdkInterface::ListIPC(JSONLONG UserID, char* pIPCServerList, uint32_t* 
 	else
 	{
 		err = -1;
-		printf("Load json sdk err:%d\n", err);
+        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
 	}
 	return;
 }

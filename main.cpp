@@ -14,6 +14,7 @@
 #include "http.h"
 #include "ws.h"
 #include "SipServerConfig.h"
+#include "SelfLog.h"
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
 
@@ -23,6 +24,7 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+    CLog::Instance().InitLog();
     // Initialize network
     initNetwork();
 
