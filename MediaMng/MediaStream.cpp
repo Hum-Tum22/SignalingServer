@@ -37,7 +37,7 @@ int MediaStream::OnJsonMediaVideoStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
                     }
                     else
                     {
-                        LogOut("BLL", L_ERROR, "new buffer error");
+                        LogOut(BLL, L_ERROR, "new buffer error");
                         return 4;
                     }
                 }
@@ -56,12 +56,12 @@ int MediaStream::OnJsonMediaVideoStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
                     mFrames[wIndex].SetFrameRate(fps);
                     mFrames[wIndex].SetPTS(pts);
                     wIndex = (wIndex + 1) % vSize;
-                    // LogOut("BLL", L_ERROR, "write frame type ibp:%d", ibp);
+                    // LogOut(BLL, L_ERROR, "write frame type ibp:%d", ibp);
                     return 0;
                 }
                 else
                 {
-                    LogOut("BLL", L_ERROR, "write frame type ibp:%d error:%d", ibp, ret);
+                    LogOut(BLL, L_ERROR, "write frame type ibp:%d error:%d", ibp, ret);
                     return 3;
                 }
             }
@@ -89,7 +89,7 @@ int MediaStream::OnJsonMediaAudioStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
                     }
                     else
                     {
-                        LogOut("BLL", L_ERROR, "new buffer error");
+                        LogOut(BLL, L_ERROR, "new buffer error");
                         return 4;
                     }
                 }

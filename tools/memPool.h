@@ -27,7 +27,7 @@ public:
         bm_ptr = new uint8_t[bufSize];
         curBuf = buf;
         rPos = wPos = frPos = fwPos = 0;
-        LogOut("BLL", L_DEBUG, "new avMemPool buf:%p, bm_ptr:%p, curBuf:%p", buf, bm_ptr, curBuf);
+        LogOut(BLL, L_DEBUG, "new avMemPool buf:%p, bm_ptr:%p, curBuf:%p", buf, bm_ptr, curBuf);
     };
     ~avMemPool()
     {
@@ -39,7 +39,7 @@ public:
         {
             delete[] bm_ptr; bm_ptr = NULL;
         }
-        LogOut("BLL", L_DEBUG, "delete avMemPool");
+        LogOut(BLL, L_DEBUG, "delete avMemPool");
     }
     int wirteData(void* data, size_t size)
     {
@@ -57,7 +57,7 @@ public:
             {
                 frPos = rPos;
                 fwPos = wPos;
-                LogOut("BLL", L_DEBUG, "------- wPos:%lu rPos:%lu error", wPos, rPos);
+                LogOut(BLL, L_DEBUG, "------- wPos:%lu rPos:%lu error", wPos, rPos);
             }
             wPos = rPos = 0;
             if(curBuf == buf)
@@ -70,7 +70,7 @@ public:
             }
             else
             {
-                LogOut("BLL", L_DEBUG, "------- curBuf error");
+                LogOut(BLL, L_DEBUG, "------- curBuf error");
             }
             wirteData(data, size);
         }

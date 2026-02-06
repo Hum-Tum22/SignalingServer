@@ -70,7 +70,7 @@ int FrameMemPool::Init264()
     }
     else
     {
-        LogOut("BLL", L_DEBUG, "************ init264");
+        LogOut(BLL, L_DEBUG, "************ init264");
     }
     readPtr = NULL;
     readSize = 0;
@@ -306,12 +306,12 @@ int MediaStream::OnJsonMediaVideoStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
                     mFrames[wIndex].SetFrameRate(fps);
                     mFrames[wIndex].SetPTS(pts);
                     wIndex = (wIndex + 1) % vSize;
-                    // LogOut("BLL", L_ERROR, "write frame type ibp:%d", ibp);
+                    // LogOut(BLL, L_ERROR, "write frame type ibp:%d", ibp);
                     return 0;
                 }
                 else
                 {
-                    LogOut("BLL", L_ERROR, "write frame type ibp:%d error:%d", ibp, ret);
+                    LogOut(BLL, L_ERROR, "write frame type ibp:%d error:%d", ibp, ret);
                     return 3;
                 }
             }

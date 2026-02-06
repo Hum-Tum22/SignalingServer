@@ -413,7 +413,7 @@ void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
-					LogOut("BLL", L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, xDataHeard.KeyFramE.timestamp);
+					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, xDataHeard.KeyFramE.timestamp);
 					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
 					int ret = 1;
 					while(ret == 1)
@@ -486,7 +486,7 @@ void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
-					LogOut("BLL", L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, curTime);
+					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, curTime);
 					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
 					int ret = 1;
 					while(ret == 1)
@@ -536,7 +536,7 @@ void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 	}
 	else
 	{
-		LogOut("BLL", L_DEBUG, "parse vsk frame header failed %02x %02x %02x %02x\r\n", data[0], data[1], data[2], data[3]);
+		LogOut(BLL, L_DEBUG, "parse vsk frame header failed %02x %02x %02x %02x\r\n", data[0], data[1], data[2], data[3]);
 	}
 }
 int JsonStream::PraseFrameHeard(unsigned char *pbuf, unsigned int buflen, DataHeard *pheard/*out*/, unsigned int *skipsize/*out*/)

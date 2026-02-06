@@ -11,7 +11,11 @@ public:
     CDbManager();
     ~CDbManager();
 public:
-	bool ConnectDb(const char* pCharSet = "utf8mb4");
+    static CDbManager& Instance();
+    bool initDb();
+    int CreateTables();
+	int InitTableData();
+    bool ConnectDb(const char* pCharSet = "utf8mb4");
 	bool DisConnectDb();//调用int sqlite3_close(sqlite3 *);//CloseSqlite();
 	bool IsConnected();
 	bool CheckConnected();
@@ -24,7 +28,6 @@ public:
 	bool ExecStringValueSelect(const char* sql, std::string& strData);
 	bool ExecOneStringColSelect(const char* sql, std::list< std::string >& xListString);
 	bool ExecOneStringRowSelect(const char* sql, std::vector<std::string>& xResult);
-	bool ExecSQL(const char* sql);
 
 	bool IsIndexExsitAndAlterIndex(const char* tablename, const char *pIndexName, const char *psql);
 	bool IsColumExsitAndAddColum(const char* tablename, const char *columname, const char *psql);
@@ -32,10 +35,7 @@ public:
 	// int(10) 修改为bigint(20)
 	bool AlterColumnAutoIncrementTypeToBigInt(const char* pDbName, const char* pTableName, const char *pColumnName);
 
-	void ClearQureyResult();
 
-	//int GetErrorNo();
-	//const char* GetError();
 
 	//事务处理
 	bool SetAutoCommit(bool bAutoCommit);
@@ -44,12 +44,13 @@ public:
 	bool Rollback();
 	
 protected:
-	bool ExecDbSQL(const char* sql);
 public:
 
 private:
 #ifdef USE_MYSQL
-	MYSQL_RES * FetchExecuteResult();
+	bool ExecDbSQL(const char* sql);
+	void ClearQureyResult();
+    MYSQL_RES* FetchExecuteResult();
 	int GetExecuteResultRows(MYSQL_RES * pResult);
 	uint32_t GetExecuteResultCols(MYSQL_RES * pResult);
 	MYSQL_ROW FetchRow(MYSQL_RES * pResult);//返回数据的指针数组！
@@ -57,4 +58,10 @@ private:
     MYSQL *mysql;
 #endif
     std::mutex dbMtx;
+    std::string user;
+    std::string password;
+    std::string mDbName;
+    std::string mDbIp;
+    int port;
+    bool mIsConnect;
 };

@@ -181,7 +181,7 @@ public:
             str.flush();
             strMsg = GbkToUtf8(strMsg.c_str()).c_str();
         }
-        LogOut("SIPMSG", L_DEBUG, "OUTBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
+        LogOut(SIPMSG, L_DEBUG, "OUTBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
     virtual void outboundRetransmit(const Tuple& source, const Tuple& destination, const SendData& data)
     {
@@ -196,7 +196,7 @@ public:
             str << destination;
             str.flush();
         }
-        LogOut("SIPMSG", L_DEBUG, "OUTBOUND(retransmit): Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), data.data.c_str());
+        LogOut(SIPMSG, L_DEBUG, "OUTBOUND(retransmit): Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), data.data.c_str());
     }
     virtual void inboundMessage(const Tuple& source, const Tuple& destination, const SipMessage& msg)
     {
@@ -217,7 +217,7 @@ public:
             str.flush();
             strMsg = GbkToUtf8(strMsg.c_str()).c_str();
         }
-        LogOut("SIPMSG", L_DEBUG, "INBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
+        LogOut(SIPMSG, L_DEBUG, "INBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
 };
 
@@ -352,20 +352,19 @@ SipServer::run(int argc, char** argv)
     LogTargetSet(output);
     resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", ".", true);
     resip::Data logFileName = mProxyConfig->getConfigData("LogName", "File", true);
-    LogPathNameSet(logPath.c_str(), logFileName.c_str());
     int level = mProxyConfig->getConfigInt("HTTP", L_ERROR);
-    LogLevelSet("HTTP", level);
+    LogLevelSet(HTTP, level);
     level = mProxyConfig->getConfigInt("SIPMSG", L_ERROR);
-    LogLevelSet("SIPMSG", level);
+    LogLevelSet(SIPMSG, level);
     level = mProxyConfig->getConfigInt("CTRL", L_ERROR);
-    LogLevelSet("CTRL", level);
+    LogLevelSet(CTRL, level);
     level = mProxyConfig->getConfigInt("SDK", L_ERROR);
-    LogLevelSet("SDK", level);
+    LogLevelSet(SDK, level);
     level = mProxyConfig->getConfigInt("MEDIA", L_ERROR);
-    LogLevelSet("MEDIA", level);
+    LogLevelSet(MEDIA, level);
     // BLL represents "Business Logic Layer."
     level = mProxyConfig->getConfigInt("BLL", L_ERROR);
-    LogLevelSet("BLL", level);
+    LogLevelSet(BLL, level);
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 

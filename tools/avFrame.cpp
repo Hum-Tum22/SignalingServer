@@ -16,7 +16,7 @@ av_Frame::~av_Frame()
     {
         mDataSize = 0;
         mBufSize = 0;
-        LogOut("BLL", L_ERROR, "av_Frame delete :%p", mData);
+        LogOut(BLL, L_ERROR, "av_Frame delete :%p", mData);
         delete[] mData;
         mData = NULL;
     }
@@ -221,7 +221,7 @@ bool av_Frame::reSizeBuf(int size)
     {
         if(mData)
         {
-            LogOut("BLL", L_WARN, "av_Frame resize buf :%p, old mBufSize:%d new mBufSize:%d", mData, mBufSize, size);
+            LogOut(BLL, L_WARN, "av_Frame resize buf :%p, old mBufSize:%d new mBufSize:%d", mData, mBufSize, size);
             delete[] mData;
             mData = NULL;
         }
@@ -242,7 +242,7 @@ void av_Frame::dereference()
 {
     if(mData)
     {
-        // LogOut("BLL", L_DEBUG, "av_Frame dereference buf :%p", mData);
+        // LogOut(BLL, L_DEBUG, "av_Frame dereference buf :%p", mData);
         mData = NULL;
         mDataSize = mBufSize = 0;
     }

@@ -15,7 +15,7 @@ using namespace repro;
 
 MyServerConfig::MyServerConfig() :mAbstractDb(0)
 {
-    //LogOut("CONFIG", L_DEBUG, "--- MyServerConfig  --- new\n");
+    //LogOut(CONFIG, L_DEBUG, "--- MyServerConfig  --- new\n");
     Data defaultConfigFilename("repro.config");
     try
     {
@@ -24,7 +24,7 @@ MyServerConfig::MyServerConfig() :mAbstractDb(0)
     }
     catch (BaseException& ex)
     {
-        LogOut("CONFIG", L_DEBUG, "Error parsing configuration:%s", ex.getMessage().c_str());
+        LogOut(CONFIG, L_DEBUG, "Error parsing configuration:%s", ex.getMessage().c_str());
         std::cerr << "Error parsing configuration: " << ex << std::endl;
 #ifndef WIN32
         syslog(LOG_DAEMON | LOG_CRIT, "%s", ex.getMessage().c_str());
@@ -35,13 +35,13 @@ MyServerConfig::MyServerConfig() :mAbstractDb(0)
 }
 MyServerConfig::~MyServerConfig()
 {
-    // LogOut("CONFIG", L_DEBUG, "--- MyServerConfig  --- delete");
+    // LogOut(CONFIG, L_DEBUG, "--- MyServerConfig  --- delete");
 }
 AbstractDb* MyServerConfig::getDatabase(int configIndex)
 {
     if (mAbstractDb)
         return mAbstractDb;
-    // LogOut("CONFIG", L_DEBUG, "--- getDatabase  --- new");
+    // LogOut(CONFIG, L_DEBUG, "--- getDatabase  --- new");
     ConfigParse::NestedConfigMap m = getConfigNested("Database");
     ConfigParse::NestedConfigMap::iterator it = m.find(configIndex);
     if (it == m.end())

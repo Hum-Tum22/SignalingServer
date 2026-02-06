@@ -246,20 +246,20 @@ static int onpacket(void* param, int stream, int avtype, int flags, int64_t pts,
     if(PSI_STREAM_AAC == avtype || PSI_STREAM_AUDIO_G711A == avtype || PSI_STREAM_AUDIO_G711U == avtype)
     {
         //assert(0 == a_dts || dts >= a_dts);
-        LogOut("BLL", L_DEBUG, "[A] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d, size: %u", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first) / 90, (int)(dts - it->second.second) / 90, (unsigned int)bytes);
+        LogOut(BLL, L_DEBUG, "[A] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d, size: %u", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first) / 90, (int)(dts - it->second.second) / 90, (unsigned int)bytes);
         //fwrite(data, 1, bytes, afp);
     }
     else if(PSI_STREAM_H264 == avtype || PSI_STREAM_H265 == avtype || PSI_STREAM_VIDEO_SVAC == avtype)
     {
         //assert(0 == v_dts || dts >= v_dts);
-        LogOut("BLL", L_DEBUG, "[V] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d, size: %u%s", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first) / 90, (int)(dts - it->second.second) / 90, (unsigned int)bytes, (flags & MPEG_FLAG_IDR_FRAME) ? " [I]" : "");
+        LogOut(BLL, L_DEBUG, "[V] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d, size: %u%s", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first) / 90, (int)(dts - it->second.second) / 90, (unsigned int)bytes, (flags & MPEG_FLAG_IDR_FRAME) ? " [I]" : "");
         //fwrite(data, 1, bytes, vfp);
     }
     else
     {
         //assert(0);
         //assert(0 == x_dts || dts >= x_dts);
-        LogOut("BLL", L_DEBUG, "[X] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first), (int)(dts - it->second.second));
+        LogOut(BLL, L_DEBUG, "[X] pts: %s(%" PRId64 "), dts: %s(%" PRId64 "), diff: %03d/%03d", ftimestamp(pts, s_pts), pts, ftimestamp(dts, s_dts), dts, (int)(pts - it->second.first), (int)(dts - it->second.second));
     }
 
     it->second = std::make_pair(pts, dts);

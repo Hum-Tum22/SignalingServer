@@ -239,7 +239,7 @@ bool CRegistServer::createDatastore()
         }
         //SqliteDb* pdb = dynamic_cast<SqliteDb*>(mAbstractDb);
         //MyServerConfig &m = GetSipServerConfig();
-        LogOut("BLL", L_DEBUG, "****************");
+        LogOut(BLL, L_DEBUG, "****************");
     }
     else     // Try legacy configuration parameter names
     {

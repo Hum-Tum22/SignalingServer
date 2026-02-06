@@ -110,10 +110,10 @@ UaClientCall::~UaClientCall()
                 //psSource中使用了MediaStream::Ptr   先释放MediaStream::Ptr
                 delete psSource; psSource = NULL;
             }
-            LogOut("BLL", L_DEBUG, "ua call close stream:%s", streamId.c_str());
+            LogOut(BLL, L_DEBUG, "ua call close stream:%s", streamId.c_str());
             mUserAgent.CloseStreamStreamId(streamId);
             mUserAgent.FreeRptPort(myRtpPort);
-            LogOut("BLL", L_DEBUG, " rtp port free %d", myRtpPort);
+            LogOut(BLL, L_DEBUG, " rtp port free %d", myRtpPort);
             /*sipserver::SipServer* pSvr = GetServer();
             ostringstream ss;
             ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
@@ -326,7 +326,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
 
     remoteIp = offer.session().origin().getAddress();
     // channelId = offer.session().uri().user().c_str();
-    // LogOut("BLL", L_DEBUG, "sdp channelId:%s", channelId.c_str());
+    // LogOut(BLL, L_DEBUG, "sdp channelId:%s", channelId.c_str());
     std::string uriStr = offer.session().uri().toString().c_str();
     // uri=64010000041310000345:3
     std::regex eSdpUri("(.*):(.*)");
@@ -336,7 +336,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     for(uint32_t i = 1; i < smSdpUri.size(); i++)
     {
         channelId = smSdpUri[i].str();
-        LogOut("BLL", L_DEBUG, "sdp channelId:%s, sdp uri line:%s", channelId.c_str(), uriStr.c_str());
+        LogOut(BLL, L_DEBUG, "sdp channelId:%s, sdp uri line:%s", channelId.c_str(), uriStr.c_str());
         break;
     }
 
@@ -494,7 +494,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                             psSource = new PSFileSource("", ssrc.convertInt());
                             psSource->SetTransport("sip", transport);
                             streamInfo->increasing();
-                            LogOut("BLL", L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
+                            LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
                             psSource->setMediaStream(streamInfo);
                         }
                         //streamInfo->setMediaSource(psSource);
@@ -533,12 +533,12 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             }
             else
             {
-                LogOut("BLL", L_ERROR, "Playback time error:%Zu", offer.session().getTimes().size());
+                LogOut(BLL, L_ERROR, "Playback time error:%Zu", offer.session().getTimes().size());
             }
             if(mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, "", 0, 0, startTime, stopTime))
             {
                 streamId = MediaMng::GetInstance().CreateStreamId(channelId, startTime, stopTime);
-                LogOut("BLL", L_DEBUG, "Playback streamId:%s", streamId.c_str());
+                LogOut(BLL, L_DEBUG, "Playback streamId:%s", streamId.c_str());
                 myRtpPort = mUserAgent.GetAvailableRtpPort();
                 InfoLog(<< " rtp port use " << myRtpPort);
                 if(myRtpPort == 0)
@@ -572,7 +572,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                         psSource = new PSFileSource("", ssrc.convertInt());
                         psSource->SetTransport("sip", transport);
                         streamInfo->increasing();
-                        LogOut("BLL", L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
+                        LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
                         psSource->setMediaStream(streamInfo);
                     }
                     //streamInfo->setMediaSource(psSource);
@@ -1179,7 +1179,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                 strCmdType = firstLines[0];
                 protocal = firstLines[1];
                 version = firstLines[2];
-                LogOut("BLL", L_DEBUG, "rtsp cmd type:%s, %s, %s", strCmdType.c_str(), protocal.c_str(),version.c_str());
+                LogOut(BLL, L_DEBUG, "rtsp cmd type:%s, %s, %s", strCmdType.c_str(), protocal.c_str(),version.c_str());
             }
             //CSeq: 839
             std::regex eRtspSeq("(.*): (.*)");
@@ -1189,11 +1189,11 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
             for(uint32_t i = 1; i < smRtspSeq.size(); i++)
             {
                 RtspSeqs.push_back(smRtspSeq[i].str());
-                LogOut("BLL", L_DEBUG, "rtsp seq:%s", smRtspSeq[i].str().c_str());
+                LogOut(BLL, L_DEBUG, "rtsp seq:%s", smRtspSeq[i].str().c_str());
             }
             if(RtspSeqs.size() == 2)
             {
-                LogOut("BLL", L_DEBUG, "rtsp seq:%s, %s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
+                LogOut(BLL, L_DEBUG, "rtsp seq:%s, %s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
             }
             if(strCmdType == "PLAY")
             {
@@ -1206,7 +1206,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                 for(uint32_t i = 1; i < smRtspRange.size(); i++)
                 {
                     RtspRange.push_back(smRtspRange[i].str());
-                    LogOut("BLL", L_DEBUG, "rtsp Range:%s", smRtspRange[i].str().c_str());
+                    LogOut(BLL, L_DEBUG, "rtsp Range:%s", smRtspRange[i].str().c_str());
                 }
                 if(RtspRange.size() >= 1)
                 {
@@ -1299,7 +1299,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                                             std::cerr << e.what() << '\n';
                                         }
                                         uint32_t pointTime = startTime + nptValue;
-                                        LogOut("BLL", L_DEBUG, "play back ctrl pointTime:%u, nptValue:%u,start:%u ",
+                                        LogOut(BLL, L_DEBUG, "play back ctrl pointTime:%u, nptValue:%u,start:%u ",
                                          pointTime, nptValue, startTime);
                                         int err = 0;
                                         JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_TimePos, (uint32_t)pointTime, 0, err);
@@ -1308,7 +1308,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                             }
                         }
                     }
-                    // LogOut("BLL", L_DEBUG, "rtsp seq key%s, value:%s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
+                    // LogOut(BLL, L_DEBUG, "rtsp seq key%s, value:%s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
                 }
                 //Scale头应支持的基本取值为0.25、0.5、1、2、4
                 // Scale:2.0
@@ -1320,7 +1320,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                 for(uint32_t i = 1; i < smRtspScale.size(); i++)
                 {
                     RtspScales.push_back(smRtspScale[i].str());
-                    LogOut("BLL", L_DEBUG, "rtsp Scale:%s", smRtspScale[i].str().c_str());
+                    LogOut(BLL, L_DEBUG, "rtsp Scale:%s", smRtspScale[i].str().c_str());
                 }
                 if(strSubCmdType == "Scale" && RtspScales.size() == 1)
                 {
@@ -1354,7 +1354,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                                         std::cerr << e.what() << '\n';
                                     }
                                     int err = 0;
-                                    LogOut("BLL", L_DEBUG, "play back ctrl Scale %f:%s ", streamId.c_str());
+                                    LogOut(BLL, L_DEBUG, "play back ctrl Scale %f:%s ", streamId.c_str());
                                     JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Speed, fScale*1024, 0, err);
                                 }
                             }
@@ -1372,7 +1372,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                 for(uint32_t i = 1; i < smRtspPause.size(); i++)
                 {
                     RtspPauses.push_back(smRtspPause[i].str());
-                    LogOut("BLL", L_DEBUG, "rtsp PauseTime:%s", smRtspPause[i].str().c_str());
+                    LogOut(BLL, L_DEBUG, "rtsp PauseTime:%s", smRtspPause[i].str().c_str());
                 }
                 if(RtspPauses.size() == 2 && RtspPauses[0] == "PauseTime" && RtspPauses[1] == "now")
                 {
@@ -1396,7 +1396,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                                 auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
                                 if(JsonNvr)
                                 {
-                                    LogOut("BLL", L_DEBUG, "play back ctrl PauseTime :%s", streamId.c_str());
+                                    LogOut(BLL, L_DEBUG, "play back ctrl PauseTime :%s", streamId.c_str());
                                     int err = 0;
                                     JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Pause, 0, 0, err);
                                 }

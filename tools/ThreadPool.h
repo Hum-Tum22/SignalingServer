@@ -80,7 +80,7 @@ public:
     auto submit(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
     {
         // Create a function with bounded parameter ready to execute
-        LogOut("THREAD", L_DEBUG, "threadPool submit queue size:%d\n", m_queue.size());
+        LogOut(THREAD, L_DEBUG, "threadPool submit queue size:%d\n", m_queue.size());
         std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...); // 连接函数和参数定义，特殊函数类型，避免左右值错误
         // LogOut("MQTT", L_DEBUG, "111 threadPool submit queue size:%d\n", m_queue.size());
         // Encapsulate it into a shared pointer in order to be able to copy construct
@@ -97,7 +97,7 @@ public:
         // LogOut("MQTT", L_DEBUG, "444 threadPool submit queue size:%d\n", m_queue.size());
         // 唤醒一个等待中的线程
         m_conditional_lock.notify_one();
-        LogOut("THREAD", L_DEBUG, "555 threadPool submit queue size:%d\n", m_queue.size());
+        LogOut(THREAD, L_DEBUG, "555 threadPool submit queue size:%d\n", m_queue.size());
 		//std::cout << "idle thread:" << m_idleThreadSize << " task count:" << m_queue.size() << std::endl;
         // 返回先前注册的任务指针
         return task_ptr->get_future();

@@ -117,7 +117,7 @@ BaseChildDevice* DeviceMng::findChildDeviceByCCTVDeviceId(const std::string Id)
 {
     if (!Id.empty())
     {
-        LogOut("BLL", L_DEBUG, "findChildDeviceByCCTVDeviceId find id:%s", Id.c_str());
+        LogOut(BLL, L_DEBUG, "findChildDeviceByCCTVDeviceId find id:%s", Id.c_str());
         GMUTEX lock(childMtx);
         for (auto& it : mChildMap)
         {

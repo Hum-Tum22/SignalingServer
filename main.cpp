@@ -16,6 +16,9 @@
 #include "ws.h"
 #include "SipServerConfig.h"
 #include "SelfLog.h"
+#include "dbManager.h"
+
+#include <map>
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
 
@@ -33,7 +36,33 @@ int main(int argc, char** argv)
             return 0;
         }
     }
-    CLog::Instance().InitLog();
+    LogConfig LgConfig;
+    LgConfig.nFileNum = 5;
+    LgConfig.nFileSize = 5 * 1024 * 1024;
+    int out = E_LOG_TARGET_BOTH;
+    LgConfig.target = E_LOG_TARGET_BOTH;
+    LgConfig.logPath = "./logs";
+    LgConfig.logName = "app";
+    std::map<int, std::string> logMdName;
+    logMdName[SIPMSG] = "SIPMSG";
+    logMdName[HTTP] = "HTTP";
+    logMdName[CTRL] = "CTRL";
+    logMdName[SDK] = "SDK";
+    logMdName[MEDIA] = "MEDIA";
+    logMdName[BLL] = "BLL";
+    logMdName[CONFIG] = "CONFIG";
+    logMdName[THREAD] = "THREAD";
+    
+    LgConfig.mLogMod["SIPMSG"] = 5;
+    LgConfig.mLogMod["HTTP"] = 5;
+    LgConfig.mLogMod["CTRL"] = 5;
+    LgConfig.mLogMod["SDK"] = 5;
+    LgConfig.mLogMod["MEDIA"] = 5;
+    LgConfig.mLogMod["BLL"] = 5;
+    LgConfig.mLogMod["CONFIG"] = 5;
+    LgConfig.mLogMod["THREAD"] = 5;
+    CLog::Instance().setLogModName(logMdName);
+    CLog::Instance().InitLog(&LgConfig);
     // Initialize network
     initNetwork();
 
@@ -51,7 +80,10 @@ int main(int argc, char** argv)
     repro.mainLoop();
 
     repro.shutdown();*/
-
+    if(CDbManager::Instance().initDb())
+    {
+        return -1;
+    }
     SipServer* pSipSvr = GetServer();
     if (pSipSvr)
     {

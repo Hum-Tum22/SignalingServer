@@ -20,7 +20,7 @@ int main()
         JsonSdkInterface::Instance().InitSdk(err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
+            LogOut(SDK, L_ERROR, "json sdk init err:%d", err);
         }
     }
     JSONLONG mLoginId = 0;
@@ -29,7 +29,7 @@ int main()
         mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(ip.c_str(), port, user.c_str(), pswd.c_str(), err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk login err:%d", err);
+            LogOut(SDK, L_ERROR, "json sdk login err:%d", err);
         }
     }
     if (mLoginId > 0)
@@ -40,13 +40,13 @@ int main()
         JsonSdkInterface::Instance().ListIPC(mLoginId, Buffer, &msgSize, err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk get ipc list err:%d", err);
+            LogOut(SDK, L_ERROR, "json sdk get ipc list err:%d", err);
             if (err == 3001)
             {
                 mLoginId = 0;
             }
         }
-        LogOut("SDK", L_ERROR, "%s", Buffer);
+        LogOut(SDK, L_ERROR, "%s", Buffer);
     }
     JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
     JsonSdkInterface::Instance().SdkClear(err);

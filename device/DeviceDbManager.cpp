@@ -5,14 +5,19 @@
 #include <sstream>
 
 using namespace repro;
-#ifndef USE_MYSQL
 IDeviceMapper::IDeviceMapper() :pDb(0)
 {
+    
+#ifndef USE_MYSQL
     pDb = dynamic_cast<SqliteDb*>(getCurDatabase());
+#else
+#endif
 }
 void GBDeviceChannelMapper::IniTable()
 {
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -54,7 +59,7 @@ void GBDeviceChannelMapper::IniTable()
         << "subCount VARCHAR(20) NOT NULL"
         << ")";
     ds.flush();
-    int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
+    rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
         if (szErrMsg)
@@ -102,11 +107,14 @@ void GBDeviceChannelMapper::IniTable()
             }
         }
     }
+#else
+#endif
     return;
 }
 int GBDeviceChannelMapper::add(IDeviceChannel* channel)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -196,11 +204,14 @@ int GBDeviceChannelMapper::add(IDeviceChannel* channel)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 int GBDeviceChannelMapper::update(IDeviceChannel* channel)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -315,12 +326,15 @@ int GBDeviceChannelMapper::update(IDeviceChannel* channel)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 list<GBDeviceChannel> GBDeviceChannelMapper::queryChannels(string deviceId, string parentChannelId, string query, bool hasSubChannel, bool online)
 {
     list<GBDeviceChannel> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -400,12 +414,15 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannels(string deviceId, stri
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return chllist;
 }
 GBDeviceChannel GBDeviceChannelMapper::queryChannel(string deviceId, string channelId)
 {
     GBDeviceChannel devchl;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return devchl;
     }
@@ -466,11 +483,14 @@ GBDeviceChannel GBDeviceChannelMapper::queryChannel(string deviceId, string chan
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return devchl;
 }
 int GBDeviceChannelMapper::cleanChannelsByDeviceId(string deviceId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -488,11 +508,14 @@ int GBDeviceChannelMapper::cleanChannelsByDeviceId(string deviceId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 int GBDeviceChannelMapper::del(string deviceId, string channelId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -510,11 +533,14 @@ int GBDeviceChannelMapper::del(string deviceId, string channelId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 void GBDeviceChannelMapper::stopPlay(string deviceId, string channelId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -532,11 +558,14 @@ void GBDeviceChannelMapper::stopPlay(string deviceId, string channelId)
             sqlite3_free(szErrMsg);
         }
     }
-    return ;
+#else
+#endif
+    return;
 }
 void GBDeviceChannelMapper::startPlay(string deviceId, string channelId, string streamId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -554,6 +583,8 @@ void GBDeviceChannelMapper::startPlay(string deviceId, string channelId, string 
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return;
 }
 //list<ChannelReduce> GBDeviceChannelMapper::queryChannelListInAll(string query, bool online, bool hasSubChannel, string platformId, string catalogId)
@@ -565,7 +596,8 @@ void GBDeviceChannelMapper::startPlay(string deviceId, string channelId, string 
 list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelByChannelId(string channelId)
 {
     list<GBDeviceChannel> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -627,11 +659,14 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelByChannelId(string chan
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return chllist;
 }
 void GBDeviceChannelMapper::offline(string deviceId, string channelId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -649,11 +684,14 @@ void GBDeviceChannelMapper::offline(string deviceId, string channelId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return;
 }
 void GBDeviceChannelMapper::online(string deviceId, string channelId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -671,15 +709,18 @@ void GBDeviceChannelMapper::online(string deviceId, string channelId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return;
 }
 int GBDeviceChannelMapper::batchAdd(list<IDeviceChannel*> addChannels)
 {
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
-    int rc = 0;
     if (pDb->BeginTransaction())
     {
         for (auto& it : addChannels)
@@ -697,15 +738,18 @@ int GBDeviceChannelMapper::batchAdd(list<IDeviceChannel*> addChannels)
             pDb->RollbackTransaction();
         }
     }
+#else
+#endif
     return rc;
 }
 int GBDeviceChannelMapper::batchUpdate(list<IDeviceChannel*> updateChannels)
 {
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
-    int rc = 0;
     if (pDb->BeginTransaction())
     {
         for (auto& it : updateChannels)
@@ -723,13 +767,16 @@ int GBDeviceChannelMapper::batchUpdate(list<IDeviceChannel*> updateChannels)
             pDb->RollbackTransaction();
         }
     }
+#else
+#endif
     return rc;
 }
 list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelsByDeviceIdWithStartAndLimit(string deviceId, string parentChannelId, string query,
     bool hasSubChannel, bool online, int start, int limit)
 {
     list<GBDeviceChannel> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -809,12 +856,15 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryChannelsByDeviceIdWithStartAnd
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return chllist;
 }
 list<GBDeviceChannel> GBDeviceChannelMapper::queryOnlineChannelsByDeviceId(string deviceId)
 {
     list<GBDeviceChannel> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -876,12 +926,14 @@ list<GBDeviceChannel> GBDeviceChannelMapper::queryOnlineChannelsByDeviceId(strin
             sqlite3_free(szErrMsg);
         }
     }
+#endif
     return chllist;
 }
 list<std::shared_ptr<IDeviceChannel>> GBDeviceChannelMapper::queryChannelByDeviceId(string deviceId)
 {
     list<std::shared_ptr<IDeviceChannel>> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -943,6 +995,8 @@ list<std::shared_ptr<IDeviceChannel>> GBDeviceChannelMapper::queryChannelByDevic
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return chllist;
 }
 int GBDeviceChannelMapper::cleanChannelsNotInList(string deviceId, const list<IDeviceChannel>& channels)
@@ -951,7 +1005,8 @@ int GBDeviceChannelMapper::cleanChannelsNotInList(string deviceId, const list<ID
 }
 int GBDeviceChannelMapper::updateChannelSubCount(string deviceId, string channelId)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -970,11 +1025,14 @@ int GBDeviceChannelMapper::updateChannelSubCount(string deviceId, string channel
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 void GBDeviceChannelMapper::updatePotion(string deviceId, string channelId, double longitude, double latitude)
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return ;
     }
@@ -991,12 +1049,15 @@ void GBDeviceChannelMapper::updatePotion(string deviceId, string channelId, doub
             sqlite3_free(szErrMsg);
         }
     }
-    return ;
+#else
+#endif
+    return;
 }
 list<IDeviceChannel> GBDeviceChannelMapper::getAllChannelInPlay()
 {
     list<IDeviceChannel> chllist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return chllist;
     }
@@ -1058,11 +1119,14 @@ list<IDeviceChannel> GBDeviceChannelMapper::getAllChannelInPlay()
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return chllist;
 }
 int GBDeviceChannelMapper::getAllChannelCount()
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -1090,14 +1154,21 @@ int GBDeviceChannelMapper::getAllChannelCount()
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return 0;
 }
 GBDeviceMapper::GBDeviceMapper()
 {
 }
+GBDeviceMapper::~GBDeviceMapper()
+{
+}
+
 void GBDeviceMapper::IniTable()
 {
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return;
     }
@@ -1162,6 +1233,8 @@ void GBDeviceMapper::IniTable()
             }
         }
     }
+#else
+#endif
     mGBDeviceChannleMapper.IniTable();
 }
 GBDeviceChannelMapper& GBDeviceMapper::GetGBDeviceChannelMapper()
@@ -1171,7 +1244,8 @@ GBDeviceChannelMapper& GBDeviceMapper::GetGBDeviceChannelMapper()
 SipServerDeviceInfo GBDeviceMapper::getDeviceByDeviceId(string deviceId)
 {
     SipServerDeviceInfo devinfo;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return devinfo;
     }
@@ -1229,6 +1303,8 @@ SipServerDeviceInfo GBDeviceMapper::getDeviceByDeviceId(string deviceId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return devinfo;
 }
 int GBDeviceMapper::add(Device* device)
@@ -1293,7 +1369,9 @@ int GBDeviceMapper::add(Device* device)
         << "'" << GbDev->isSsrcCheck() << "'"
         << ")";
     ds.flush();
-    int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
+    int rc = 0;
+#ifndef USE_MYSQL
+    rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
         if (szErrMsg)
@@ -1302,6 +1380,8 @@ int GBDeviceMapper::add(Device* device)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return rc;
 }
 int GBDeviceMapper::update(Device* device)
@@ -1337,7 +1417,9 @@ int GBDeviceMapper::update(Device* device)
         << " ssrcCheck='" << GbDev->isSsrcCheck() << "'"
         << " WHERE deviceId='" << GbDev->getDeviceId() << "'";
     ds.flush();
-    int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
+    int rc = 0;
+#ifndef USE_MYSQL
+    rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
         if (szErrMsg)
@@ -1345,12 +1427,15 @@ int GBDeviceMapper::update(Device* device)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return rc;
 }
 list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
 {
     list<SipServerDeviceInfo> devicelist;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return devicelist;
     }
@@ -1409,7 +1494,9 @@ list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
             sqlite3_free(szErrMsg);
         }
     }
-    for (auto &iter : devicelist)
+#else
+#endif
+    for(auto& iter : devicelist)
     {
 
         list<std::shared_ptr<IDeviceChannel>> chlList = mGBDeviceChannleMapper.queryChannelByDeviceId(iter.getDeviceId());
@@ -1419,7 +1506,9 @@ list<SipServerDeviceInfo> GBDeviceMapper::getDevices()
 }
 int GBDeviceMapper::del(string deviceId)
 {
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -1428,7 +1517,7 @@ int GBDeviceMapper::del(string deviceId)
     ostringstream ds;
     ds << "DELETE FROM gb_device WHERE deviceId = '" << deviceId << "'";
     ds.flush();
-    int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
+    rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
         if (szErrMsg)
@@ -1436,11 +1525,15 @@ int GBDeviceMapper::del(string deviceId)
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return rc;
 }
 int GBDeviceMapper::outlineForAll()
 {
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return -1;
     }
@@ -1449,7 +1542,7 @@ int GBDeviceMapper::outlineForAll()
     ostringstream ds;
     ds << "UPDATE device SET online=0";
     ds.flush();
-    int rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
+    rc = pDb->Sqlite_exec(ds.str().c_str(), &szErrMsg);
     if (rc != SQLITE_OK)
     {
         if (szErrMsg)
@@ -1457,12 +1550,16 @@ int GBDeviceMapper::outlineForAll()
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return rc;
 }
 list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
 {
     list<SipServerDeviceInfo> devicelist;
-    if (!pDb)
+    int rc = 0;
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return devicelist;
     }
@@ -1475,7 +1572,7 @@ list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
     char* szErrMsg = 0;
     char** azResult = NULL;
     int nrow = 0, ncolumn = 0;
-    int rc = pDb->Sqlite_query(ds.str().c_str(), &azResult, &nrow, &ncolumn, &szErrMsg);
+    rc = pDb->Sqlite_query(ds.str().c_str(), &azResult, &nrow, &ncolumn, &szErrMsg);
     if (rc == SQLITE_OK)
     {
         int countcol = 0;
@@ -1520,12 +1617,15 @@ list<SipServerDeviceInfo> GBDeviceMapper::getOnlineDevices()
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return devicelist;
 }
 SipServerDeviceInfo GBDeviceMapper::getDeviceByHostAndPort(string host, int port)
 {
     SipServerDeviceInfo devinfo;
-    if (!pDb)
+#ifndef USE_MYSQL
+    if(!pDb)
     {
         return devinfo;
     }
@@ -1584,9 +1684,7 @@ SipServerDeviceInfo GBDeviceMapper::getDeviceByHostAndPort(string host, int port
             sqlite3_free(szErrMsg);
         }
     }
+#else
+#endif
     return devinfo;
 }
-
-#else
-
-#endif

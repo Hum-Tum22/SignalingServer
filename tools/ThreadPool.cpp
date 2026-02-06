@@ -78,7 +78,7 @@ ThreadPool::ThreadPool(const int n_threads):m_shutdown(false)
 		int rc =pthread_setaffinity_np(t.native_handle(),sizeof(cpu_set_t), &cpuset);
 		if (rc != 0)
 		{
-			LogOut("THREAD", L_ERROR, "Error calling pthread_setaffinity_np:%d", rc);
+			LogOut(THREAD, L_ERROR, "Error calling pthread_setaffinity_np:%d", rc);
 		}
 #endif
         m_threads.push_back(std::move(t)); // 分配工作线程

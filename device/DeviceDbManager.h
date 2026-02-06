@@ -279,6 +279,7 @@ class GBDeviceMapper : public IDeviceMapper
     GBDeviceChannelMapper mGBDeviceChannleMapper;
 public:
     GBDeviceMapper();
+    virtual ~GBDeviceMapper();
 
 
     virtual void IniTable();

@@ -44,7 +44,7 @@ JsonSdkInterface::JsonSdkInterface() :PluginInter(PluginInter::JSON_SDK), m_hDll
     m_hDll = dlopen("./libsdkJson.so", RTLD_NOW);
     if(!m_hDll)
     {
-        LogOut("SDK", L_ERROR, "sdkJson.so load err:%s", dlerror());
+        LogOut(SDK, L_ERROR, "sdkJson.so load err:%s", dlerror());
     }
 #endif
 }
@@ -87,20 +87,20 @@ void JsonSdkInterface::InitSdk(int& err)
             }
             else
             {
-                LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
+                LogOut(SDK, L_ERROR, "json sdk init err:%d", err);
                 err = ret;
             }
         }
         else
         {
-            LogOut("SDK", L_ERROR, "get JsonSdk_Initate err:%d", err);
+            LogOut(SDK, L_ERROR, "get JsonSdk_Initate err:%d", err);
             err = -2;
         }
     }
     else
     {
         err = -1;
-        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
+        LogOut(SDK, L_ERROR, "Load json sdk err:%d", err);
     }
 }
 void JsonSdkInterface::SdkClear(int& err)
@@ -168,30 +168,30 @@ JSONLONG JsonSdkInterface::JsonSdkLogIn(const char* ip, int port, const char* na
                 int ret = LoginFun((char*)strJsonReq.c_str(), &nLoginID, NULL, NULL, NULL, NULL);
                 if(ret == 0)
                 {
-                    LogOut("SDK", L_DEBUG, "json sdk  login ok %ld", nLoginID);
+                    LogOut(SDK, L_DEBUG, "json sdk  login ok %ld", nLoginID);
                     return nLoginID;
                 }
                 else
                 {
-                    LogOut("SDK", L_ERROR, "json sdk  login err:%d", ret);
+                    LogOut(SDK, L_ERROR, "json sdk  login err:%d", ret);
                     err = ret;
                 }
             }
             catch(std::exception& e)
             {
-                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
+                LogOut(SDK, L_ERROR, "Standard exception:%s", e.what());
             }
         }
         else
         {
-            LogOut("SDK", L_ERROR, "get JsonSdk_Login err:%d", err);
+            LogOut(SDK, L_ERROR, "get JsonSdk_Login err:%d", err);
             err = -2;
         }
     }
     else
     {
         err = -1;
-        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
+        LogOut(SDK, L_ERROR, "Load json sdk err:%d", err);
     }
     return 0;
 }
@@ -209,7 +209,7 @@ void JsonSdkInterface::JsonSdkLogOut(JSONLONG loginId, int& err)
             int ret = LogOutFun(loginId);
             if(ret == 0)
             {
-                LogOut("SDK", L_ERROR, "json sdk  logout %ld", loginId);
+                LogOut(SDK, L_ERROR, "json sdk  logout %ld", loginId);
                 return;
             }
             else
@@ -236,7 +236,7 @@ void JsonSdkInterface::GetChannelEncoderParam(JSONLONG UserID, JSONLONG chid, ch
             int ret = GetChannelParam(UserID, chid, pInfo, pInfoSize);
             if(ret == 0)
             {
-                LogOut("SDK", L_DEBUG, "json sdk  get channel encoder param ok");
+                LogOut(SDK, L_DEBUG, "json sdk  get channel encoder param ok");
                 return;
             }
             else
@@ -280,7 +280,7 @@ JSONLONG JsonSdkInterface::Preview(JSONLONG UserID, int channel, int streamId, D
             int ret = PreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
             if(ret == 0)
             {
-                LogOut("SDK", L_ERROR, "json sdk  preview ok %ld", hHandle);
+                LogOut(SDK, L_ERROR, "json sdk  preview ok %ld", hHandle);
                 return hHandle;
             }
             else
@@ -324,13 +324,13 @@ JSONLONG JsonSdkInterface::VskPreview(JSONLONG UserID, int channel, int streamId
             int ret = VskPreviewFun(UserID, VideoTranCallBack, (char*)strJsonReq.c_str(), 0, pUser, &hHandle);
             if(ret == 0)
             {
-                LogOut("SDK", L_DEBUG, "json sdk vsk preview ok %ld", hHandle);
+                LogOut(SDK, L_DEBUG, "json sdk vsk preview ok %ld", hHandle);
                 return hHandle;
             }
             else
             {
                 err = ret;
-                LogOut("SDK", L_ERROR, "preview err %d", ret);
+                LogOut(SDK, L_ERROR, "preview err %d", ret);
             }
         }
         else
@@ -354,11 +354,11 @@ void JsonSdkInterface::StopPreview(JSONLONG rthandle, int& err)
             int ret = StopPreviewFun(rthandle);
             if(ret == 0)
             {
-                LogOut("SDK", L_ERROR, "json sdk stop preview ok %ld", rthandle);
+                LogOut(SDK, L_ERROR, "json sdk stop preview ok %ld", rthandle);
                 return;
             }
             err = ret;
-            LogOut("SDK", L_ERROR, "stop preview err %d", ret);
+            LogOut(SDK, L_ERROR, "stop preview err %d", ret);
             return;
         }
         err = -2;
@@ -394,7 +394,7 @@ int JsonSdkInterface::SearchRecordFileList(JSONLONG UserID, int channel, long st
         }
         if(!NewDataLinkFun || !FreeDataLinkFun || !SearchFileFun || !SearchNextFileFun || !SearchFileCloseFun)
         {
-            LogOut("SDK", L_DEBUG, "load function failed %p, %p, %p", SearchFileFun, SearchNextFileFun, SearchFileCloseFun);
+            LogOut(SDK, L_DEBUG, "load function failed %p, %p, %p", SearchFileFun, SearchNextFileFun, SearchFileCloseFun);
             err = -1;
             return 0;
         }
@@ -404,7 +404,7 @@ int JsonSdkInterface::SearchRecordFileList(JSONLONG UserID, int channel, long st
             int nRet = NewDataLinkFun(UserID, &nNewLinkID);
             if(nNewLinkID == 0)
             {
-                LogOut("SDK", L_ERROR, "new link error:%d", nRet);
+                LogOut(SDK, L_ERROR, "new link error:%d", nRet);
                 err = nRet;
                 return 0;
             }
@@ -427,13 +427,13 @@ int JsonSdkInterface::SearchRecordFileList(JSONLONG UserID, int channel, long st
             std::string strJsonReq = buffer.GetString();
             uint32_t nSearchCount = 0;
             nRet = SearchFileFun(nNewLinkID, strJsonReq.c_str(), &nSearchCount);
-            LogOut("BLL", L_DEBUG, "file size:%u cond:%s", nSearchCount, strJsonReq.c_str());
+            LogOut(BLL, L_DEBUG, "file size:%u cond:%s", nSearchCount, strJsonReq.c_str());
 
             const static uint32_t nBufSize = 4 * 1024 * 1024;
             char * pOutBuffer = new char[nBufSize];
             if (pOutBuffer == NULL)
             {
-                LogOut("SDK", L_ERROR, "mem error:%d", errno);
+                LogOut(SDK, L_ERROR, "mem error:%d", errno);
                 return -3;
             }
             memset(pOutBuffer, 0, nBufSize);
@@ -449,7 +449,7 @@ int JsonSdkInterface::SearchRecordFileList(JSONLONG UserID, int channel, long st
                     {
                         JsonRecordInfo fileInfo;
                         fileInfo.file_id = 0;
-                        LogOut("SDK", L_DEBUG, "record file info:%s", pOutBuffer);
+                        LogOut(SDK, L_DEBUG, "record file info:%s", pOutBuffer);
                         strRecordInfoToJsonRecordInfo(std::string(pOutBuffer), fileInfo);
                         if(fileInfo.file_id > 0)
                         {
@@ -472,11 +472,11 @@ int JsonSdkInterface::SearchRecordFileList(JSONLONG UserID, int channel, long st
                 //     NS_QUERYINFO_MORE_BUFFER,
                 // }QUERY_REPLY;
                 SearchFileCloseFun(nNewLinkID);
-                LogOut("BLL", L_DEBUG, "recordInfos size:%Zu", recordInfos.size());
+                LogOut(BLL, L_DEBUG, "recordInfos size:%Zu", recordInfos.size());
             }
             else
             {
-                LogOut("SDK", L_WARN, "not search file error code :%d", nRet);
+                LogOut(SDK, L_WARN, "not search file error code :%d", nRet);
             }
             FreeDataLinkFun(nNewLinkID);
             delete[] pOutBuffer;  pOutBuffer = NULL;
@@ -524,10 +524,10 @@ JSONLONG JsonSdkInterface::PlayBack(JSONLONG UserID, int channel, long start, lo
                 return hHandle;
             }
             err = ret;
-            LogOut("SDK", L_ERROR, "play back err %d", ret);
+            LogOut(SDK, L_ERROR, "play back err %d", ret);
             return 0;
         }
-        LogOut("SDK", L_ERROR, "play back err loginId:%lu, %p", UserID, (void*)PlayBackFun);
+        LogOut(SDK, L_ERROR, "play back err loginId:%lu, %p", UserID, (void*)PlayBackFun);
         err = -2;
         return 0;
     }
@@ -551,7 +551,7 @@ void JsonSdkInterface::StopPlayBack(JSONLONG UserID, int& err)
                 return;
             }
             err = ret;
-            LogOut("SDK", L_ERROR, "stop play back err %d", ret);
+            LogOut(SDK, L_ERROR, "stop play back err %d", ret);
             return;
         }
         err = -2;
@@ -588,7 +588,7 @@ void JsonSdkInterface::PlayBackCtrl(JSONLONG UserID, int cmd, int param1, int pa
             if(ret != 0)
             {
                 err = ret;
-                LogOut("SDK", L_ERROR, "play back ctrl err %d", ret);
+                LogOut(SDK, L_ERROR, "play back ctrl err %d", ret);
             }
             return;
         }
@@ -613,7 +613,7 @@ void JsonSdkInterface::setTimePos(JSONLONG pbhandle, time_t t, int& err)
             if(ret != 0)
             {
                 err = ret;
-                LogOut("SDK", L_ERROR, "set time pos err %d", ret);
+                LogOut(SDK, L_ERROR, "set time pos err %d", ret);
             }
             return;
         }
@@ -659,7 +659,7 @@ JSONLONG JsonSdkInterface::Download(JSONLONG UserID, int channel, long start, lo
                 return hHandle;
             }
             err = ret;
-            LogOut("SDK", L_ERROR, "download err %d", ret);
+            LogOut(SDK, L_ERROR, "download err %d", ret);
             return 0;
         }
         err = -2;
@@ -685,7 +685,7 @@ void JsonSdkInterface::StopDownload(JSONLONG UserID, int& err)
                 return;
             }
             err = ret;
-            LogOut("SDK", L_ERROR, "stop download err %d", ret);
+            LogOut(SDK, L_ERROR, "stop download err %d", ret);
             return;
         }
         err = -2;
@@ -713,12 +713,12 @@ void JsonSdkInterface::PTZCtrl(JSONLONG UserID, uint32_t Channel, uint32_t PTZCo
                     return;
                 }
                 err = ret;
-                LogOut("SDK", L_ERROR, "ptz ctrl err %d", ret);
+                LogOut(SDK, L_ERROR, "ptz ctrl err %d", ret);
                 return;
             }
             catch(std::exception& e)
             {
-                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
+                LogOut(SDK, L_ERROR, "Standard exception:%s", e.what());
             }
         }
         err = -2;
@@ -747,20 +747,20 @@ void JsonSdkInterface::ListIPC(JSONLONG UserID, char* pIPCServerList, uint32_t* 
                 }
                 else
                 {
-                    LogOut("SDK", L_ERROR, "json sdk  get ipc list err:%d", err);
+                    LogOut(SDK, L_ERROR, "json sdk  get ipc list err:%d", err);
                     err = ret;
                 }
             }
             catch(std::exception& e)
             {
-                LogOut("SDK", L_ERROR, "Standard exception:%s", e.what());
+                LogOut(SDK, L_ERROR, "Standard exception:%s", e.what());
             }
 
             return;
         }
         else
         {
-            LogOut("SDK", L_ERROR, "get JsonSdk_ListIPC err:%d", err);
+            LogOut(SDK, L_ERROR, "get JsonSdk_ListIPC err:%d", err);
             err = -2;
         }
         return;
@@ -768,7 +768,7 @@ void JsonSdkInterface::ListIPC(JSONLONG UserID, char* pIPCServerList, uint32_t* 
     else
     {
         err = -1;
-        LogOut("SDK", L_ERROR, "Load json sdk err:%d", err);
+        LogOut(SDK, L_ERROR, "Load json sdk err:%d", err);
     }
     return;
 }

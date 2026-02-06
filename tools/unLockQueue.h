@@ -31,7 +31,7 @@ public:
 	~unLockQueue()
 	{
 		mVector.clear();
-		LogOut("BLL", L_DEBUG, "*** unLockQueue delete");
+		LogOut(BLL, L_DEBUG, "*** unLockQueue delete");
 	}
 	int GetNext(T& tt)
 	{

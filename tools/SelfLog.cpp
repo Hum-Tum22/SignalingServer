@@ -1,12 +1,12 @@
+#include "SelfLog.h"
 #include <stdarg.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <fcntl.h>
 #include <string.h>
 #include <chrono>
-
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -22,41 +22,61 @@
 #define SetThreadName(pThName) prctl(PR_SET_NAME, pThName)
 #define log_access(file) ::access(file, F_OK)
 #endif
-#include "SelfLog.h"
 
-static const char* strLevel[LEVEL_NUM] = { "FATAL", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG" };
-static const char* strColor[LEVEL_NUM] = { RED, LIGHT_RED, LIGHT_YELLOW, LIGHT_BLUE, LIGHT_GREEN, GRAY };
-static const size_t gColor[LEVEL_NUM] = { strlen(RED), strlen(LIGHT_RED), strlen(LIGHT_YELLOW), strlen(LIGHT_BLUE), strlen(LIGHT_GREEN), strlen(GRAY) };
+struct logColorInfo
+{
+    const char *name;
+    const char *color;
+};
+static const logColorInfo gColorInfo[LEVEL_NUM] = {
+    {"F", LIGHT_RED},
+    {"E", RED},
+    {"W", YELLOW},
+    {"N", BLUE},
+    {"I", GREEN},
+    {"D", GRAY},
+    {"S", LIGHT_YELLOW},
+    {"T", LIGHT_BLUE},
+    {"P", LIGHT_GREEN} };
 
+static std::map<LOG_MODULE, std::string> gLogMods = {
+    { LOGMD, "LOGMD" },
+};
 
-static std::once_flag logFlag;
-CLog *CLog::m_Instance = nullptr;
 CLog &CLog::Instance()
 {
-    std::call_once(logFlag, [&](){ 
-    	m_Instance = new CLog(); 
-    });
-    return *m_Instance;
+    static CLog g_Clog;
+    return g_Clog;
 }
-CLog::CLog() :nFileNum(5), nFileSize(1 * 1024 * 1024), nTarget(E_LOG_TARGET_BOTH), mLogFilePtr(NULL)
-, mPath("."), mName("file"), nNoneColorlen((int)strlen(NONE__)), nNewLinelen(strlen(LOG_NEWLINE)), mCurFileSize(0)
-, mLogConfig("./param/appconfig.ini"), mRunStatus(false), changeFile(false)
+CLog::CLog()
+    :nFileNum(5)
+    , nFileSize(1 * 1024 * 1024)
+    , nCurFileSize(0)
+    , nTarget(E_LOG_TARGET_FILE)
+    , mPath("./logs")
+    , mName("app")
+    , nNewLinelen(strlen(LOG_NEWLINE))
+    , mRunStatus(0)
+    , mLogNum(0)
 {
+    //map先完成初始化,后续不进行增删,则可以不用加锁;新增日志模块必须在此完成初始中化;  在此完成初始化,后续调用SetLogLevel就不会发生冲突
+    mLogVc.resize(MAX_LOG_MODULE);
+    mLogVc[LOGMD].name = "LOGMD";
+    mLogVc[LOGMD].value = L_DEBUG;
 }
 CLog::~CLog()
 {
     StopLog();
 }
-void CLog::Output(const std::string name, int level, std::string& padmsg, const char* msg, ...)
+
+void CLog::OutPut(int mod, int level, const char* fileName, int lineNo, const char* msg, ...)
 {
-    //std::string strName(name);
-    if(mLogMap.find(name) == mLogMap.end())
-        return;
-    if(level < L_FATAL || level >= LEVEL_NUM)
+    if(mod >= MAX_LOG_MODULE || mod < 0)
     {
+        OutPutCall(LOGMD, L_ERROR, FILENAME, __LINE__, "log name mode not exist :%d", mod);
         return;
     }
-    if(mLogMap[name] >= level)
+    if(mLogVc[mod].value >= level)
     {
         //(2023-03-31 16:39:21,130)[Common-INFO-commonTool.cpp:231]
         //Dev.cpp:1305]
@@ -78,7 +98,8 @@ void CLog::Output(const std::string name, int level, std::string& padmsg, const 
         char tmp[1024 * 50] = { 0 };
         int size = 0, tmpSize = sizeof(tmp) - 1 - nNewLinelen;
 
-        size += ::snprintf(&tmp[size], tmpSize - size - 1, "(%s.%03d)[%s-%s-%s", strTime, int(curtime % 1000), name.c_str(), strLevel[level], padmsg.c_str());
+        size += ::snprintf(&tmp[size], tmpSize - size - 1, "%s.%03d[%s-%s-%s:%d]:", strTime, int(curtime % 1000),
+                           mLogVc[mod].name.c_str(), levelName(level), fileName, lineNo);
         va_list args;
         va_start(args, msg);
         int needlen = ::vsnprintf(NULL, 0, msg, args);
@@ -91,316 +112,136 @@ void CLog::Output(const std::string name, int level, std::string& padmsg, const 
         int formatlen = ::vsnprintf(&tmp[size], needlen + 1, msg, args);
         va_end(args);
         size += needlen;
+        if(needlen != formatlen)
+        {
+            OutPutCall(LOGMD, L_WARN, FILENAME, __LINE__, "formatlen:%d needlen:%d", formatlen, needlen);
+        }
 
         if(E_LOG_TARGET_STDERR == nTarget || E_LOG_TARGET_BOTH == nTarget)
         {
-            printf("%s%s%s\n", strColor[level], tmp, NONE__);
+            printf("%s%s%s\n", levelColor(level), tmp, NONE__);
         }
-        if(nullptr != mLogFilePtr && (E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget))
+        if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
         {
-            tmp[size++] = 0x0A;
-            std::string line(tmp, size);
-            std::tuple<std::string, int> linetu(line, level);
-            mLogs.enqueue(linetu);
+            logInfo log(tmp, size, level);
+            bool isEmpty = true;
+            {
+                std::unique_lock<std::mutex> lock(logMtx);
+                mLogs.push_back(std::move(log));
+                isEmpty = mLogs.empty();
+            }
+            mLogNum.fetch_add(1, std::memory_order_relaxed);
+            if(mLogNum.load() > 100)
+            {
+                cv.notify_one();
+                OutPutCall(LOGMD, L_WARN, FILENAME, __LINE__, "mLogs not empty: %u:%d file name:%s", mLogNum.load(),
+                           isEmpty, mName.c_str());
+            }
+            cv.notify_one();
         }
     }
-    return;
 }
+
 void CLog::StopLog()
 {
-    mRunStatus = false;
-    if(mLogThread.joinable())
+    if(mRunStatus == 1)
     {
-        mLogThread.join();
-    }
-    LogClose();
-}
-void CLog::InitLog()
-{
-    mLogMap["LOGGER"] = 1;
-    // mLogConfig.reload();
-    std::string fileNum;
-    mLogConfig.readIniFileKeyValue("LOG", "fileNum", fileNum);
-    if(!fileNum.empty())
-    {
-        nFileNum = std::atoi(fileNum.c_str());
-    }
-    std::string fileSzie;
-    mLogConfig.readIniFileKeyValue("LOG", "fileSize", fileSzie);
-    if(!fileSzie.empty())
-    {
-        nFileSize = (1 * 1024 * 1024) * std::atoi(fileSzie.c_str());
-    }
-    std::string outPut;
-    mLogConfig.readIniFileKeyValue("LOG", "target", outPut);
-    if(!outPut.empty())
-    {
-        nTarget = (APP_LOG_TARGET)std::atoi(outPut.c_str());
-    }
-
-    mLogConfig.readIniFileKeyValue("LOG", "log_path", mPath);
-    mLogConfig.readIniFileKeyValue("LOG", "log_name", mName);
-    if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
-    {
-        LogInit();
-        LogOpen();
-    }
-    LogOut("LOGGER", 1, "fileNum = %d", nFileNum);
-    LogOut("LOGGER", 1, "fileSize = %ld", nFileSize);
-    LogOut("LOGGER", 1, "target = %d", nTarget);
-    LogOut("LOGGER", 1, "log_path = %s", mPath.c_str());
-    LogOut("LOGGER", 1, "log_name = %s", mName.c_str());
-    std::map<std::string, std::string> logLevel;
-    mLogConfig.readIniFileSection("LOG_LEVEL", logLevel);
-    for(auto& it : logLevel)
-    {
-        int level = std::atoi(it.second.c_str());
-        if(level < L_FATAL || level > L_DEBUG || it.first.empty())
+        while(1)
         {
-            continue;
-        }
-        mLogMap[it.first] = level;
-        LogOut("LOGGER", 1, "log %s = level:%d", it.first.c_str(), level);
-    }
-
-    mRunStatus = true;
-    mLogThread = std::thread(&CLog::writeLogThread, this);
-}
-void CLog::writeLogThread()
-{
-    SetThreadName("Log");
-    std::tuple<std::string, int> linetu;
-    while(mRunStatus)
-    {
-        if(mLogs.dequeue(linetu))
-        {
-            std::string& strLine = std::get<0>(linetu);
-            bool bRet = LogWrite(strLine.c_str(), strLine.size(), std::get<1>(linetu));
-            if(true != bRet)
             {
-                std::unique_lock<std::mutex> lock(vctMtx);
-                printf("ERROR: Write app log file failed: %s\n", mArrLogFileName.at(0).c_str());
+                if(mLogNum.load() == 0)
+                {
+                    break;
+                }
+                cv.notify_all();
             }
-        }
-        else
-        {
-            // printf("mLogs size: %d\n", mLogs.size());
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        if(changeFile)
+        mRunStatus = 2;
+        if(mLogThread.joinable())
         {
-            if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
-            {
-                LogClose();
-                LogInit();
-                LogOpen();
-            }
-            changeFile = false;
+            mLogThread.join();
         }
     }
-}
-void CLog::SetLogLevel(std::string name, int level)
-{
-    if(level < L_FATAL || level > LEVEL_NUM || name.empty())
-    {
-        printf("CLog set level %s,%d\n", name.c_str(), level);
-        return;
-    }
-    mLogMap[name] = level;
-    LogOut(name, 0, "set log %s = %d", name.c_str(), level);
-    return;
-}
-void CLog::SetLogTarget(int eTarget)
-{
-    if(eTarget >= E_LOG_TARGET_NONE && eTarget < E_LOG_TARGET_MAX)
-    {
-        nTarget = (APP_LOG_TARGET)eTarget;
-        printf("CLog set target:%d\n", eTarget);
-    }
-}
-void mkdir_p(const char* muldir)
-{
-    int i, len = strlen(muldir);
-    char str[1024];
-    strncpy(str, muldir, len < 1024 ? len : 1024 - 1);
-    len = strlen(str);
-    for(i = 0; i < len; i++)
-    {
-        if(str[i] == '/')
-        {
-            str[i] = '\0';
-            if(log_access(str) != 0)
-            {
-                //mkdir(str, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0
-                mkdir(str, 0777);
-            }
-            str[i] = '/';
-        }
-    }
-    if(len > 0 && log_access(str) != 0)
-    {
-        mkdir(str, 0777);
-    }
-    return;
-}
-void CLog::SetLoggerPath(const char* path, const char* name)
-{
-    std::string strPath(path), strFileName(name);
-    if(!strPath.empty() && (strPath.at(strPath.size() - 1) == '/' || strPath.at(strPath.size() - 1) == '\\'))
-    {
-        strPath = strPath.substr(0, strPath.size() - 1);
-    }
-    if(!strPath.empty() && mPath != strPath)
-    {
-        mPath = strPath;
-        mkdir_p(mPath.c_str());
-        changeFile = true;
-    }
-    if(!strFileName.empty() && mName != strFileName)
-    {
-        mName = name;
-        changeFile = true;
-    }
-    printf("CLog set file path name:%s,%s\n", path, name);
-}
-void CLog::SetLogFileSize(int size)
-{
-    if(size > 0)
-    {
-        nFileSize = size * 1024 * 1024;
-        printf("CLog set file size:%dM\n", size);
-    }
-}
-void CLog::SetLogFileNum(int num)
-{
-    if(nFileNum != num)
-    {
-        nFileNum = num;
-        changeFile = true;
-    }
-    printf("CLog set file num:%d\n", num);
-}
-int CLog::GetLogLevel(const std::string name)
-{
-    auto it = mLogMap.find(name);
-    if(it != mLogMap.end())
-        return mLogMap[name];
-    return 0;
-}
-int CLog::GetLogTarget()
-{
-    return nTarget;
-}
-int CLog::GetLogFileSize()
-{
-    return nFileSize;
-}
-int CLog::GetLogFileNum()
-{
-    return nFileNum;
-}
-void CLog::GetLogPathName(std::string& path, std::string& name)
-{
-    path = mPath;
-    name = mName;
+    mRunStatus = 0;
 }
 
-bool CLog::LogOpen()
+void CLog::InitLog(LogConfig* config)
 {
-    if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
+    LOGOUT((*this), LOGMD, L_FATAL, "config %p", config);
+    if(config)
     {
-        if(nFileNum < 1)
+        nFileNum = config->nFileNum > 0 ? config->nFileNum : 5;
+        nFileSize = config->nFileSize > 0 ? config->nFileSize : 1 * 1024 * 1024;
+        nTarget = config->target;
+        if(!config->logPath.empty())
+            mPath = config->logPath;
+        if(!config->logName.empty())
+            mName = config->logName;
+        LOGOUT((*this), LOGMD, L_FATAL, "fileNum = %d", nFileNum);
+        LOGOUT((*this), LOGMD, L_FATAL, "fileSize = %ld", nFileSize);
+        LOGOUT((*this), LOGMD, L_FATAL, "target = %d", nTarget);
+        LOGOUT((*this), LOGMD, L_FATAL, "log_path = %s", mPath.c_str());
+        LOGOUT((*this), LOGMD, L_FATAL, "log_name = %s", mName.c_str());
+
+
+        for(auto& it : config->mLogMod)
         {
-            return false;
-        }
-        std::unique_lock<std::mutex> lock(vctMtx);
-#if !(defined(_WIN32) || defined(_WIN64))
-        //O_APPEND O_TRUNC
-        int LogFd = ::open(mArrLogFileName.at(0).c_str(), O_RDWR | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
-        if(LogFd >= 0)
-        {
-            if((mLogFilePtr = ::fdopen(LogFd, "a+")) == NULL)
+            for(auto& mod : gLogMods)
             {
-                printf("ERROR: Failed to open app log file: %s!\n", mArrLogFileName.at(0).c_str());
-                ::close(LogFd);
-                return false;
+                if(mod.second == it.first)
+                {
+                    LOG_MODULE logMd = (LOG_MODULE)mod.first;
+                    if (logMd > LOGMD && logMd < MAX_LOG_MODULE)
+                    {
+                        mLogVc[logMd].name = it.first;
+                        mLogVc[logMd].value = it.second;
+                        LOGOUT((*this), LOGMD, L_FATAL, "log mod %s level %d", it.first.c_str(), it.second);
+                    }
+                    break;
+                }
             }
         }
-        else
-        {
-            printf("ERROR: Failed to open app log file: %s!\n", mArrLogFileName.at(0).c_str());
-            return false;
-        }
-#else
-        if((mLogFilePtr = ::fopen(mArrLogFileName.at(0).c_str(), "a+")) == NULL)
-        {
-            printf("ERROR: Failed to open app log file: %s!\n", mArrLogFileName.at(0).c_str());
-            return false;
-        }
-#endif	
-        fseek(mLogFilePtr, 0, SEEK_END);
-        mCurFileSize = ftell(mLogFilePtr);
     }
-    return true;
-}
-void CLog::LogClose()
-{
-    if(mLogFilePtr)
+    LOGOUT((*this), LOGMD, L_FATAL, "log thread status:%d %u file name:%s", mRunStatus, mLogNum.load(), mName.c_str());
+    if(mRunStatus == 0)
     {
-        ::fflush(mLogFilePtr);
-        ::fclose(mLogFilePtr);
-        mLogFilePtr = nullptr;
+        mRunStatus = 1;
+        mLogThread = std::thread(&CLog::writeLogThread, this);
     }
 }
-bool CLog::LogWrite(const char* szLog, int nSize, int Level)
-{
-    if(nullptr == mLogFilePtr)
-    {
-        printf("mLogFilePtr NULL\n");
-        return false;
-    }
 
-    if(mCurFileSize + nSize > nFileSize)
+void CLog::setLogModName(std::map<int, std::string> logMdName)
+{
+    for(auto& it : logMdName)
     {
-        if(!SwitchFile())
+        if ((LOG_MODULE)it.first > LOGMD)
         {
-            printf("SwitchFile failed\n");
-            return false;
+            gLogMods[(LOG_MODULE)it.first] = it.second;
         }
     }
-    int wtSize = 0;
-
-    int wlen = ::fwrite(szLog, 1, nSize, mLogFilePtr);
-    if(wlen > 0)
+    for (int i = 0; i < MAX_LOG_MODULE; i++)
     {
-        wtSize += wlen;
+        if (i > LOGMD && !gLogMods[(LOG_MODULE)i].empty())
+        {
+            mLogVc[i].name = gLogMods[(LOG_MODULE)i];
+        }
     }
-    else
-    {
-        printf("log fwrite failed:%d\n", errno);
-    }
-    if(Level <= E_LOG_LV_ERROR)
-    {
-        ::fflush(mLogFilePtr);
-    }
-    mCurFileSize += wtSize;
-    return nSize == wtSize ? true : false;
 }
-bool CLog::SwitchFile()
-{
-    LogClose();
 
-    mCurFileSize = 0;
+void CLog::reNameFile()
+{
+    if((int)mArrLogFileName.size() == nFileNum)
     {
-        std::unique_lock<std::mutex> lock(vctMtx);
         for(int i = nFileNum - 1; i > 0; i--)
         {
             if(nFileNum - 1 == i && 0 == log_access(mArrLogFileName.at(i).c_str()))
             {
                 if(0 != ::remove(mArrLogFileName.at(i).c_str()))
                 {
-                    printf("ERROR: Failed to remove app log file: %s!\n", mArrLogFileName.at(i).c_str());
-                    return false;
+                    threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "ERROR: Failed to remove app log file: %s!",
+                              mArrLogFileName.at(i).c_str());
+                    return;
                 }
             }
 
@@ -408,33 +249,379 @@ bool CLog::SwitchFile()
             {
                 if(0 != ::rename(mArrLogFileName.at(i - 1).c_str(), mArrLogFileName.at(i).c_str()))
                 {
-                    printf("ERROR: Failed to rename app log file: %s!\n", mArrLogFileName.at(i - 1).c_str());
-                    return false;
+                    threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "ERROR: Failed to rename app log file: %s!",
+                              mArrLogFileName.at(i - 1).c_str());
+                    return;
                 }
             }
         }
     }
-    LogOpen();
-    return true;
 }
-bool CLog::LogInit()
+
+void CLog::writeLogThread()
 {
-    char szPath[256] = { 0 };
-    std::unique_lock<std::mutex> lock(vctMtx);
-    mArrLogFileName.clear();
-    for(int i = 0; i < nFileNum; i++)
+    SetThreadName("Log");
+    auto timeout = std::chrono::milliseconds(200);
+    bool isEmpty = true;
+    logInfo log;
+    LOGOUT((*this), LOGMD, L_INFO, "log thread status:%d, %u, %d file name:%s", mRunStatus, mLogNum.load(), mLogs.empty(), mName.c_str());
+    while(mRunStatus == 1)
     {
-        if(0 == i)
         {
-            ::snprintf(szPath, 255, "%s/%s.log", mPath.c_str(), mName.c_str());
+            std::unique_lock<std::mutex> lock(logMtx);
+            cv.wait_for(lock, timeout, [&] { return mLogNum.load() > 0; });
+            isEmpty = mLogs.empty();
+            if(isEmpty)
+                continue;
+            log = std::move(mLogs.front()); // 取出队首元素，返回队首元素值，并进行右值引用
+            mLogs.pop_front(); // 弹出入队的第一个元素
+        }
+        if (mLogNum.load() > 0)
+        {
+            mLogNum.fetch_sub(1, std::memory_order_relaxed);
         }
         else
         {
-            ::snprintf(szPath, 255, "%s/%s_%d.log", mPath.c_str(), mName.c_str(), i);
+            std::unique_lock<std::mutex> lock(logMtx);
+            mLogNum.store(mLogs.size());
         }
-        mArrLogFileName.push_back(szPath);
-        printf("push file:%s\n", szPath);
+        // threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "log num:%u, %d file name:%s", mLogNum.load(), isEmpty,
+        // mName.c_str());
+
+        if(!log.log.empty())
+        {
+            log.log.append(LOG_NEWLINE);
+            bool bRet = LogWrite(log.log.c_str(), log.log.size(), log.level);
+            if(!bRet)
+            {
+                closeFile();
+                // std::unique_lock<std::mutex> lock(vctMtx);
+                threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "Write app log file failed:%s",
+                          mArrLogFileName.at(0).c_str());
+            }
+        }
     }
-    printf("mArrLogFileName size:%lu\n", mArrLogFileName.size());
+    threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "log thread exit!");
+    closeFile();
+}
+
+void CLog::SetLogLevel(int mod, int level)
+{
+    if(level < L_FATAL || level > LEVEL_NUM || mod < 0 || mod >= MAX_LOG_MODULE)
+    {
+        LOGOUT((*this), LOGMD, L_FATAL, "CLog set level %s,%d", mLogVc[mod].name.c_str(), level);
+        return;
+    }
+    mLogVc[mod].value = level;
+    LOGOUT((*this), LOGMD, L_FATAL, "set log %s = %d", mLogVc[mod].name.c_str(), level);
+}
+void CLog::SetLogTarget(int eTarget)
+{
+    if(eTarget >= E_LOG_TARGET_NONE && eTarget < E_LOG_TARGET_MAX)
+    {
+        nTarget = (LOG_TARGET)eTarget;
+        LOGOUT((*this), LOGMD, L_FATAL, "CLog set target:%d", eTarget);
+    }
+}
+
+void CLog::SetLogFileSize(int size)
+{
+    if(size > 0)
+    {
+        nFileSize = size * 1024 * 1024;
+        LOGOUT((*this), LOGMD, L_FATAL, "CLog set file size:%dM", size);
+    }
+}
+void CLog::SetLogFileNum(int num)
+{
+    if(nFileNum != num)
+    {
+        nFileNum = num;
+    }
+    LOGOUT((*this), LOGMD, L_FATAL, "CLog set file num:%d", num);
+}
+
+bool CLog::LogOpen()
+{
+    LogInit();
+
+    if(nFileNum < 1 || pLogFile)
+    {
+        return false;
+    }
+    if(openFile(mArrLogFileName.at(0).c_str()) == 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool CLog::LogWrite(const char* szLog, size_t nSize, int Level)
+{
+    if(!pLogFile || nCurFileSize + nSize > nFileSize)
+    {
+        if(!SwitchFile())
+        {
+            threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "SwitchFile failed");
+            return false;
+        }
+    }
+    size_t wlen = writeFile(szLog, nSize);
+    if (Level <= L_ERROR)
+    {
+        flush();
+    }
+    return nSize == wlen ? true : false;
+}
+bool CLog::SwitchFile()
+{
+    closeFile();
+    reNameFile();
+    return LogOpen();
+}
+bool CLog::LogInit()
+{
+    if(nFileNum != (int)mArrLogFileName.size())
+    {
+        createDir(mPath.c_str());
+        char szPath[256] = { 0 };
+        mArrLogFileName.resize(nFileNum);
+        for(int i = 0; i < nFileNum; i++)
+        {
+            if(0 == i)
+            {
+                ::snprintf(szPath, 255, "%s/%s.log", mPath.c_str(), mName.c_str());
+            }
+            else
+            {
+                ::snprintf(szPath, 255, "%s/%s_%d.log", mPath.c_str(), mName.c_str(), i);
+            }
+            mArrLogFileName.at(i) = szPath;
+            threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "push file:%s", szPath);
+        }
+        threadOut(LOGMD, L_INFO, FILENAME, __LINE__, "mArrLogFileName size:%lu", mArrLogFileName.size());
+    }
     return true;
+}
+
+int CLog::openFile(const char* fileName)
+{
+    if(pLogFile == nullptr)
+    {
+        pLogFile = fopen(fileName, "a+");
+        if(pLogFile != nullptr)
+        {
+            fseek(pLogFile, 0, SEEK_END);
+            nCurFileSize = ftell(pLogFile);
+            return 0;
+        }
+        int errnum = errno;
+        threadOut(LOGMD, L_INFO, FILENAME, __LINE__, " fopen failed err:%d %s %s", errnum, strerror(errnum), fileName);
+        return -1;
+    }
+    return 0;
+}
+size_t CLog::writeFile(const char buffer[], size_t size)
+{
+    if(pLogFile != nullptr)
+    {
+        size_t wSize = fwrite(buffer, 1, size, pLogFile);
+        if(wSize > 0)
+        {
+            nCurFileSize += wSize;
+        }
+        if(wSize < size)
+        {
+            int errnum = errno;
+            threadOut(LOGMD, L_INFO, FILENAME, __LINE__, " fwrite failed err:%d %s", errnum, strerror(errnum));
+        }
+        return wSize;
+    }
+    return 0;
+}
+int CLog::closeFile()
+{
+    if(pLogFile != nullptr)
+    {
+        fflush(pLogFile);
+        threadOut(LOGMD, L_INFO, FILENAME, __LINE__, " close handle.fileFp:%p", pLogFile);
+        fclose(pLogFile);
+        pLogFile = nullptr;
+        return 0;
+    }
+    return -1;
+}
+void CLog::flush()
+{
+    if(pLogFile != nullptr)
+    {
+        fflush(pLogFile);
+    }
+}
+
+void CLog::threadOut(int mod, int level, const char* fileName, int lineNo, const char* msg, ...)
+{
+    if(mod >= MAX_LOG_MODULE || mod < 0)
+    {
+        printf("log name mode not exist :%d\n", mod);
+        return;
+    }
+    if(mLogVc[mod].value >= level)
+    {
+        //(2023-03-31 16:39:21,130)[Common-INFO-commonTool.cpp:231]
+        //Dev.cpp:1305]
+
+        //(2023-03-31 16:39:21,130)[Common-INFO-
+
+        //struct timeval current;
+        //gettimeofday(&current, NULL);
+        long long curtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        char strTime[20] = { 0 };
+        time_t cur_t = curtime / 1000;
+
+        struct tm tmtime;
+        memset(&tmtime, 0, sizeof(tmtime));
+        localtime_r(&cur_t, &tmtime);
+        strftime(strTime, sizeof(strTime), "%Y-%m-%d %H:%M:%S", &tmtime);
+
+
+        char tmp[1024 * 50] = { 0 };
+        int size = 0, tmpSize = sizeof(tmp) - 1 - nNewLinelen;
+
+        size += ::snprintf(&tmp[size], tmpSize - size - 1, "%s.%03d[%s-%s-%s:%d]:", strTime, int(curtime % 1000),
+                           mLogVc[mod].name.c_str(), levelName(level), fileName, lineNo);
+        va_list args;
+        va_start(args, msg);
+        int needlen = ::vsnprintf(NULL, 0, msg, args);
+        va_end(args);
+        if(needlen + 1 > tmpSize - size)
+        {
+            needlen = tmpSize - size;
+        }
+        va_start(args, msg);
+        int formatlen = ::vsnprintf(&tmp[size], needlen + 1, msg, args);
+        va_end(args);
+        size += needlen;
+        if(needlen != formatlen)
+        {
+            printf("formatlen:%d needlen:%d\n", formatlen, needlen);
+        }
+
+        if(E_LOG_TARGET_STDERR == nTarget || E_LOG_TARGET_BOTH == nTarget)
+        {
+            printf("%s%s%s\n", levelColor(level), tmp, NONE__);
+        }
+        if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
+        {
+            writeFile(tmp, size);
+            writeFile(LOG_NEWLINE, nNewLinelen);
+            if (level <= L_ERROR)
+            {
+                flush();
+            }
+        }
+    }
+}
+void CLog::OutPutCall(int mod, int level, const char* fileName, int lineNo, const char* msg, ...)
+{
+    //(2023-03-31 16:39:21,130)[Common-INFO-commonTool.cpp:231]
+    //Dev.cpp:1305]
+
+    //(2023-03-31 16:39:21,130)[Common-INFO-
+
+    //struct timeval current;
+    //gettimeofday(&current, NULL);
+    long long curtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    char strTime[20] = { 0 };
+    time_t cur_t = curtime / 1000;
+
+    struct tm tmtime;
+    memset(&tmtime, 0, sizeof(tmtime));
+    localtime_r(&cur_t, &tmtime);
+    strftime(strTime, sizeof(strTime), "%Y-%m-%d %H:%M:%S", &tmtime);
+
+
+    char tmp[1024 * 50] = { 0 };
+    int size = 0, tmpSize = sizeof(tmp) - 1 - nNewLinelen;
+
+    size += ::snprintf(&tmp[size], tmpSize - size - 1, "%s.%03d[%s-%s-%s:%d]:", strTime, int(curtime % 1000),
+                       mLogVc[mod].name.c_str(), levelName(level), fileName, lineNo);
+    va_list args;
+    va_start(args, msg);
+    int needlen = ::vsnprintf(NULL, 0, msg, args);
+    va_end(args);
+    if(needlen + 1 > tmpSize - size)
+    {
+        needlen = tmpSize - size;
+    }
+    va_start(args, msg);
+    int formatlen = ::vsnprintf(&tmp[size], needlen + 1, msg, args);
+    va_end(args);
+    size += needlen;
+    if(needlen != formatlen)
+    {
+        printf("formatlen:%d needlen:%d\n", formatlen, needlen);
+    }
+
+    if(E_LOG_TARGET_STDERR == nTarget || E_LOG_TARGET_BOTH == nTarget)
+    {
+        printf("%s%s%s\n", levelColor(level), tmp, NONE__);
+    }
+    if(E_LOG_TARGET_FILE == nTarget || E_LOG_TARGET_BOTH == nTarget)
+    {
+        logInfo log(tmp, size, level);
+        {
+            std::unique_lock<std::mutex> lock(logMtx);
+            mLogs.push_back(std::move(log));
+        }
+        mLogNum.fetch_add(1, std::memory_order_relaxed);
+        cv.notify_one();
+    }
+}
+
+void CLog::createDir(const char* muldir)
+{
+    // printf("mkdir -p %s\n", muldir);
+#ifndef _WIN32
+    size_t i, len = strlen(muldir);
+    char str[1024] = { 0 };
+    snprintf(str, sizeof(str), "%s", muldir);
+    // strncpy(str, muldir, len < 1024 ? len : 1024 - 1);
+    len = strlen(str);
+    for(i = 0; i < len; i++)
+    {
+        if(str[i] == '/')
+        {
+            str[i] = '\0';
+            if(access(str, F_OK) != 0)
+            {
+                mkdir(str, 0775);
+            }
+            str[i] = '/';
+        }
+    }
+    if(len > 0 && access(str, F_OK) != 0)
+    {
+        mkdir(str, 0775);
+    }
+    return;
+#endif
+}
+
+const char* CLog::levelName(int level)
+{
+    if (level >= 0 && level < LEVEL_NUM)
+    {
+        return gColorInfo[level].name;
+    }
+    return gColorInfo[1].name;
+}
+
+const char* CLog::levelColor(int level)
+{
+    if (level >= 0 && level < LEVEL_NUM)
+    {
+        return gColorInfo[level].color;
+    }
+    return gColorInfo[1].color;
 }

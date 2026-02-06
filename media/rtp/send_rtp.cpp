@@ -218,7 +218,7 @@ static void onread(void* param, uint32_t track, const void* buffer, size_t bytes
             assert(0);
         }
 
-        LogOut("BLL", L_DEBUG, "[V] pts: %s, dts: %s, diff: %03d/%03d, %d%s", ftimestamp(pts, s_pts), ftimestamp(dts, s_dts), (int)(pts - v_pts), (int)(dts - v_dts), (int)n, flags ? " [I]" : "");
+        LogOut(BLL, L_DEBUG, "[V] pts: %s, dts: %s, diff: %03d/%03d, %d%s", ftimestamp(pts, s_pts), ftimestamp(dts, s_dts), (int)(pts - v_pts), (int)(dts - v_dts), (int)n, flags ? " [I]" : "");
         v_pts = pts;
         v_dts = dts;
         if (MOV_OBJECT_H264 == ctx->v.object || MOV_OBJECT_HEVC == ctx->v.object)
@@ -250,7 +250,7 @@ static void onread(void* param, uint32_t track, const void* buffer, size_t bytes
             assert(0);
         }
 
-        LogOut("BLL", L_DEBUG, "[A] pts: %s, dts: %s, diff: %03d/%03d, %d", ftimestamp(pts, s_pts), ftimestamp(dts, s_dts), (int)(pts - a_pts), (int)(dts - a_dts), (int)n);
+        LogOut(BLL, L_DEBUG, "[A] pts: %s, dts: %s, diff: %03d/%03d, %d", ftimestamp(pts, s_pts), ftimestamp(dts, s_dts), (int)(pts - a_pts), (int)(dts - a_dts), (int)n);
         a_pts = pts;
         a_dts = dts;
         assert(0 == rtp_payload_encode_input(ctx->a.encoder, ctx->s_packet, n, (unsigned int)dts));
@@ -351,7 +351,7 @@ static int ps_write(void* param, int stream, void* packet, size_t bytes)
 
 static int ps_onpacket(void* ps, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes)
 {
-    LogOut("BLL", L_DEBUG, "PS Decode [V] pts: %08lu, dts: %08lu, bytes: %u, %s", (unsigned long)pts, (unsigned long)dts, (unsigned int)bytes, flags ? " [I]" : "");
+    LogOut(BLL, L_DEBUG, "PS Decode [V] pts: %08lu, dts: %08lu, bytes: %u, %s", (unsigned long)pts, (unsigned long)dts, (unsigned int)bytes, flags ? " [I]" : "");
     return 0;
 }
 

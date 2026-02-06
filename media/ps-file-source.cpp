@@ -54,7 +54,7 @@ PSFileSource::~PSFileSource()
     {
         loop.join();
     }
-    LogOut("BLL", L_DEBUG, "--- transport end PSFileSource");
+    LogOut(BLL, L_DEBUG, "--- transport end PSFileSource");
     if (media)
     {
         media->removeReader(readhandle);
@@ -64,20 +64,20 @@ PSFileSource::~PSFileSource()
     if (m_pspacker)
         rtp_payload_encode_destroy(m_pspacker);
     ps_muxer_destroy(m_ps);
-    LogOut("BLL", L_DEBUG, "--- delete PSFileSource");
+    LogOut(BLL, L_DEBUG, "--- delete PSFileSource");
 }
 void PSFileSource::run()
 {
     IsRun = true;
     loop = std::thread(&PSFileSource::SourceLoop, this);
-    LogOut("BLL", L_DEBUG, "--- transport start PSFileSource");
+    LogOut(BLL, L_DEBUG, "--- transport start PSFileSource");
 
 }
 void PSFileSource::runPlayback()
 {
     IsRun = true;
     loop = std::thread(&PSFileSource::SourceLoopPlayBack, this);
-    LogOut("BLL", L_DEBUG, "--- transport start PSFileSource");
+    LogOut(BLL, L_DEBUG, "--- transport start PSFileSource");
 
 }
 void PSFileSource::SourceLoop()
@@ -155,7 +155,7 @@ int PSFileSource::Play()
                 m_ps_clock = clock;
             if (frame.nalu && frame.nalu[0] != 0x00)
             {
-                LogOut("BLL", L_ERROR, "data err %x,%x,%x,%x,nalu:%d", frame.nalu[0], frame.nalu[1], frame.nalu[2], frame.nalu[3], (frame.nalu[4] & 0x1F));
+                LogOut(BLL, L_ERROR, "data err %x,%x,%x,%x,nalu:%d", frame.nalu[0], frame.nalu[1], frame.nalu[2], frame.nalu[3], (frame.nalu[4] & 0x1F));
                 return 0;
             }
             if (frame.frameType == GB_CODEC_H264 || frame.frameType == GB_CODEC_H265)

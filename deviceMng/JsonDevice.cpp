@@ -333,7 +333,7 @@ void JsonNvrDevic::Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argu
         JsonSdkInterface::Instance().InitSdk(err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
+            LogOut(SDK, L_ERROR, "json sdk init err:%d", err);
         }
     }
     if (err == 0 && mLoginId == 0)
@@ -341,16 +341,16 @@ void JsonNvrDevic::Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argu
         mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
+            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
         }
     }
     if (mLoginId > 0)
     {
-        LogOut("SDK", L_INFO, "json sdk ptz ctrl ip:%s, chid:%d, cmd:%d", mIP.c_str(), channelId, PTZCommand);
+        LogOut(SDK, L_INFO, "json sdk ptz ctrl ip:%s, chid:%d, cmd:%d", mIP.c_str(), channelId, PTZCommand);
         JsonSdkInterface::Instance().PTZCtrl(mLoginId, channelId, PTZCommand, Argument, err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk ptz ctrl err:%d, ip:%s", err, mIP.c_str());
+            LogOut(SDK, L_ERROR, "json sdk ptz ctrl err:%d, ip:%s", err, mIP.c_str());
             if (err == 3001 || err == 2007)
             {
                 JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);
@@ -368,7 +368,7 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t& BufSize, int& err)
         JsonSdkInterface::Instance().InitSdk(err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk init err:%d", err);
+            LogOut(SDK, L_ERROR, "json sdk init err:%d", err);
         }
     }
     if (err == 0 && mLoginId == 0)
@@ -376,7 +376,7 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t& BufSize, int& err)
         mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
+            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
         }
     }
     if (mLoginId > 0)
@@ -385,7 +385,7 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t& BufSize, int& err)
         JsonSdkInterface::Instance().ListIPC(mLoginId, Buffer, &size, err);
         if (err != 0)
         {
-            LogOut("SDK", L_ERROR, "json sdk get ipc list err:%d, ip:%s", err, mIP.c_str());
+            LogOut(SDK, L_ERROR, "json sdk get ipc list err:%d, ip:%s", err, mIP.c_str());
             if (err == 3001 || err == 2007)
             {
                 JsonSdkInterface::Instance().JsonSdkLogOut(mLoginId, err);

@@ -23,7 +23,7 @@ WsServer::WsServer(short port) :num_threads(1)
         {
             num_threads = num_threads / 6;
         }
-        LogOut("BLL", L_DEBUG, "cpu num:%zu", num_threads);
+        LogOut(BLL, L_DEBUG, "cpu num:%zu", num_threads);
         // Total silence
         m_endpoint.clear_access_channels(websocketpp::log::alevel::all);
         m_endpoint.clear_error_channels(websocketpp::log::alevel::all);
@@ -69,7 +69,7 @@ WsServer::~WsServer()
 void WsServer::on_open(websocketpp::connection_hdl hdl)
 {
     //m_connections.insert(hdl);
-    LogOut("BLL", L_DEBUG, "open connection hdl:");
+    LogOut(BLL, L_DEBUG, "open connection hdl:");
 }
 
 void WsServer::on_close(websocketpp::connection_hdl hdl)
@@ -97,7 +97,7 @@ void WsServer::on_close(websocketpp::connection_hdl hdl)
         delete sinfo; sinfo = NULL;
     }
     //m_connections.erase(hdl);
-    LogOut("BLL", L_DEBUG, "close connection hdl:");
+    LogOut(BLL, L_DEBUG, "close connection hdl:");
 }
 void WsServer::on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr msg)
 {
@@ -149,7 +149,7 @@ int WsServer::WebsocketMessage(server* s, websocketpp::connection_hdl hdl, const
         s->send(hdl, response.GetString(), response.GetSize(), websocketpp::frame::opcode::text);
         return 0;
     }
-    LogOut("BLL", L_DEBUG, "ws msg:%s", message);
+    LogOut(BLL, L_DEBUG, "ws msg:%s", message);
 
     std::string classe = json_check_string(document, "classe");
     std::string strCmd = json_check_string(document, "cmd");
@@ -200,7 +200,7 @@ int WsServer::WebsocketMessage(server* s, websocketpp::connection_hdl hdl, const
             }
             else
             {
-                LogOut("BLL", L_DEBUG, "ws msg:%s playback error:%d", message, nRet);
+                LogOut(BLL, L_DEBUG, "ws msg:%s playback error:%d", message, nRet);
             }
         }
         else if(strcmp(webs_PBControl_method, strCmd.c_str()) == 0)
@@ -535,7 +535,7 @@ int WsServer::PlayBackControlAction(WsStreamInfo* sinfo, rapidjson_sip::Document
                     auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
                     if(JsonNvr)
                     {
-                        LogOut("BLL", L_DEBUG, "play back ctrl %ju", pointTime);
+                        LogOut(BLL, L_DEBUG, "play back ctrl %ju", pointTime);
                         //JsonNvr->Dev_PbCtrlTimePos(sinfo->ms->getStreamHandle(), pointTime, err);
                         JsonNvr->Dev_PlayBackCtrl(sinfo->ms->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_TimePos, (uint32_t)pointTime, 0, err);
                     }
@@ -591,7 +591,7 @@ void WsServer::RtPreviewThread(WsStreamInfo* smInfo)
                     m_clock = clock;
                 if(frame.nalu && frame.nalu[0] != 0x00)
                 {
-                    LogOut("BLL", L_ERROR, "data err %x,%x,%x,%x,nalu:%d", frame.nalu[0], frame.nalu[1], frame.nalu[2], frame.nalu[3], (frame.nalu[4] & 0x1F));
+                    LogOut(BLL, L_ERROR, "data err %x,%x,%x,%x,nalu:%d", frame.nalu[0], frame.nalu[1], frame.nalu[2], frame.nalu[3], (frame.nalu[4] & 0x1F));
                     continue;
                 }
                 if(frame.frameType == GB_CODEC_H264 || frame.frameType == GB_CODEC_H265)
@@ -601,7 +601,7 @@ void WsServer::RtPreviewThread(WsStreamInfo* smInfo)
                 if(frame.idr)
                 {
                     mGap = frame.gap;
-                    LogOut("BLL", L_ERROR, "--------------- idr frame time:%ld, gap:%d, frameNum:%ju", time(0), mGap, frameNum);
+                    LogOut(BLL, L_ERROR, "--------------- idr frame time:%ld, gap:%d, frameNum:%ju", time(0), mGap, frameNum);
                 }
 
                 int type = 0, nfps = 1000 / mGap;
@@ -682,7 +682,7 @@ void WsServer::RtPreviewThread(WsStreamInfo* smInfo)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     free(pBuffer);
-    LogOut("BLL", L_DEBUG, "------------------- Preview exit -------ms info :%p", smInfo);
+    LogOut(BLL, L_DEBUG, "------------------- Preview exit -------ms info :%p", smInfo);
 }
 void WsServer::PlayBackThread(WsStreamInfo* smInfo)
 {
@@ -708,7 +708,7 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                 int ret = smInfo->ms->GetNextFrameEx(smInfo->readhandle, frame, index);
                 if(ret == 0)
                 {
-                    // LogOut("BLL", L_DEBUG, "get frame index:%d, buf:%p", index, frame.Data());
+                    // LogOut(BLL, L_DEBUG, "get frame index:%d, buf:%p", index, frame.Data());
                     if(smInfo->ctrlType == 3 && frame.PTS() < smInfo->nFrameTime)
                     {
                         frame.dereference();
@@ -772,11 +772,11 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                     offset += sizeof(pts);
                     if(frame.IsKeyFram())
                     {
-                        LogOut("BLL", L_DEBUG, "ws send I frame time:%llu: frame time:%llu", m_clock, frame.PTS());
+                        LogOut(BLL, L_DEBUG, "ws send I frame time:%llu: frame time:%llu", m_clock, frame.PTS());
                     }
                     else
                     {
-                        // LogOut("BLL", L_DEBUG, "ws send P frame time:%llu: frame time:%llu", m_clock, frame.PTS());
+                        // LogOut(BLL, L_DEBUG, "ws send P frame time:%llu: frame time:%llu", m_clock, frame.PTS());
                     }
                     if(frame.GetCodecType() == CODEC_H264 || frame.GetCodecType() == CODEC_H265)
                     {
@@ -807,24 +807,24 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                     smInfo->s->send(smInfo->hdl, pBuffer, offset, websocketpp::frame::opcode::binary, ec);
                     if(ec)
                     {
-                        LogOut("BLL", L_DEBUG, "ws send data :%d", ec.value());
+                        LogOut(BLL, L_DEBUG, "ws send data :%d", ec.value());
                         break;
                     }
                     m_clock += gap;
                 }
                 else
                 {
-                    //LogOut("BLL", L_DEBUG, "ws send data read frame error:%d", ret);
+                    //LogOut(BLL, L_DEBUG, "ws send data read frame error:%d", ret);
                 }
             }
             else
             {
-                LogOut("BLL", L_DEBUG, "ws send data ms is null");
+                LogOut(BLL, L_DEBUG, "ws send data ms is null");
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     free(pBuffer);
     frame.dereference();
-    LogOut("BLL", L_DEBUG, "------------------- play back exit -------ms info :%p, handle:%u", smInfo, smInfo->readhandle);
+    LogOut(BLL, L_DEBUG, "------------------- play back exit -------ms info :%p, handle:%u", smInfo, smInfo->readhandle);
 }

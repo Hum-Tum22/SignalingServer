@@ -14,7 +14,7 @@ RTPUdpTransport::~RTPUdpTransport()
     rtcp_socket_->close();
     int squeSize = mSqueue.size();
     int freeQueSize = mFreeQueue.size();
-    LogOut("BLL", L_DEBUG, "free mSqueue size:%d mFreeQueue size:%d", squeSize, freeQueSize);
+    LogOut(BLL, L_DEBUG, "free mSqueue size:%d mFreeQueue size:%d", squeSize, freeQueSize);
     while (!mSqueue.empty())
     {
         rtpPacket* packet = NULL;

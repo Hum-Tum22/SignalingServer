@@ -79,6 +79,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Plugin/vsk/armNvr)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/RegistrarServer)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/UserAgent)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ws)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/deviceDb)
 
 
 
@@ -94,7 +95,7 @@ endif()
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/device/ SRC_LIST)
-# AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/tools/ SRC_LIST)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/deviceDb/ SRC_LIST)
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/deviceMng/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/ SRC_LIST)
@@ -139,18 +140,18 @@ SET(LIBS
 # if (USE_MYSQL)
 SET(LIBS ${LIBS}
 	libmysqlclient.a
+    libzstd.a
 )
 # endif()
 
-# if (USE_SSL)
+#if (USE_SSL)
 SET(LIBS ${LIBS}
-	libcrypto.a
 	libssl.a
+	libcrypto.a
 )
-# endif()
+#endif()
 
 link_libraries(z)
-#link_libraries(ssl)
 link_libraries(pthread)
 link_libraries(rt)
 #link_libraries(m)

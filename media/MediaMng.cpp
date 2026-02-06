@@ -48,7 +48,7 @@ void MediaMng::removeStream(std::string Id)
         }
         else
         {
-            LogOut("BLL", L_WARN, "stream:%s, use_count:%ld", it->second->getStreamId().c_str(), it->second.use_count());
+            LogOut(BLL, L_WARN, "stream:%s, use_count:%ld", it->second->getStreamId().c_str(), it->second.use_count());
         }
     }
 }
@@ -256,13 +256,13 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
         }
         else
         {
-            LogOut("BLL", L_ERROR, "%s child device not found", deviceId.c_str());
+            LogOut(BLL, L_ERROR, "%s child device not found", deviceId.c_str());
             return NULL;
         }
     }
     else
     {
-        LogOut("BLL", L_ERROR, "deviceId is null");
+        LogOut(BLL, L_ERROR, "deviceId is null");
         return NULL;
     }
 
@@ -279,7 +279,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                 Nvr->Dev_ListIPC(Buffer, msgSize, err);
                 if (err == 0)
                 {
-                    // LogOut("BLL", L_ERROR, "nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
+                    // LogOut(BLL, L_ERROR, "nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
                     rapidjson_sip::Document document;
                     document.Parse(Buffer);
                     if (!document.HasParseError())
@@ -308,7 +308,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                                     }
                                     if (enable_flag != 2)
                                     {
-                                        LogOut("BLL", L_WARN, "%s %s child device enable_flag :%d", deviceId.c_str(), devNum.c_str(), enable_flag);
+                                        LogOut(BLL, L_WARN, "%s %s child device enable_flag :%d", deviceId.c_str(), devNum.c_str(), enable_flag);
                                     }
                                     break;
                                 }
@@ -318,7 +318,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                 }
                 else
                 {
-                    LogOut("BLL", L_ERROR, "%s get channel info err: %d", deviceId.c_str(), err);
+                    LogOut(BLL, L_ERROR, "%s get channel info err: %d", deviceId.c_str(), err);
                 }
                 delete[] Buffer; Buffer = NULL;
                 if (chl >= 0)
@@ -346,7 +346,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                     if (err == 0)
                     {
                         //Nvr->Dev_PlayBackCtrl(playhandle, JsonNvrDevic::JsonPbCtrl_Speed, 1024, 0, err);
-                        LogOut("BLL", L_INFO, "%s child device pull stream ok handle:%lu streameId:%s", deviceId.c_str(), playhandle, streamId.c_str());
+                        LogOut(BLL, L_INFO, "%s child device pull stream ok handle:%lu streameId:%s", deviceId.c_str(), playhandle, streamId.c_str());
                         streamIn->setStreamHandle(playhandle);
                         streamIn->setStreamType(1);
                         streamIn->setFrameRate(25);
@@ -355,13 +355,13 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                     }
                     else
                     {
-                        LogOut("BLL", L_ERROR, "%s child device pull stream failed err:%d", deviceId.c_str(), err);
+                        LogOut(BLL, L_ERROR, "%s child device pull stream failed err:%d", deviceId.c_str(), err);
                         return NULL;
                     }
                 }
                 else
                 {
-                    LogOut("BLL", L_ERROR, "%s child device channel not found\n", deviceId.c_str());
+                    LogOut(BLL, L_ERROR, "%s child device channel not found\n", deviceId.c_str());
                 }
             }
         }
@@ -386,7 +386,7 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
     if (ms)
     {
         ms->reduction();
-        LogOut("BLL", L_ERROR, "xxxxxxxxxxxxxxxxx close stream:%s ref:%d", ms->getStreamId().c_str(), ms->refNum());
+        LogOut(BLL, L_ERROR, "xxxxxxxxxxxxxxxxx close stream:%s ref:%d", ms->getStreamId().c_str(), ms->refNum());
         if (ms->refNum() == 0)
         {
             BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
@@ -402,26 +402,26 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
                         if (ms->getStreamType() == 0)
                         {
                             JsonNvr->Dev_StopPreview(ms->getStreamHandle(), err);
-                            LogOut("BLL", L_WARN, "stop preview handle:%lu,err:%d", ms->getStreamHandle(), err);
+                            LogOut(BLL, L_WARN, "stop preview handle:%lu,err:%d", ms->getStreamHandle(), err);
                         }
                         else if (ms->getStreamType() == 1)
                         {
                             JsonNvr->Dev_StopPlayBack(ms->getStreamHandle(), err);
-                            LogOut("BLL", L_WARN, "stop play back handle:%lu,err:%d", ms->getStreamHandle(), err);
+                            LogOut(BLL, L_WARN, "stop play back handle:%lu,err:%d", ms->getStreamHandle(), err);
                         }
                         else
                         {
                             JsonNvr->Dev_StopDownload(ms->getStreamHandle(), err);
-                            LogOut("BLL", L_WARN, "stop download handle:%lu,err:%d", ms->getStreamHandle(), err);
+                            LogOut(BLL, L_WARN, "stop download handle:%lu,err:%d", ms->getStreamHandle(), err);
                         }
                         if (err == 0)
                         {
                             MediaMng::GetInstance().removeStream(ms->getStreamId());
-                            LogOut("BLL", L_WARN, "remove stream:%s", ms->getStreamId().c_str());
+                            LogOut(BLL, L_WARN, "remove stream:%s", ms->getStreamId().c_str());
                         }
                         else
                         {
-                            LogOut("BLL", L_ERROR, "stop stream:%s, failed:%d", ms->getStreamId().c_str(), err);
+                            LogOut(BLL, L_ERROR, "stop stream:%s, failed:%d", ms->getStreamId().c_str(), err);
                         }
                     }
                 }
@@ -540,7 +540,7 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
                     Nvr->SearchRecordInfoList(chl, stimestamp, etimestamp, records, err);
                     if(err == 0)
                     {
-                        LogOut("BLL", L_DEBUG, "records size:%Zu", records.size());
+                        LogOut(BLL, L_DEBUG, "records size:%Zu", records.size());
                         for(auto &it : records)
                         {
                             RecordInfoResponseItem recordItem;
@@ -548,7 +548,7 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
                             recordItem.Name = chlName;
                             recordItem.FilePath = recordQuery.DeviceID;
                             recordItem.Address = "";
-                            LogOut("BLL", L_DEBUG, "file start time:%u, end time:%u", it.start_time, it.end_time);
+                            LogOut(BLL, L_DEBUG, "file start time:%u, end time:%u", it.start_time, it.end_time);
                             struct tm tmtime;
                             char strTime[32] = { 0 };
                             time_t ttime = it.start_time;

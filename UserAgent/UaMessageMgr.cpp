@@ -513,7 +513,7 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
 }
 void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType PtzCmd, int ControlPriority)
 {
-    LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%s, ControlPriority:%d", deviceId.c_str(), PtzCmd.mptzcmd, ControlPriority);
+    LogOut(CTRL, L_DEBUG, "ptz ctrl device:%s, cmd:%s, ControlPriority:%d", deviceId.c_str(), PtzCmd.mptzcmd, ControlPriority);
     BaseChildDevice* child = DeviceMng::Instance().findChildDevice(deviceId);
     if (child)
     {
@@ -536,7 +536,7 @@ void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType Pt
                             int err = 0;
                             int arg = lrArg > 0 ? lrArg : udarg;
                             arg *= 100 / 8;
-                            LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%d, ControlPriority:%d, arg:%d", deviceId.c_str(), cmd, ControlPriority, arg);
+                            LogOut(CTRL, L_DEBUG, "ptz ctrl device:%s, cmd:%d, ControlPriority:%d, arg:%d", deviceId.c_str(), cmd, ControlPriority, arg);
                             int jsonPtzCmd = JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd);
                             if (jsonPtzCmd != JsonNvrDevic::JSON_PTZCOMMAND_UNKNOWN)
                             {
@@ -549,22 +549,22 @@ void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType Pt
                             JsonNvr->Dev_PTZCtrl(channel, jsonPtzCmd, arg, err);
                             if (err != 0)
                             {
-                                LogOut("CTRL", L_ERROR, " ptz ctrl err:%d, arg:%d", err, arg);
+                                LogOut(CTRL, L_ERROR, " ptz ctrl err:%d, arg:%d", err, arg);
                             }
                         }
                         else
                         {
-                            LogOut("CTRL", L_ERROR, "ptz cmd:%d channel:%d status:%d", cmd, channel, jsonChild->getStatus());
+                            LogOut(CTRL, L_ERROR, "ptz cmd:%d channel:%d status:%d", cmd, channel, jsonChild->getStatus());
                         }
                     }
                     else
                     {
-                        LogOut("CTRL", L_ERROR, "json channel:%d status:%d", channel, jsonChild->getStatus());
+                        LogOut(CTRL, L_ERROR, "json channel:%d status:%d", channel, jsonChild->getStatus());
                     }
                 }
                 else
                 {
-                    LogOut("CTRL", L_ERROR, "jsonChild is null\n");
+                    LogOut(CTRL, L_ERROR, "jsonChild is null\n");
                 }
             }
         }
@@ -724,7 +724,7 @@ void CUserMessageMrg::RecordInfoQueryResponseTask(const Uri target, const std::s
         std::list<RecordInfoResponseItem> records;
         if(MediaMng::GetInstance().GB28181QueryRecordInfo(queryMsg, records))
         {
-            LogOut("BLL", L_DEBUG, "found records size:%Zu", records.size());
+            LogOut(BLL, L_DEBUG, "found records size:%Zu", records.size());
             size_t sumNum = records.size();
             auto subLists = splitList(records, 10);
             for (const auto& subList : subLists)
