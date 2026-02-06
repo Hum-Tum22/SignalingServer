@@ -1,10 +1,11 @@
-﻿// main.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
+// main.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
 //
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
 #include <signal.h>
+#include <systemd/sd-daemon.h>
 #include "rutil/Socket.hxx"
 #include "rutil/Log.hxx"
 #include "rutil/Logger.hxx"
@@ -24,6 +25,14 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+    if(argc >= 2)
+    {
+        if(std::string(argv[1]) == std::string("-v"))
+        {
+            printf("1.15.9\n");
+            return 0;
+        }
+    }
     CLog::Instance().InitLog();
     // Initialize network
     initNetwork();
@@ -53,6 +62,10 @@ int main(int argc, char** argv)
         }
         //HttpServer httpSv(pSipSvr->gbHttpPort);
         WsServer s(9002);
+        // 通知systemd服务已准备好
+        sd_notify(0, "READY=1");
+        // 如果服务支持reload，还可以发送这个信号
+        sd_notify(0, "WATCHDOG=1");
         pSipSvr->mainLoop();
 
         pSipSvr->shutdown();
@@ -61,6 +74,8 @@ int main(int argc, char** argv)
 #if defined(WIN32) && defined(_DEBUG) && defined(LEAK_CHECK) 
     }
 #endif
+    // 服务结束前通知systemd
+    sd_notify(0, "STOPPING=1");
     return 0;
 }
 

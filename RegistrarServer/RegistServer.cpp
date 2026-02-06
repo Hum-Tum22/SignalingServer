@@ -21,7 +21,7 @@
 #include <iostream>
 
 #if defined(USE_MYSQL)
-#include "../MySqlDb.hxx"
+#include "MySqlDb.hxx"
 #endif
 
 #include "../SqliteDb.h"
@@ -35,6 +35,7 @@
 //#include "tools/m_Time.h"
 //#include "tools/ownString.h"
 #include "../UserAgent/UaClientCall.h"
+#include "SelfLog.h"
 
 
 #define RESIPROCATE_SUBSYSTEM resip::Subsystem::REPRO
@@ -45,7 +46,7 @@ using namespace resip;
 using namespace repro;
 using namespace std;
 
-CRegistServer::CRegistServer(ProxyConfig* config, resip::SipStack& tsipstack):SvConfig(config)
+CRegistServer::CRegistServer(ProxyConfig* config, resip::SipStack& tsipstack) :SvConfig(config)
 , m_SipStack(tsipstack)
 , mAbstractDb(NULL)
 , mRuntimeAbstractDb(NULL)
@@ -238,7 +239,7 @@ bool CRegistServer::createDatastore()
         }
         //SqliteDb* pdb = dynamic_cast<SqliteDb*>(mAbstractDb);
         //MyServerConfig &m = GetSipServerConfig();
-        printf("****************\n");
+        LogOut("BLL", L_DEBUG, "****************");
     }
     else     // Try legacy configuration parameter names
     {
@@ -337,50 +338,50 @@ void CRegistServer::initDomainMatcher()
     shared_ptr<ExtendedDomainMatcher> matcher(new ExtendedDomainMatcher());
     mDomainMatcher = matcher;
 
-     std::vector<Data> configDomains;
-     if (SvConfig->getConfigValue("Domains", configDomains))
-     {
-         for (std::vector<Data>::const_iterator i = configDomains.begin();
-             i != configDomains.end(); ++i)
-         {
-             InfoLog(<< "Adding domain " << *i << " from command line");
-             matcher->addDomain(*i);
-             if (mDefaultRealm.empty())
-             {
-                 mDefaultRealm = *i;
-             }
-         }
-     }
+    std::vector<Data> configDomains;
+    if (SvConfig->getConfigValue("Domains", configDomains))
+    {
+        for (std::vector<Data>::const_iterator i = configDomains.begin();
+            i != configDomains.end(); ++i)
+        {
+            InfoLog(<< "Adding domain " << *i << " from command line");
+            matcher->addDomain(*i);
+            if (mDefaultRealm.empty())
+            {
+                mDefaultRealm = *i;
+            }
+        }
+    }
 
-     std::vector<Data> configDomainSuffixes;
-     if (SvConfig->getConfigValue("DomainSuffixes", configDomainSuffixes))
-     {
-         for (std::vector<Data>::const_iterator i = configDomainSuffixes.begin();
-             i != configDomainSuffixes.end(); ++i)
-         {
-             InfoLog(<< "Adding domain suffix " << *i << " from command line");
-             matcher->addDomainSuffix(*i);
-             if (mDefaultRealm.empty())
-             {
-                 mDefaultRealm = *i;
-             }
-         }
-     }
+    std::vector<Data> configDomainSuffixes;
+    if (SvConfig->getConfigValue("DomainSuffixes", configDomainSuffixes))
+    {
+        for (std::vector<Data>::const_iterator i = configDomainSuffixes.begin();
+            i != configDomainSuffixes.end(); ++i)
+        {
+            InfoLog(<< "Adding domain suffix " << *i << " from command line");
+            matcher->addDomainSuffix(*i);
+            if (mDefaultRealm.empty())
+            {
+                mDefaultRealm = *i;
+            }
+        }
+    }
 
-     const ConfigStore::ConfigData& dList = SvConfig->getDataStore()->mConfigStore.getConfigs();
-     for (ConfigStore::ConfigData::const_iterator i = dList.begin();
-         i != dList.end(); ++i)
-     {
-         InfoLog(<< "Adding domain " << i->second.mDomain << " from config");
-         matcher->addDomain(i->second.mDomain);
-         if (mDefaultRealm.empty())
-         {
-             mDefaultRealm = i->second.mDomain;
-         }
-     }
+    const ConfigStore::ConfigData& dList = SvConfig->getDataStore()->mConfigStore.getConfigs();
+    for (ConfigStore::ConfigData::const_iterator i = dList.begin();
+        i != dList.end(); ++i)
+    {
+        InfoLog(<< "Adding domain " << i->second.mDomain << " from config");
+        matcher->addDomain(i->second.mDomain);
+        if (mDefaultRealm.empty())
+        {
+            mDefaultRealm = i->second.mDomain;
+        }
+    }
 
-     /* All of this logic has been commented out - the sysadmin must explicitly
-        add any of the items below to the Domains config option in repro.config*/
+    /* All of this logic has been commented out - the sysadmin must explicitly
+       add any of the items below to the Domains config option in repro.config*/
 
     Data localhostname(DnsUtil::getLocalHostName());
     InfoLog(<< "Adding local hostname domain " << localhostname);
@@ -435,9 +436,9 @@ void CRegistServer::cleanupRegistServerObjects()
     delete m_RegistDum; m_RegistDum = 0;
     delete mRegistrar; mRegistrar = 0;
     //delete mPresenceServer; mPresenceServer = 0;
-    
 
-    
+
+
     delete mAuthFactory; mAuthFactory = 0;
     //delete mAsyncProcessorDispatcher; mAsyncProcessorDispatcher = 0;
     //if (!mRestarting)
@@ -448,14 +449,14 @@ void CRegistServer::cleanupRegistServerObjects()
     }
     delete mAbstractDb; mAbstractDb = 0;
     delete mRuntimeAbstractDb; mRuntimeAbstractDb = 0;
- 
+
 }
 void CRegistServer::Shutdown()
 {
     if (mRegistDumThread)
     {
         mRegistDumThread->shutdown();
-    } 
+    }
 }
 bool CRegistServer::InitRegistServer()
 {
@@ -463,7 +464,7 @@ bool CRegistServer::InitRegistServer()
     {
         return false;
     }
-    
+
     createAuthenticatorFactory();
 
     if (!CreateRegistDum())
@@ -492,7 +493,7 @@ void CRegistServer::populateRegistrations()
             rec.mSipPath = NameAddrs(it->second.mPath);
             rec.mRegExpires = NeverExpire;
             rec.mSyncContact = true;  // Tag this permanent contact as being a synchronized contact so that it will
-                                      // not be synchronized to a paired server (this is actually configuration information)
+            // not be synchronized to a paired server (this is actually configuration information)
             mRegistrationPersistenceManager->updateContact(aor, rec);
         }
         catch (resip::ParseBuffer::Exception& e)
@@ -1126,7 +1127,7 @@ bool MyRegistrarHandler::onAdd(resip::ServerRegistrationHandle sr, const resip::
     DateCategory now(resip::TmType::GB28181Date);
     success.header(h_Date) = now;
     sr->accept(success);*/
-    
+
     /*Data id;
     if (success.exists(h_Contacts))
     {

@@ -22,14 +22,14 @@ using namespace std;
 using namespace resip;
 #define RESIPROCATE_SUBSYSTEM Subsystem::TEST
 
-CUserMessageMrg::CUserMessageMrg(DialogUsageManager& dum):mDum(dum), mMsgSn(1)
+CUserMessageMrg::CUserMessageMrg(DialogUsageManager& dum) :mDum(dum), mMsgSn(1)
 {
-	//G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMethod(MESSAGE);
-	//G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("text", "plain")); // Invite session in-dialog routing testing
-	//G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("Application", "MANSCDP+xml"));//28181
-	//G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("Application", "xml"));
-	mDum.setServerPagerMessageHandler(this);
-	mDum.setClientPagerMessageHandler(this);
+    //G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMethod(MESSAGE);
+    //G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("text", "plain")); // Invite session in-dialog routing testing
+    //G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("Application", "MANSCDP+xml"));//28181
+    //G_SipMrg()->InitSipDumMrg()->Dum()->getMasterProfile()->addSupportedMimeType(MESSAGE, Mime("Application", "xml"));
+    mDum.setServerPagerMessageHandler(this);
+    mDum.setClientPagerMessageHandler(this);
 }
 
 
@@ -122,7 +122,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
             if (XmlMsg.controlCmd == XML_CONTROLCMD_PTZ)
             {
                 PtzControlInfo* ptz = (PtzControlInfo*)XmlMsg.pPoint;
-                ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::PtzControlResponseTask, this, XmlMsg.DeviceID.c_str(), PTZCMDType(ptz->value.c_str()), ptz->ControlPriority));
+                ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::PtzControlResponseTask, this, XmlMsg.DeviceID, PTZCMDType(ptz->value.c_str()), ptz->ControlPriority));
             }
             else if (XmlMsg.controlCmd == XML_CONTROLCMD_TELEBOOT)
             {
@@ -164,7 +164,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)//Catalog 设备目录查询
         {
-            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::CatalogQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist)); 
+            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::CatalogQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, routelist));
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_DEVICE_INFO)//DeviceInfo 设备信息查询
         {
@@ -172,6 +172,8 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_RECORDINFO)//RecordInfo 文件目录检索
         {
+            RecordInfoQueryMsg queryMsg = *(RecordInfoQueryMsg*)XmlMsg.pPoint;
+            ThreadPool::Instance().submit(std::bind(&CUserMessageMrg::RecordInfoQueryResponseTask, this, fromuser, XmlMsg.DeviceID, XmlMsg.sn, queryMsg, routelist));
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_ALARM)//Alarm 报警查询
         {
@@ -265,7 +267,7 @@ void CUserMessageMrg::onMessageArrived(resip::ServerPagerMessageHandle h, const 
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
         {
-        
+
         }
         else if (XmlMsg.cmdtype == XML_CMDTYPE_NOTIFY_MOBILE_POSITION)
         {
@@ -320,7 +322,7 @@ void CUserMessageMrg::onSuccess(ClientPagerMessageHandle h, const SipMessage& st
     }
     if (PageMsgStateFun)
         PageMsgStateFun(status.header(h_To).uri().user(), cmdtype, reason, PageMsgStateUser);
-	h->end();
+    h->end();
 }
 void CUserMessageMrg::onFailure(ClientPagerMessageHandle h, const SipMessage& status, std::unique_ptr<Contents> contents)
 {
@@ -328,17 +330,17 @@ void CUserMessageMrg::onFailure(ClientPagerMessageHandle h, const SipMessage& st
     MsgCmdType cmdtype = PopMsgTypeByCallID(status.header(h_CallID).value());
     if (PageMsgStateFun)
         PageMsgStateFun(status.header(h_To).uri().user(), cmdtype, reason, PageMsgStateUser);
-	h->end();
+    h->end();
 }
 void CUserMessageMrg::RegistPageMsgCallBack(RegistPageMsgStateCallBack fun, void* pUser)
 {
-	PageMsgStateFun = fun;
-	PageMsgStateUser = pUser;
+    PageMsgStateFun = fun;
+    PageMsgStateUser = pUser;
 }
 void CUserMessageMrg::RegistArrivedMsgCallBack(RegistArrivedMsgCallBackFun fun, void* pUser)
 {
-	ArrivedMsgFun = fun;
-	ArrivedMsgUser = pUser;
+    ArrivedMsgFun = fun;
+    ArrivedMsgUser = pUser;
 }
 void CUserMessageMrg::SendHeart(shared_ptr<UaSessionInfo> uaState, const DevConfig& config)
 {
@@ -509,9 +511,9 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
         }
     }
 }
-void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType PtzCmd, int ControlPriority)
+void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType PtzCmd, int ControlPriority)
 {
-    LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%d, ControlPriority:%d", deviceId, PtzCmd, ControlPriority);
+    LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%s, ControlPriority:%d", deviceId.c_str(), PtzCmd.mptzcmd, ControlPriority);
     BaseChildDevice* child = DeviceMng::Instance().findChildDevice(deviceId);
     if (child)
     {
@@ -529,11 +531,22 @@ void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType Pt
                     {
                         int lrArg, udarg;
                         int cmd = PtzCmd.GetPTZUDLREx(lrArg, udarg);
-                        if (cmd > 0)
+                        if (cmd >= 0)
                         {
                             int err = 0;
                             int arg = lrArg > 0 ? lrArg : udarg;
-                            JsonNvr->Dev_PTZCtrl(channel, JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd), arg, err);
+                            arg *= 100 / 8;
+                            LogOut("CTRL", L_DEBUG, "ptz ctrl device:%s, cmd:%d, ControlPriority:%d, arg:%d", deviceId.c_str(), cmd, ControlPriority, arg);
+                            int jsonPtzCmd = JsonNvrDevic::switchFromGB28181((PTZCMDType::GB28181PtzCmd)cmd);
+                            if (jsonPtzCmd != JsonNvrDevic::JSON_PTZCOMMAND_UNKNOWN)
+                            {
+                                jsonChild->setLastPtzCmd(jsonPtzCmd);
+                            }
+                            else
+                            {
+                                jsonPtzCmd = jsonChild->getLastPtzCmd();
+                            }
+                            JsonNvr->Dev_PTZCtrl(channel, jsonPtzCmd, arg, err);
                             if (err != 0)
                             {
                                 LogOut("CTRL", L_ERROR, " ptz ctrl err:%d, arg:%d", err, arg);
@@ -556,7 +569,7 @@ void CUserMessageMrg::PtzControlResponseTask(const char* deviceId, PTZCMDType Pt
             }
         }
     }
-    
+
 }
 void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
 {
@@ -597,7 +610,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
                     sendMsgVc.push_back(outStr);
                     vov.clear();
                 }
-                else if(voSize - i < 2 * itemNum)
+                else if (voSize - i < 2 * itemNum)
                 {
                     std::string outStr;
                     CreateVirtualOrganizationCatalogResponse(user.c_str(), sn, sumnum, vov, outStr);
@@ -612,7 +625,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
             BaseDevice::Ptr baseDev = vChildList[i]->getParentDev();
             if (baseDev && vChildList[i] && baseDev->devType == BaseDevice::JSON_NVR)
             {
-                JsonChildDevic * pChildDev = dynamic_cast<JsonChildDevic*>(vChildList[i]);
+                JsonChildDevic* pChildDev = dynamic_cast<JsonChildDevic*>(vChildList[i]);
                 if (pChildDev)
                 {
                     CatalogItem item;
@@ -650,7 +663,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
                 sendMsgVc.push_back(outStr);
                 ChildTtems.clear();
             }
-            else if(childSize - i < 2 * itemNum)
+            else if (childSize - i < 2 * itemNum)
             {
                 std::string outStr;
                 CreateCatalogResponse(user.c_str(), sn, sumnum, ChildTtems, NULL, outStr);
@@ -682,6 +695,45 @@ void CUserMessageMrg::DeviceInfoQueryResponseTask(const Uri target, const std::s
         string outStr;
         CreateDeviceInfoResponse(user.c_str(), sn, devInfoMsg, outStr);
         SendResponsePageMsg(target, outStr, MsgCmdType_DeviceInfo, Routlist);
+    }
+}
+// 函数用于分割 std::list
+template<typename T>
+std::vector<std::vector<T>> splitList(const std::list<T>& lst, size_t chunkSize)
+{
+    std::vector<std::vector<T>> result;
+    if (chunkSize == 0) return result;
+
+    auto it = lst.begin();
+    while (it != lst.end())
+    {
+        std::vector<T> subList;
+        for (size_t i = 0; i < chunkSize && it != lst.end(); ++i, ++it)
+        {
+            subList.push_back(*it);
+        }
+        result.push_back(subList);
+    }
+
+    return result;
+}
+void CUserMessageMrg::RecordInfoQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, RecordInfoQueryMsg queryMsg, const NameAddrs Routlist)
+{
+    //if (user == DeviceMng::Instance().getSelfId())
+    {
+        std::list<RecordInfoResponseItem> records;
+        if(MediaMng::GetInstance().GB28181QueryRecordInfo(queryMsg, records))
+        {
+            LogOut("BLL", L_DEBUG, "found records size:%Zu", records.size());
+            size_t sumNum = records.size();
+            auto subLists = splitList(records, 10);
+            for (const auto& subList : subLists)
+            {
+                std::string outStr;
+                CreateRecordInfoResponse(user, sn, sumNum, subList, outStr);
+                SendResponsePageMsg(target, outStr, MsgCmdType_RecordInfo, Routlist);
+            }
+        }
     }
 }
 uint32_t CUserMessageMrg::getMsgId()

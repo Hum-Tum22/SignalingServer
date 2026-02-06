@@ -4,19 +4,54 @@ PROJECT(GB28181App)
 
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-add_definitions(-std=c++11 -DQINGDONG_CCTV -DUSE_IPV6)
+add_definitions(-std=c++11 -DASIO_STANDALONE -DQINGDONG_CCTV -DUSE_MYSQL -DUSE_IPV6)
 
 IF(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2  -Wall")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
+ELSE()
+    string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
+    IF(${CMAKE_BUILD_TYPE} STREQUAL "debug")
+        SET(CMAKE_BUILD_TYPE "Debug")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0  -Wall")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0  -Wall")
+    ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "release")
+        SET(CMAKE_BUILD_TYPE "Release")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2  -Wall")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
+    ELSE()
+    ENDIF()
 ENDIF()
 
+if (${CMAKE_BUILD_TYPE} STREQUAL "debug")
+	MESSAGE("###### Project Debug Build ######")
+	if (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
+		ADD_DEFINITIONS(-std=c++11 -Wall -O0 -g -fPIC -DWITH_OPENSSL -rdynamic)
+	elseif(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
+		ADD_DEFINITIONS(-Wall -D_DEBUG -DWITH_OPENSSL)
+	else()
+		message("current platform unkonw")
+	endif()
+else()
+	MESSAGE("###### Project Release Build ######")
+	if (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
+		ADD_DEFINITIONS(-std=c++11 -Wall -fPIC -DWITH_OPENSSL -rdynamic)
+	elseif(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
+		ADD_DEFINITIONS(-Wall -DWITH_OPENSSL)
+	else()
+		message("current platform unkonw")
+	endif()
+endif()
+
+MESSAGE("CMAKE_HOST_SYSTEM_NAME:" ${CMAKE_HOST_SYSTEM_NAME})
 MESSAGE("BUILD TYPE:" ${CMAKE_BUILD_TYPE})
 MESSAGE("CMAKE_CXX_FLAGS:" ${CMAKE_CXX_FLAGS})
 MESSAGE("CMAKE_C_FLAGS:" ${CMAKE_C_FLAGS})
 
 #SET(CMAKE_C_COMPLITER "GCC")
+#add_subdirectory(${PROJECT_SOURCE_DIR}/Plugin/vsk/armNvr)
+add_subdirectory(${PROJECT_SOURCE_DIR}/tools)
 
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/)
@@ -40,28 +75,33 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/media/rtp/lib/flv)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Plugin)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Plugin/vsk/x86Nvr/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Plugin/vsk/x86Nvr)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Plugin/vsk/armNvr)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/RegistrarServer)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/UserAgent)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ws)
 
 
 
-if (USE_MYSQL)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../resip/contrib/MySQLConnectorC/include)
-endif()
+# if (USE_MYSQL)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/mysql/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib/resip/include/repro)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/db/mysql)
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/db/mysql SRC_LIST)
+# endif()
 if (USE_SSL)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/../../resip/contrib/MySQLConnectorC/include)
 endif()
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/device/ SRC_LIST)
-AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/tools/ SRC_LIST)
+# AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/tools/ SRC_LIST)
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/deviceMng/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/mediaIn/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/media/rtp/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/x86Nvr/ SRC_LIST)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/armNvr/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Plugin/vsk/x86Nvr/include SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/RegistrarServer/ SRC_LIST)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/UserAgent/ SRC_LIST)
@@ -71,6 +111,9 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/ws/ SRC_LIST)
 link_directories(${PROJECT_SOURCE_DIR}/lib/resip/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/libcurl/lib)
 link_directories(${PROJECT_SOURCE_DIR}/lib/media)
+link_directories(${PROJECT_SOURCE_DIR}/build/tools)
+link_directories(${PROJECT_SOURCE_DIR}/lib/mysql/lib)
+link_directories(${PROJECT_SOURCE_DIR}/lib/openssl/lib64)
 
 
 SET(LIBS
@@ -89,20 +132,22 @@ SET(LIBS
 	libmpeg.a
 	libmov.a
 	libflv.a
+    libtools.a
+	libsystemd.so
 	-Wl,--end-group
 )
-if (USE_MYSQL)
+# if (USE_MYSQL)
 SET(LIBS ${LIBS}
 	libmysqlclient.a
 )
-endif()
+# endif()
 
-if (USE_SSL)
+# if (USE_SSL)
 SET(LIBS ${LIBS}
 	libcrypto.a
 	libssl.a
 )
-endif()
+# endif()
 
 link_libraries(z)
 #link_libraries(ssl)

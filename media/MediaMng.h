@@ -2,7 +2,9 @@
 #include <string>
 #include <mutex>
 #include <map>
+#include <list>
 #include "MediaStream.h"
+#include "DeviceInfo.h"
 class MediaMng
 {
 public:
@@ -13,13 +15,15 @@ public:
 
 
 	void addStream(MediaStream::Ptr);
-	void removeStream(std::string Id);
-	MediaStream::Ptr findStream(std::string Id);
+	void removeStream(std::string streamId);
+	MediaStream::Ptr findStream(std::string streamId);
 
 	void checkStreamStatus();
 	MediaStream::Ptr createLiveStream(std::string deviceId, int streamId);
 	MediaStream::Ptr createVodStream(std::string deviceId, time_t start, time_t end);
-	bool CloseStreamByStreamId(MediaStream::Ptr& ms);
+	bool CloseStreamByStreamId(MediaStream::Ptr &ms);
+
+	bool GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<RecordInfoResponseItem> &records);
 
 	std::string CreateStreamId(const std::string& deviceId, time_t start, time_t end);
 

@@ -206,6 +206,20 @@ typedef struct
 typedef struct
 {
 	std::string DeviceID;
+	std::string StartTime;
+	std::string EndTime;
+	std::string FilePath;
+	std::string Address;
+	int Secrecy;
+	std::string RecordType;
+	std::string RecorderID;
+	std::string IndistinctQuery;
+	/* data */
+}RecordInfoQueryMsg;
+
+typedef struct
+{
+	std::string DeviceID;
 	std::string status;
 }KeepAliveMsg;
 
@@ -259,6 +273,19 @@ struct ResponseCatalogList
 	//std::vector<BusinessGroupItem> m_GroupVect;
 	//CatalogSystemItem sysinfo;
 };
+typedef struct
+{
+	std::string DeviceID;
+	std::string Name;
+	std::string FilePath;
+	std::string Address;
+	std::string StartTime;
+	std::string EndTime;
+	int Secrecy;
+	std::string RecordType;
+	std::string RecorderID;
+	/* data */
+}RecordInfoResponseItem;
 //分类 名称 说明
 //请求命令
 //Control 表示一个控制的动作

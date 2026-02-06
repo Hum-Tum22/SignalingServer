@@ -19,9 +19,12 @@ public:
 
 public:
 	void run();
+	void runPlayback();
 	void SourceLoop();
+	void SourceLoopPlayBack();
 	virtual int PlayEx();
 	virtual int Play();
+	virtual int Playback();
 	virtual int Pause();
 	virtual int Seek(int64_t pos);
 	virtual int SetSpeed(double speed);

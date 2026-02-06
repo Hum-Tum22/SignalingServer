@@ -55,4 +55,7 @@ void AddVirtualOrganizationToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElemen
 bool CreateNotifyCatalog(const char* user, const uint32_t& sn, const std::string& ev, const CatalogItem& Items, CatalogItemExpandInfo* pExpand, std::string& outstr);	//pExpand摄相机使用
 void AddDeviceItemToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItem& item, const std::string& ev);
 void AddIPCInfoToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItemExpandInfo* expand);
+
+bool CreateRecordInfoResponse(const std::string deviceId, const uint32_t sn, int SumNum, const std::vector<RecordInfoResponseItem> &records, std::string &outstr);
+void insertRecordInfo(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const RecordInfoResponseItem& item);
 #endif

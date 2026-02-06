@@ -67,173 +67,173 @@ static unsigned int FailedSubscriptionRetryTime = 60;
 
 namespace resip
 {
-class ClientAppDialogSetFactory : public AppDialogSetFactory
-{
-public:
-    ClientAppDialogSetFactory(UaMgr& ua) : mUserAgent(ua) {}
-    resip::AppDialogSet* createAppDialogSet(DialogUsageManager& dum, const SipMessage& msg)
+    class ClientAppDialogSetFactory : public AppDialogSetFactory
     {
-        Data command;
+    public:
+        ClientAppDialogSetFactory(UaMgr& ua) : mUserAgent(ua) {}
+        resip::AppDialogSet* createAppDialogSet(DialogUsageManager& dum, const SipMessage& msg)
         {
-            DataStream ds(command);
-            ds << msg;
-        }
-        int method = msg.method();
-        if (method == REGISTER)
-        {
-            LogOut("HTTP", L_DEBUG, "REGISTER");
-        }
-        else if (method == MESSAGE)
-        {
-            LogOut("HTTP", L_DEBUG, "MESSAGE");
-        }
-        if (msg.isRequest())
-        {
-            LogOut("HTTP", L_DEBUG, "isRequest");
-        }
-        else if (msg.isResponse())
-        {
-            LogOut("HTTP", L_DEBUG, "isResponse");
-        }
-        switch (msg.method())
-        {
-        case INVITE:
-            return  new UaClientCall(mUserAgent);
-            break;
-        default:
-            return AppDialogSetFactory::createAppDialogSet(dum, msg);
-            break;
-        }
-}
-private:
-    UaMgr& mUserAgent;
-};
-
-// Used to set the IP Address in outbound SDP to match the IP address choosen by the stack to send the message on
-class SdpMessageDecorator : public MessageDecorator
-{
-public:
-    virtual ~SdpMessageDecorator() {}
-    virtual void decorateMessage(SipMessage& msg,
-        const Tuple& source,
-        const Tuple& destination,
-        const Data& sigcompId)
-    {
-        if (msg.method() == INVITE)
-        {
-            SdpContents* sdp = dynamic_cast<SdpContents*>(msg.getContents());
-            if (sdp)
+            Data command;
             {
-                // Fill in IP and Port from source
-                //sdp->session().connection().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
-                //sdp->session().origin().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
-                sipserver::SipServer* pSvr = GetServer();
-                if (msg.isRequest())
+                DataStream ds(command);
+                ds << msg;
+            }
+            int method = msg.method();
+            if(method == REGISTER)
+            {
+                LogOut("HTTP", L_DEBUG, "REGISTER");
+            }
+            else if(method == MESSAGE)
+            {
+                LogOut("HTTP", L_DEBUG, "MESSAGE");
+            }
+            if(msg.isRequest())
+            {
+                LogOut("HTTP", L_DEBUG, "isRequest");
+            }
+            else if(msg.isResponse())
+            {
+                LogOut("HTTP", L_DEBUG, "isResponse");
+            }
+            switch(msg.method())
+            {
+            case INVITE:
+                return  new UaClientCall(mUserAgent);
+                break;
+            default:
+                return AppDialogSetFactory::createAppDialogSet(dum, msg);
+                break;
+            }
+        }
+    private:
+        UaMgr& mUserAgent;
+    };
+
+    // Used to set the IP Address in outbound SDP to match the IP address choosen by the stack to send the message on
+    class SdpMessageDecorator : public MessageDecorator
+    {
+    public:
+        virtual ~SdpMessageDecorator() {}
+        virtual void decorateMessage(SipMessage& msg,
+            const Tuple& source,
+            const Tuple& destination,
+            const Data& sigcompId)
+        {
+            if(msg.method() == INVITE)
+            {
+                SdpContents* sdp = dynamic_cast<SdpContents*>(msg.getContents());
+                if(sdp)
                 {
-                    if (pSvr)
+                    // Fill in IP and Port from source
+                    //sdp->session().connection().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
+                    //sdp->session().origin().setAddress(Tuple::inet_ntop(source), source.ipVersion() == V6 ? SdpContents::IP6 : SdpContents::IP4);
+                    sipserver::SipServer* pSvr = GetServer();
+                    if(msg.isRequest())
                     {
-                        //pSvr->zlmHost = "192.168.1.230";
-                        //sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
-                        //sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
-                    }
-                }
-                else if (msg.isResponse())
-                {
-                    if (pSvr && !pSvr->mediaIp.empty())
-                    {
-                        sdp->session().connection().setAddress(pSvr->mediaIp.c_str());
-                        sdp->session().origin().setAddress(pSvr->mediaIp.c_str());
-                    }
-                    if (!msg.header(h_Contacts).empty())
-                    {
-                        if (msg.header(h_Contacts).front().uri().port() != msg.header(h_To).uri().port())
+                        if(pSvr)
                         {
-                            msg.header(h_Contacts).front().uri().port() = msg.header(h_To).uri().port();
+                            //pSvr->zlmHost = "192.168.1.230";
+                            //sdp->session().connection().setAddress(pSvr->zlmHost.c_str());
+                            //sdp->session().origin().setAddress(pSvr->zlmHost.c_str());
                         }
                     }
+                    else if(msg.isResponse())
+                    {
+                        if(pSvr && !pSvr->mediaIp.empty())
+                        {
+                            sdp->session().connection().setAddress(pSvr->mediaIp.c_str());
+                            sdp->session().origin().setAddress(pSvr->mediaIp.c_str());
+                        }
+                        if(!msg.header(h_Contacts).empty())
+                        {
+                            if(msg.header(h_Contacts).front().uri().port() != msg.header(h_To).uri().port())
+                            {
+                                msg.header(h_Contacts).front().uri().port() = msg.header(h_To).uri().port();
+                            }
+                        }
+                    }
+                    Data sourceip = Tuple::inet_ntop(source);
+                    Data destip = Tuple::inet_ntop(destination);
                 }
-                Data sourceip = Tuple::inet_ntop(source);
+                if(msg.isResponse())
+                {
+                    if(!msg.header(h_Contacts).empty())
+                    {
+                        msg.header(h_Contacts).front().uri() = msg.header(h_To).uri();
+                    }
+                }
+
+            }
+            else if(msg.method() == REGISTER)
+            {
                 Data destip = Tuple::inet_ntop(destination);
             }
-            if (msg.isResponse())
+            else if(msg.method() == MESSAGE)
             {
-                if (!msg.header(h_Contacts).empty())
-                {
-                    msg.header(h_Contacts).front().uri() = msg.header(h_To).uri();
-                }
+                Data destip = Tuple::inet_ntop(destination);
+                //cout << "MESSAGE destip:" << destip << endl;
+            }
+            else
+            {
+                Data destip = Tuple::inet_ntop(destination);
             }
 
-        }
-        else if (msg.method() == REGISTER)
-        {
-            Data destip = Tuple::inet_ntop(destination);
-        }
-        else if (msg.method() == MESSAGE)
-        {
-            Data destip = Tuple::inet_ntop(destination);
-            //cout << "MESSAGE destip:" << destip << endl;
-        }
-        else
-        {
-            Data destip = Tuple::inet_ntop(destination);
-        }
-        
 
-        if (msg.isRequest())
-        {
+            if(msg.isRequest())
+            {
+            }
+            else if(msg.isResponse())
+            {
+
+            }
+            InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
         }
-        else if (msg.isResponse())
-        {
+        virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
+        virtual MessageDecorator* clone() const { return new SdpMessageDecorator; }
+    };
 
-        }
-        InfoLog(<< "SdpMessageDecorator: src=" << source << ", dest=" << destination << ", msg=" << endl << msg.brief() << ": " << msg);
-    }
-    virtual void rollbackMessage(SipMessage& msg) {}  // Nothing to do
-    virtual MessageDecorator* clone() const { return new SdpMessageDecorator; }
-};
+    class NotifyTimer : public resip::DumCommand
+    {
+    public:
+        NotifyTimer(UaMgr& userAgent, unsigned int timerId, resip::ServerSubscriptionHandle& h) : mUserAgent(userAgent), mTimerId(timerId), m_ssph(h) {}
+        NotifyTimer(const NotifyTimer& rhs) : mUserAgent(rhs.mUserAgent), mTimerId(rhs.mTimerId) {}
+        ~NotifyTimer() {}
 
-class NotifyTimer : public resip::DumCommand
-{
-public:
-    NotifyTimer(UaMgr& userAgent, unsigned int timerId, resip::ServerSubscriptionHandle &h) : mUserAgent(userAgent), mTimerId(timerId), m_ssph(h){}
-    NotifyTimer(const NotifyTimer& rhs) : mUserAgent(rhs.mUserAgent), mTimerId(rhs.mTimerId) {}
-    ~NotifyTimer() {}
+        void executeCommand() { mUserAgent.onNotifyTimeout(mTimerId, m_ssph); }
 
-    void executeCommand() { mUserAgent.onNotifyTimeout(mTimerId, m_ssph); }
+        resip::Message* clone() const { return new NotifyTimer(*this); }
+        EncodeStream& encode(EncodeStream& strm) const { strm << "NotifyTimer: id=" << mTimerId; return strm; }
+        EncodeStream& encodeBrief(EncodeStream& strm) const { return encode(strm); }
 
-    resip::Message* clone() const { return new NotifyTimer(*this); }
-    EncodeStream& encode(EncodeStream& strm) const { strm << "NotifyTimer: id=" << mTimerId; return strm; }
-    EncodeStream& encodeBrief(EncodeStream& strm) const { return encode(strm); }
-
-private:
-    UaMgr& mUserAgent;
-    unsigned int mTimerId;
-    resip::ServerSubscriptionHandle m_ssph;
-};
+    private:
+        UaMgr& mUserAgent;
+        unsigned int mTimerId;
+        resip::ServerSubscriptionHandle m_ssph;
+    };
 };
 
 
-UaMgr::UaMgr(SipStack& stack, int iRtpPortRangeMin, int iRtpPortRangeMax):
-mProfile(new MasterProfile),
-mStack(stack),
-mDum(new DialogUsageManager(mStack)),
-mDumShutdownRequested(false),
-mShuttingdown(false),
-mDumShutdown(false),
-mRegistrationRetryDelayTime(0),
-mCurrentNotifyTimerId(0),
-//mRegHandle(NULL),
-mMessageMgr(NULL),
-mDumThread(NULL),
-mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
+UaMgr::UaMgr(SipStack& stack, int iRtpPortRangeMin, int iRtpPortRangeMax) :
+    mProfile(new MasterProfile),
+    mStack(stack),
+    mDum(new DialogUsageManager(mStack)),
+    mDumShutdownRequested(false),
+    mShuttingdown(false),
+    mDumShutdown(false),
+    mRegistrationRetryDelayTime(0),
+    mCurrentNotifyTimerId(0),
+    //mRegHandle(NULL),
+    mDumThread(NULL),
+    mMessageMgr(NULL),
+    mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 {
     //Log::initialize(Log::Cout, Log::Stack, "gb28181");
 
-    if (mHostFileLookupOnlyDnsMode)
+    if(mHostFileLookupOnlyDnsMode)
     {
         AresDns::enableHostFileLookupOnlyMode(true);
     }
-    
+
     // Disable Statistics Manager
     mStack.statisticsManagerEnabled() = false;
 
@@ -290,7 +290,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mProfile->clearSupportedOptionTags();
     //mMasterProfile->addSupportedOptionTag(Token(Symbols::Replaces));      
     mProfile->addSupportedOptionTag(Token(Symbols::Timer));     // Enable Session Timers
-    if (mOutboundEnabled)
+    if(mOutboundEnabled)
     {
         mProfile->addSupportedOptionTag(Token(Symbols::Outbound));  // RFC 5626 - outbound
         mProfile->addSupportedOptionTag(Token(Symbols::Path));      // RFC 3327 - path
@@ -318,7 +318,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mProfile->addAdvertisedCapability(Headers::Supported);
     mProfile->setMethodsParamEnabled(true);
 
-   // Install Sdp Message Decorator
+    // Install Sdp Message Decorator
     mProfile->setOutboundDecorator(std::make_shared<SdpMessageDecorator>());
 
     // Other Profile Settings
@@ -328,17 +328,17 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 
     MyServerConfig& svrCfgi = GetSipServerConfig();
     Data conTactUriData(svrCfgi.getConfigData("ContactUri", "", true));
-    if (!conTactUriData.empty())
+    if(!conTactUriData.empty())
     {
         mContact = Uri(conTactUriData);
     }
-    if (!mContact.host().empty())
+    if(!mContact.host().empty())
     {
         mProfile->setOverrideHostAndPort(mContact);
         mProfile->setFixedTransportInterface(mContact.host());
         mProfile->setFixedTransportPort(mContact.port());
     }
-    if (!mOutboundProxy.host().empty())
+    if(!mOutboundProxy.host().empty())
     {
         mProfile->setOutboundProxy(Uri(mOutboundProxy));
         //mProfile->setForceOutboundProxyOnAllRequestsEnabled(true);
@@ -348,7 +348,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     // UserProfile Settings
     //Uri mFrom("sip:34020000002000000001@192.168.1.230:5060");
     Uri defaultFrom;
-    if (!mContact.user().empty())
+    if(!mContact.user().empty())
     {
         defaultFrom.user() = mContact.user();
     }
@@ -356,7 +356,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     {
         defaultFrom.user() = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
     }
-    if (!mContact.host().empty())
+    if(!mContact.host().empty())
     {
         defaultFrom.host() = mContact.host();
     }
@@ -364,7 +364,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     {
         defaultFrom.host() = svrCfgi.getConfigData("defaultFromHost", DnsUtil::getLocalIpAddress(), true);
     }
-    if (mContact.port() > 0)
+    if(mContact.port() > 0)
     {
         defaultFrom.port() = mContact.port();
     }
@@ -397,7 +397,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     instanceId += instanceHash.substr(20, 12);
     instanceId += ">";
     mProfile->setInstanceId(instanceId);
-    if (mOutboundEnabled)
+    if(mOutboundEnabled)
     {
         mProfile->setRegId(1);
         mProfile->clientOutboundEnabled() = true;
@@ -419,7 +419,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mDum->addOutOfDialogHandler(OPTIONS, this);
     ////mDum->addOutOfDialogHandler(REFER, this);
     mDum->setRedirectHandler(this);
-    
+
     mDum->setClientRegistrationHandler(this);
     //mDum->addClientSubscriptionHandler("basicClientTest", this);   // fabricated test event package
     //mDum->addServerSubscriptionHandler("basicClientTest", this);
@@ -430,14 +430,14 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     eventlist.push_back(Data("Alarm"));
     eventlist.push_back(Data("MobilePosition"));
     eventlist.push_back(Data("presence"));
-    for (auto iter: eventlist)
+    for(auto iter : eventlist)
     {
         mDum->addClientSubscriptionHandler(iter, this);
         mDum->addServerSubscriptionHandler(iter, this);
     }
 
     // Set AppDialogSetFactory
-   std::unique_ptr<AppDialogSetFactory> dsf(new ClientAppDialogSetFactory(*this));
+    std::unique_ptr<AppDialogSetFactory> dsf(new ClientAppDialogSetFactory(*this));
     mDum->setAppDialogSetFactory(std::move(dsf));
 
     mDum->setMasterProfile(mProfile);
@@ -445,7 +445,7 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
     mDum->registerForConnectionTermination(this);
 
     mMessageMgr = new CUserMessageMrg(*mDum);
-    if (mMessageMgr)
+    if(mMessageMgr)
     {
         mMessageMgr->RegistPageMsgCallBack(RegistPageMsgCallBack, this);
         mMessageMgr->RegistArrivedMsgCallBack(RegistArrivedMsgCallBack, this);
@@ -464,9 +464,9 @@ mRtpPortMngr(iRtpPortRangeMin, iRtpPortRangeMax)
 UaMgr::~UaMgr()
 {
     statuThreadFlag = false;
-    if (StateThread.joinable())
+    if(StateThread.joinable())
         StateThread.join();
-    if (mMessageMgr)
+    if(mMessageMgr)
     {
         delete mMessageMgr; mMessageMgr = NULL;
     }
@@ -478,10 +478,10 @@ void UaMgr::UacTimerTask()
 }
 void UaMgr::DoRegist(const Uri& target, const Data& passwd, const Data& defaultSesName)
 {
-    if (mDum == NULL)
+    if(mDum == NULL)
         return;
     shared_ptr<UaSessionInfo> ua = GetUaInfoByUser(target.user());
-    if (!ua)
+    if(!ua)
     {
         shared_ptr<UaSessionInfo> uaSession = std::make_shared<UaSessionInfo>(target, mProfile->getDefaultFrom().uri(), passwd);
         uaSession->ssName = defaultSesName;
@@ -492,7 +492,7 @@ void UaMgr::DoRegist(const Uri& target, const Data& passwd, const Data& defaultS
 }
 void UaMgr::Regist(shared_ptr<UaSessionInfo> ua)
 {
-    if (mDum == NULL)
+    if(mDum == NULL)
         return;
     shared_ptr<SipMessage> regMessage = mDum->makeRegistration(NameAddr(ua->toUri), mDevCfg.Expires);
     {
@@ -531,7 +531,7 @@ void UaMgr::Regist(shared_ptr<UaSessionInfo> ua)
 }
 void UaMgr::reRegist(shared_ptr<UaSessionInfo> ua)
 {
-    if (ua->i_State == 0)
+    if(ua->i_State == 0)
     {
         //Regist(ua);
     }
@@ -546,7 +546,7 @@ void UaMgr::reRegist(shared_ptr<UaSessionInfo> ua)
 void UaMgr::DoCancelRegist(const Data& targetuser)
 {
     shared_ptr<UaSessionInfo> uaInfo = GetUaInfoByUser(targetuser);
-    if (uaInfo && uaInfo->mh.isValid())
+    if(uaInfo && uaInfo->mh.isValid())
     {
         uaInfo->mh->endCommand();
         uaInfo->i_State = 0;
@@ -557,9 +557,9 @@ shared_ptr<UaSessionInfo> UaMgr::GetUaInfoByCallID(const Data& callID)
 {
     CUSTORLOCKGUARD locker(mapMtx);
     map<Data, shared_ptr<UaSessionInfo>>::iterator iter = UserAgentInfoMap.begin();
-    for (; iter != UserAgentInfoMap.end(); iter++)
+    for(; iter != UserAgentInfoMap.end(); iter++)
     {
-        if (iter->second->regcallid == callID)
+        if(iter->second->regcallid == callID)
         {
             return iter->second;
         }
@@ -578,29 +578,29 @@ shared_ptr<UaSessionInfo> UaMgr::GetUaInfoByUser(const Data& user)
 shared_ptr<UaSessionInfo> UaMgr::GetNextUaInfoByUser(const Data& user)
 {
     CUSTORLOCKGUARD locker(mapMtx);
-    if (user.empty() && UserAgentInfoMap.size() > 0)
+    if(user.empty() && UserAgentInfoMap.size() > 0)
     {
         return UserAgentInfoMap.begin()->second;
     }
     else
     {
         map<Data, shared_ptr<UaSessionInfo>>::iterator iter = UserAgentInfoMap.find(user);
-        if (iter != UserAgentInfoMap.end() && ++iter != UserAgentInfoMap.end())
+        if(iter != UserAgentInfoMap.end() && ++iter != UserAgentInfoMap.end())
             return iter->second;
     }
     return NULL;
 }
 void __stdcall UaMgr::RegistStateCallBack(const Data& callID, ClientRegistrationHandle h, int reason, void* pUserData)
 {
-    if (pUserData)
+    if(pUserData)
     {
         UaMgr* pThis = (UaMgr*)pUserData;
         shared_ptr<UaSessionInfo> ua = pThis->GetUaInfoByCallID(callID);
-        if (ua)
+        if(ua)
         {
             ua->i_State = reason;
             ua->mh = h;
-            if (reason == 200)
+            if(reason == 200)
                 ua->heartTimeOutCount = 0;
         }
         else
@@ -613,22 +613,22 @@ void UaMgr::CheckRegistState()
 {
     Data user;
     shared_ptr<UaSessionInfo> uaState;
-    while ((uaState = GetNextUaInfoByUser(user)) != NULL)
+    while((uaState = GetNextUaInfoByUser(user)) != NULL)
     {
         user = uaState->toUri.user();
-        if (uaState->heartTimeOutCount >= mDevCfg.HeartBeatCount)
+        if(uaState->heartTimeOutCount >= mDevCfg.HeartBeatCount)
         {
-            if (uaState->mh.isValid())
+            if(uaState->mh.isValid())
             {
                 uaState->i_State = 0;
-                if (uaState->heartTimeOutCount % mDevCfg.HeartBeatCount == 0)
+                if(uaState->heartTimeOutCount % mDevCfg.HeartBeatCount == 0)
                 {
                     InfoLog(<< "regist refresh : " << uaState->toUri.user());
                     uaState->mh->requestRefresh();
                 }
             }
         }
-        else if (uaState->ReissueRegistrationLater != 0 && uaState->ReissueRegistrationLater < time(0))
+        else if(uaState->ReissueRegistrationLater != 0 && uaState->ReissueRegistrationLater < time(0))
         {
             uaState->ReissueRegistrationLater = 0;
             Regist(uaState);
@@ -649,7 +649,7 @@ bool UaMgr::RequestLiveStream(std::string devId, std::string devIp, int devPort,
     mCallTarget.port() = devPort;
 
     MediaStream::Ptr s = MediaMng::GetInstance().createLiveStream(channelId, streamId);
-    if (s)
+    if(s)
     {
         return true;
     }
@@ -662,33 +662,18 @@ bool UaMgr::RequestVodStream(std::string devId, std::string devIp, int devPort, 
     mCallTarget.host() = devIp.c_str();
     mCallTarget.port() = devPort;
 
-    //UaClientCall* newCall = new UaClientCall(*this);
-    //newCall->devId = devId;
-    //newCall->devIp = devIp;
-    //newCall->devPort = devPort;
-    //newCall->channelId = channelId;
-    ////newCall->myRtpPort = sdpPort;
-    //newCall->rtpType = rtpType;
-    //newCall->mySdpIp = DnsUtil::getLocalIpAddress().c_str();
-    //newCall->ssrc = CreateSSRC("Playback", channelId).c_str();
-    //newCall->sessionName = "Playback";
-    //newCall->startTime = stime;
-    //newCall->stopTime = etime;
-    //CDateTime startTime(stime);
-    //CDateTime stopTime(etime);
-    //newCall->streamId = streamId;
-    //{
-    //    CUSTORLOCKGUARD locker(mapStreamMtx);
-    //    m_StreamInfoMap[streamId] = NULL;// new JsonDevice(devIp.c_str(), devPort, "admin", "12345", 0);
-    //}
-    //newCall->initiateCall(mCallTarget, mProfile);
-    return true;
+    MediaStream::Ptr s = MediaMng::GetInstance().createVodStream(channelId, stime, etime);
+    if(s)
+    {
+        return true;
+    }
+    return false;
 }
 BaseDevice* UaMgr::GetStreamInfo(std::string channelId)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(channelId);
-    if (iter != m_StreamInfoMap.end())
+    if(iter != m_StreamInfoMap.end())
     {
         return iter->second;
     }
@@ -698,9 +683,9 @@ UaMgr::streamStatus UaMgr::getStreamStatus(std::string channelId)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(channelId);
-    if (iter != m_StreamInfoMap.end())
+    if(iter != m_StreamInfoMap.end())
     {
-        switch (1/*iter->second->streamStatus*/)
+        switch(1/*iter->second->streamStatus*/)
         {
         case UaClientCall::CALL_MEDIA_READY:
         case UaClientCall::CALL_MY_MEDIA_OK:
@@ -726,7 +711,7 @@ void UaMgr::setCallStatus(std::string streamId, int status)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(streamId);
-    if (iter != m_StreamInfoMap.end())
+    if(iter != m_StreamInfoMap.end())
     {
         //iter->second->streamStatus = status;
     }
@@ -735,7 +720,7 @@ int UaMgr::getCallStatus(std::string streamId)
 {
     CUSTORLOCKGUARD locker(mapStreamMtx);
     auto iter = m_StreamInfoMap.find(streamId);
-    if (iter != m_StreamInfoMap.end())
+    if(iter != m_StreamInfoMap.end())
     {
         //return iter->second->streamStatus;
     }
@@ -754,7 +739,7 @@ int UaMgr::getCallStatus(std::string streamId)
 bool UaMgr::CloseStreamStreamId(std::string streamId)
 {
     MediaStream::Ptr ms = MediaMng::GetInstance().findStream(streamId);
-    if (ms)
+    if(ms)
     {
         return MediaMng::GetInstance().CloseStreamByStreamId(ms);
     }
@@ -813,17 +798,17 @@ void UaMgr::FreeRptPort(unsigned int uiRtpPort)
 {
     mRtpPortMngr.freeRTPPort(uiRtpPort);
 }
-void __stdcall UaMgr::RegistPageMsgCallBack(const Data &UasName, const MsgCmdType& MsgCmdType, int reason, void* pUserData)
+void __stdcall UaMgr::RegistPageMsgCallBack(const Data& UasName, const MsgCmdType& MsgCmdType, int reason, void* pUserData)
 {
-    if (pUserData)
+    if(pUserData)
     {
-        if (MsgCmdType == MsgCmdType_Keepalive)
+        if(MsgCmdType == MsgCmdType_Keepalive)
         {
             UaMgr* pThis = (UaMgr*)pUserData;
             shared_ptr<UaSessionInfo> ua = pThis->GetUaInfoByUser(UasName);
-            if (ua)
+            if(ua)
             {
-                if (reason == 200)
+                if(reason == 200)
                 {
                     ua->heartTimeOutCount = 0;
                 }
@@ -844,7 +829,7 @@ void __stdcall UaMgr::RegistArrivedMsgCallBack(ServerPagerMessageHandle h, const
 void
 UaMgr::startup()
 {
-    if (mRegisterDuration)
+    if(mRegisterDuration)
     {
         InfoLog(<< "register for " << mAor);
         //mDum->send(mDum->makeRegistration(NameAddr(mAor)));
@@ -855,14 +840,14 @@ UaMgr::startup()
         // after the registration is successful.
 
         // Check if we should try to form a test subscription
-        if (!mSubscribeTarget.host().empty())
+        if(!mSubscribeTarget.host().empty())
         {
-         auto sub = mDum->makeSubscription(NameAddr(mSubscribeTarget), mProfile, "basicClientTest");
-         mDum->send(std::move(sub));
-      }
+            auto sub = mDum->makeSubscription(NameAddr(mSubscribeTarget), mProfile, "basicClientTest");
+            mDum->send(std::move(sub));
+        }
 
         // Check if we should try to form a test call
-        if (!mCallTarget.host().empty())
+        if(!mCallTarget.host().empty())
         {
             //UaClientCall* newCall = new UaClientCall(*this);
             //newCall->initiateCall(mCallTarget, mProfile);
@@ -879,7 +864,7 @@ UaMgr::shutdown()
 }
 bool UaMgr::run()
 {
-    if (mDumThread)
+    if(mDumThread)
     {
         mDumThread->run();
         return true;
@@ -889,9 +874,9 @@ bool UaMgr::run()
 bool
 UaMgr::process(int timeoutMs)
 {
-    if (!mDumShutdown)
+    if(!mDumShutdown)
     {
-        if (mDumShutdownRequested)
+        if(mDumShutdownRequested)
         {
             // unregister
             if(mRegHandle.isValid())
@@ -902,7 +887,7 @@ UaMgr::process(int timeoutMs)
             // End all calls - copy list in case delete/unregister of call is immediate
             std::set<UaClientCall*> tempCallList = mCallList;
             std::set<UaClientCall*>::iterator it = tempCallList.begin();
-            for (; it != tempCallList.end(); it++)
+            for(; it != tempCallList.end(); it++)
             {
                 (*it)->terminateCall();
             }
@@ -920,7 +905,7 @@ void
 UaMgr::post(Message* msg)
 {
     ConnectionTerminated* terminated = dynamic_cast<ConnectionTerminated*>(msg);
-    if (terminated)
+    if(terminated)
     {
         InfoLog(<< "UaMgr received connection terminated message for: " << terminated->getFlow());
         delete msg;
@@ -932,9 +917,9 @@ UaMgr::post(Message* msg)
 void
 UaMgr::onNotifyTimeout(unsigned int timerId, resip::ServerSubscriptionHandle& h)
 {
-    if (timerId == mCurrentNotifyTimerId)
+    if(timerId == mCurrentNotifyTimerId)
     {
-        if (mCurrentNotifyTimerId < 3)
+        if(mCurrentNotifyTimerId < 3)
         {
             sendNotify(h, true);
         }
@@ -960,14 +945,14 @@ UaMgr::sendNotify(resip::ServerSubscriptionHandle& h, bool all)
 void
 UaMgr::onCallTimeout(UaClientCall* call)
 {
-    if (isValidCall(call))
+    if(isValidCall(call))
     {
         call->timerExpired();
     }
     else  // call no longer exists
     {
         // If there are no more calls, then start a new one
-        if (mCallList.empty() && !mCallTarget.host().empty())
+        if(mCallList.empty() && !mCallTarget.host().empty())
         {
             // re-start a new call
             //UaClientCall* newCall = new UaClientCall(*this);
@@ -986,7 +971,7 @@ void
 UaMgr::unregisterCall(UaClientCall* call)
 {
     std::set<UaClientCall*>::iterator it = mCallList.find(call);
-    if (it != mCallList.end())
+    if(it != mCallList.end())
     {
         mCallList.erase(it);
     }
@@ -996,7 +981,7 @@ bool
 UaMgr::isValidCall(UaClientCall* call)
 {
     std::set<UaClientCall*>::iterator it = mCallList.find(call);
-    if (it != mCallList.end())
+    if(it != mCallList.end())
     {
         return true;
     }
@@ -1016,23 +1001,23 @@ void
 UaMgr::onSuccess(ClientRegistrationHandle h, const SipMessage& msg)
 {
     InfoLog(<< "onSuccess(ClientRegistrationHandle): msg=" << msg.brief());
-    if (mShuttingdown)
+    if(mShuttingdown)
     {
         h->end();
         return;
     }
 
-    if (mRegHandle.getId() == 0)  // Note: reg handle id will only be 0 on first successful registration
+    if(mRegHandle.getId() == 0)  // Note: reg handle id will only be 0 on first successful registration
     {
         // Check if we should try to form a test subscription
-        if (!mSubscribeTarget.host().empty())
+        if(!mSubscribeTarget.host().empty())
         {
-         auto sub = mDum->makeSubscription(NameAddr(mSubscribeTarget), mProfile, "basicClientTest");
-         mDum->send(std::move(sub));
-      }
+            auto sub = mDum->makeSubscription(NameAddr(mSubscribeTarget), mProfile, "basicClientTest");
+            mDum->send(std::move(sub));
+        }
 
         // Check if we should try to form a test call
-        if (!mCallTarget.host().empty())
+        if(!mCallTarget.host().empty())
         {
             //UaClientCall* newCall = new UaClientCall(*this);
             //newCall->initiateCall(mCallTarget, mProfile);
@@ -1044,7 +1029,7 @@ UaMgr::onSuccess(ClientRegistrationHandle h, const SipMessage& msg)
     RegistStateCallBack(msg.header(h_CallID).value(), h, reason, this);
     //mRegHandle = h;
     mRegistrationRetryDelayTime = 0;  // reset
-    
+
     //if (msg.exists(h_Vias))
     //{
     //    const Via& via = msg.header(h_Vias).front();
@@ -1076,7 +1061,7 @@ UaMgr::onFailure(ClientRegistrationHandle h, const SipMessage& msg)
 {
     InfoLog(<< "onFailure(ClientRegistrationHandle): msg=" << msg.brief());
     //mRegHandle = h;
-    if (mShuttingdown)
+    if(mShuttingdown)
     {
         h->end();
     }
@@ -1091,7 +1076,7 @@ UaMgr::onRemoved(ClientRegistrationHandle h, const SipMessage& msg)
     //mRegHandle = h;
     int reason = msg.header(h_StatusLine).statusCode();
     shared_ptr<UaSessionInfo> ua = GetUaInfoByCallID(msg.header(h_CallID).value());
-    if (ua)
+    if(ua)
     {
         ua->i_State = 0;
     }
@@ -1102,12 +1087,12 @@ int
 UaMgr::onRequestRetry(ClientRegistrationHandle h, int retryMinimum, const SipMessage& msg)
 {
     //mRegHandle = h;
-    if (mShuttingdown)
+    if(mShuttingdown)
     {
         return -1;
     }
 
-    if (mRegistrationRetryDelayTime == 0)
+    if(mRegistrationRetryDelayTime == 0)
     {
         mRegistrationRetryDelayTime = BaseRegistrationRetryTimeAllFlowsFailed; // We only have one flow in this test app
     }
@@ -1329,7 +1314,7 @@ void
 UaMgr::onTrying(AppDialogSetHandle h, const SipMessage& msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h.get());
-    if (call)
+    if(call)
     {
         call->onTrying(h, msg);
     }
@@ -1343,7 +1328,7 @@ void
 UaMgr::onNonDialogCreatingProvisional(AppDialogSetHandle h, const SipMessage& msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h.get());
-    if (call)
+    if(call)
     {
         call->onNonDialogCreatingProvisional(h, msg);
     }
@@ -1360,7 +1345,7 @@ void
 UaMgr::onUpdatePending(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onUpdatePending(h, msg, outOfOrder);
         return;
@@ -1373,7 +1358,7 @@ void
 UaMgr::onUpdateActive(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onUpdateActive(h, msg, outOfOrder);
         return;
@@ -1386,7 +1371,7 @@ void
 UaMgr::onUpdateExtension(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onUpdateExtension(h, msg, outOfOrder);
         return;
@@ -1399,7 +1384,7 @@ void
 UaMgr::onNotifyNotReceived(ClientSubscriptionHandle h)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onNotifyNotReceived(h);
         return;
@@ -1412,12 +1397,12 @@ void
 UaMgr::onTerminated(ClientSubscriptionHandle h, const SipMessage* msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onTerminated(h, msg);
         return;
     }
-    if (msg)
+    if(msg)
     {
         InfoLog(<< "onTerminated(ClientSubscriptionHandle): msg=" << msg->brief());
     }
@@ -1431,7 +1416,7 @@ void
 UaMgr::onNewSubscription(ClientSubscriptionHandle h, const SipMessage& msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         call->onNewSubscription(h, msg);
         return;
@@ -1444,7 +1429,7 @@ int
 UaMgr::onRequestRetry(ClientSubscriptionHandle h, int retrySeconds, const SipMessage& msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h->getAppDialogSet().get());
-    if (call)
+    if(call)
     {
         return call->onRequestRetry(h, retrySeconds, msg);
     }
@@ -1460,22 +1445,22 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
 {
     InfoLog(<< "onNewSubscription(ServerSubscriptionHandle): " << msg.brief());
     Contents* content = msg.getContents();
-    if (content == NULL)
+    if(content == NULL)
     {
         h->end();
         return;
     }
     uint32_t expires = msg.header(h_Expires).value();
     GB28181XmlMsg XmlMsg;
-    if (AnalyzeReceivedSipMsg(content->getBodyData().c_str(), XmlMsg))
+    if(AnalyzeReceivedSipMsg(content->getBodyData().c_str(), XmlMsg))
     {
         string outStr;
-        if (XmlMsg.cmdname == XML_CMD_NAME_QUERY)
+        if(XmlMsg.cmdname == XML_CMD_NAME_QUERY)
         {
-            if (XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)
+            if(XmlMsg.cmdtype == XML_CMDTYPE_CATALOG)
             {
                 Data eventType = msg.header(h_Event).value();
-                if (eventType == "Catalog" || eventType == "catalagitem")
+                if(eventType == "Catalog" || eventType == "catalagitem")
                 {
                     if(expires == 0)
                     {
@@ -1489,7 +1474,7 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
                     DebugLog(<< " add catalog subscription start user:" << user);
                     bool ret = CSubscriptionMrg::Instance().AddCatalogSubscription(user, h, eventType, XmlMsg);
                     DebugLog(<< " add catalog subscription end user:" << user);
-                    if (ret)
+                    if(ret)
                     {
                         std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId, h));
                         mStack.post(std::move(timer), 3, mDum);
@@ -1499,7 +1484,7 @@ UaMgr::onNewSubscription(ServerSubscriptionHandle h, const SipMessage& msg)
                     return;
                 }
             }
-            else if (XmlMsg.cmdtype == XML_CMDTYPE_ALARM)
+            else if(XmlMsg.cmdtype == XML_CMDTYPE_ALARM)
             {
                 h->setSubscriptionState(Active);
                 h->send(h->accept());
@@ -1526,14 +1511,14 @@ UaMgr::onNewSubscriptionFromRefer(ServerSubscriptionHandle ss, const SipMessage&
     // Received an out-of-dialog refer request with implicit subscription
     try
     {
-        if (msg.exists(h_ReferTo))
+        if(msg.exists(h_ReferTo))
         {
             // Check if TargetDialog header is present
-            if (msg.exists(h_TargetDialog))
+            if(msg.exists(h_TargetDialog))
             {
                 pair<InviteSessionHandle, int> presult;
                 presult = mDum->findInviteSession(msg.header(h_TargetDialog));
-                if (!(presult.first == InviteSessionHandle::NotValid()))
+                if(!(presult.first == InviteSessionHandle::NotValid()))
                 {
                     UaClientCall* callToRefer = (UaClientCall*)presult.first->getAppDialogSet().get();
 
@@ -1552,11 +1537,11 @@ UaMgr::onNewSubscriptionFromRefer(ServerSubscriptionHandle ss, const SipMessage&
             ss->send(ss->reject(400));
         }
     }
-    catch (BaseException& e)
+    catch(BaseException& e)
     {
         WarningLog(<< "onNewSubscriptionFromRefer(ServerSubscriptionHandle): exception " << e);
     }
-    catch (...)
+    catch(...)
     {
         WarningLog(<< "onNewSubscriptionFromRefer(ServerSubscriptionHandle): unknown exception");
     }
@@ -1658,18 +1643,18 @@ UaMgr::onReceivedRequest(ServerOutOfDialogReqHandle ood, const SipMessage& msg)
 {
     InfoLog(<< "onReceivedRequest(ServerOutOfDialogReqHandle): " << msg.brief());
 
-    switch (msg.method())
+    switch(msg.method())
     {
     case OPTIONS:
     {
-         auto optionsAnswer = ood->answerOptions();
-         ood->send(std::move(optionsAnswer));
-         break;
-      }
-   default:
-      ood->send(ood->reject(501 /* Not Implemented*/));
-      break;
-   }
+        auto optionsAnswer = ood->answerOptions();
+        ood->send(std::move(optionsAnswer));
+        break;
+    }
+    default:
+        ood->send(ood->reject(501 /* Not Implemented*/));
+        break;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1679,7 +1664,7 @@ void
 UaMgr::onRedirectReceived(AppDialogSetHandle h, const SipMessage& msg)
 {
     UaClientCall* call = dynamic_cast<UaClientCall*>(h.get());
-    if (call)
+    if(call)
     {
         call->onRedirectReceived(h, msg);
     }
@@ -1700,7 +1685,7 @@ UaMgr::onTryingNextTarget(AppDialogSetHandle, const SipMessage& msg)
 static unsigned int g_YSRCSeq = 0;
 unsigned int CreateSSRCseq()
 {
-    if (g_YSRCSeq >= 0x270f) //
+    if(g_YSRCSeq >= 0x270f) //
     {
         g_YSRCSeq = 0;
     }
@@ -1709,52 +1694,53 @@ unsigned int CreateSSRCseq()
 }
 std::string UaMgr::CreateSSRC(std::string name, std::string streamId)
 {
-	std::string ssrc;
-	if (name == std::string("Play"))
-	{
-		ssrc += std::to_string(0);
-	}
-	else
-	{
-		ssrc += std::to_string(1);
-	}
-	if (streamId.size() == 20)
-	{
-		ssrc += streamId.substr(3, 5);
-	}
-	else
-	{
-		ssrc += std::string("00000");
-	}
-
-    //ssrc += std::str_format("%04d", CreateSSRCseq());
-	return ssrc;
+    std::string ssrc;
+    if(name == std::string("Play"))
+    {
+        ssrc += std::to_string(0);
+    }
+    else
+    {
+        ssrc += std::to_string(1);
+    }
+    if(streamId.size() == 20)
+    {
+        ssrc += streamId.substr(3, 5);
+    }
+    else
+    {
+        ssrc += std::string("00000");
+    }
+    char buffer[5] = {0};
+    snprintf(buffer, sizeof(buffer), "%04d", CreateSSRCseq());
+    ssrc += std::string(buffer);
+    return ssrc;
 }
-void getJsonNvrChannelStatus(BaseDevice::Ptr &dev, std::map<std::string, int> &statusMap)
+void getJsonNvrChannelStatus(BaseDevice::Ptr& dev, std::map<std::string, int>& statusMap)
 {
-    if (dev->devType == BaseDevice::JSON_NVR)
+    if(dev->devType == BaseDevice::JSON_NVR)
     {
         auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
-        if (Nvr)
+        if(Nvr)
         {
-            int err = 0, chl = -1;
+            int err = 0;
             uint32_t msgSize = 4 * 1024 * 1024;
             char* Buffer = new char[msgSize];
             Nvr->Dev_ListIPC(Buffer, msgSize, err);
-            if (err == 0)
+            if(err == 0)
             {
                 rapidjson_sip::Document document;
                 document.Parse(Buffer);
-                if (!document.HasParseError())
+                if(!document.HasParseError())
                 {
-                    if (document.HasMember("ipc_list") && document["ipc_list"].IsArray())
+                    if(document.HasMember("ipc_list") && document["ipc_list"].IsArray())
                     {
                         rapidjson_sip::Value& body = document["ipc_list"];
-                        for (uint32_t i = 0; i < body.Size(); i++)
+                        for(uint32_t i = 0; i < body.Size(); i++)
                         {
                             std::string devNum = json_check_string(body[i], "device_number");
                             std::size_t sPos = devNum.find(" ");
-                            if (sPos != std::string::npos)
+                            if(sPos != std::string::npos)
                             {
                                 devNum = devNum.substr(0, sPos);
                             }
@@ -1781,7 +1767,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     httphost = svrCfgi.getConfigData("CCTVHOST", httphost);
     int port = svrCfgi.getConfigInt("CCTVPORT", 8080);
     sipserver::SipServer* pSvr = GetServer();
-    if (pSvr)
+    if(pSvr)
     {
         pSvr->mediaIp = httphost.c_str();
     }
@@ -1791,7 +1777,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     httpUrl += Data("/device/gbInfo");
     Data host = DnsUtil::getLocalIpAddress();
     Data Uid = host.md5().uppercase();
-    LogOut("HTTP", L_DEBUG, "get local ip:%s, url:%s, uid:%s", host.c_str(), httpUrl.c_str(), Uid.c_str());
+    // LogOut("HTTP", L_DEBUG, "get local ip:%s, url:%s, uid:%s", host.c_str(), httpUrl.c_str(), Uid.c_str());
     ////"http://192.168.1.223:20010/device/gbInfo?serverUid="
 
     rapidjson_sip::StringBuffer buffer;
@@ -1804,32 +1790,32 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
 
     std::string dirstr = PostRequest(httpUrl.c_str(), std::string(buffer.GetString(), buffer.GetLength()));
 
-    dirstr = Utf8ToGbk(dirstr);
-    LogOut("HTTP", L_DEBUG, "gbinfo response:%s", dirstr.c_str());
-    if (!dirstr.empty())
+    // dirstr = Utf8ToGbk(dirstr);
+    // LogOut("HTTP", L_DEBUG, "gbinfo response:%s", dirstr.c_str());
+    if(!dirstr.empty())
     {
         rapidjson_sip::Document document;
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
-        if (document.HasParseError() || !document.IsObject())
+        if(document.HasParseError() || !document.IsObject())
         {
             LogOut("HTTP", L_DEBUG, "json error:%s,    res:%d", dirstr.c_str(), res);
         }
         else
         {
             int errCode = json_check_int32(document, "code");
-            if (errCode != 200)
+            if(errCode != 200)
             {
                 LogOut("HTTP", L_DEBUG, "json code :%d", errCode);
             }
             resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
-            if (document.HasMember("data") && document["data"].IsObject())
+            if(document.HasMember("data") && document["data"].IsObject())
             {
                 rapidjson_sip::Value& body = document["data"];
                 int count = json_check_int32(body, "Count");
-                if (body.HasMember("Data") && body["Data"].IsArray())
+                if(body.HasMember("Data") && body["Data"].IsArray())
                 {
                     rapidjson_sip::Value& msbody = body["Data"];
-                    for (size_t i = 0; i < msbody.Size(); i++)
+                    for(size_t i = 0; i < msbody.Size(); i++)
                     {
                         VirtualOrganization voTop;
                         voTop.Name = json_check_string(msbody[i], "Title");
@@ -1841,9 +1827,9 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                         voTop.DeviceID = json_check_string(msbody[i], "GBId");
                         voTop.ParentID = DeviceMng::Instance().getSelfId();
                         VirtualOrganization* vo = DeviceMng::Instance().findVirtualOrganization(voTop.DeviceID);
-                        if (vo)
+                        if(vo)
                         {
-                            if (vo->Name != voTop.Name || vo->ParentID != voTop.ParentID)
+                            if(vo->Name != voTop.Name || vo->ParentID != voTop.ParentID)
                             {
                                 vo->Name = voTop.Name;
                                 vo->ParentID = voTop.ParentID;
@@ -1869,12 +1855,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                         // }
                         int nvrStatus = json_check_int32(msbody[i], "status");
                         BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(nvrId);
-                        if (dev)
+                        if(dev)
                         {
-                            if (dev->devType == BaseDevice::JSON_NVR)
+                            if(dev->devType == BaseDevice::JSON_NVR)
                             {
                                 auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
-                                if (Nvr)
+                                if(Nvr)
                                 {
                                     Nvr->setStatus(nvrStatus ? 0 : 1);
                                     Nvr->setIp(nvrIp);
@@ -1892,7 +1878,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             LogOut("HTTP", L_DEBUG, "add nvr id:%s", nvrId.c_str());
                             dev = jsonNvr;
                         }
-                        if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
+                        if(msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
                         {
                             rapidjson_sip::Value& upbody = msbody[i]["Upward"];
                             VirtualOrganization subVo;
@@ -1905,9 +1891,9 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             subVo.DeviceID = json_check_string(upbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                            if (sVo)
+                            if(sVo)
                             {
-                                if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
@@ -1920,10 +1906,10 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
 
-                            if (upbody.HasMember("Data") && upbody["Data"].IsArray())
+                            if(upbody.HasMember("Data") && upbody["Data"].IsArray())
                             {
                                 rapidjson_sip::Value& ipcbody = upbody["Data"];
-                                for (size_t j = 0; j < ipcbody.Size(); j++)
+                                for(size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
                                     // sPos = childName.find(" ");
@@ -1936,14 +1922,14 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     ipcStatus = ipcStatus ? 0 : 1;
 
                                     BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                    if (child)
+                                    if(child)
                                     {
-                                        if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                        if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
                                             JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                            if (jsonChild)
+                                            if(jsonChild)
                                             {
-                                                if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                 {
                                                     jsonChild->setParentDev(dev);
                                                     jsonChild->setName(childName);
@@ -1951,7 +1937,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                     jsonChild->setParentId(subVo.DeviceID);
                                                     LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
-                                                else if (jsonChild->getStatus() != ipcStatus)
+                                                else if(jsonChild->getStatus() != ipcStatus)
                                                 {
                                                     jsonChild->setStatus(ipcStatus);
                                                     LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
@@ -1972,7 +1958,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 }
                             }
                         }
-                        if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
+                        if(msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
                         {
                             rapidjson_sip::Value& downbody = msbody[i]["Downward"];
                             VirtualOrganization subVo;
@@ -1985,9 +1971,9 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             subVo.DeviceID = json_check_string(downbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                            if (sVo)
+                            if(sVo)
                             {
-                                if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
@@ -1999,10 +1985,10 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
-                            if (downbody.HasMember("Data") && downbody["Data"].IsArray())
+                            if(downbody.HasMember("Data") && downbody["Data"].IsArray())
                             {
                                 rapidjson_sip::Value& ipcbody = downbody["Data"];
-                                for (size_t j = 0; j < ipcbody.Size(); j++)
+                                for(size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
                                     // sPos = childName.find(" ");
@@ -2015,14 +2001,14 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     ipcStatus = ipcStatus ? 0 : 1;
 
                                     BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                    if (child)
+                                    if(child)
                                     {
-                                        if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                        if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
                                             JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                            if (jsonChild)
+                                            if(jsonChild)
                                             {
-                                                if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                 {
                                                     jsonChild->setParentDev(dev);
                                                     jsonChild->setName(childName);
@@ -2030,7 +2016,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                     jsonChild->setParentId(subVo.DeviceID);
                                                     LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                 }
-                                                else if (jsonChild->getStatus() != ipcStatus)
+                                                else if(jsonChild->getStatus() != ipcStatus)
                                                 {
                                                     jsonChild->setStatus(ipcStatus);
                                                     LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
@@ -2051,7 +2037,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 }
                             }
                         }
-                        if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
+                        if(msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
                         {
                             rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
                             VirtualOrganization subVo;
@@ -2064,9 +2050,9 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                             subVo.DeviceID = json_check_string(kkbody, "GBId");
                             subVo.ParentID = voTop.DeviceID;
                             VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                            if (sVo)
+                            if(sVo)
                             {
-                                if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                 {
                                     sVo->Name = subVo.Name;
                                     sVo->ParentID = subVo.ParentID;
@@ -2078,10 +2064,10 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                 LogOut("HTTP", L_DEBUG, "add gbid name:%s %s", subVo.DeviceID.c_str(), subVo.Name.c_str());
                                 DeviceMng::Instance().addVirtualOrganization(subVo);
                             }
-                            if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
+                            if(kkbody.HasMember("Data") && kkbody["Data"].IsArray())
                             {
                                 rapidjson_sip::Value& ipcbody = kkbody["Data"];
-                                for (size_t j = 0; j < ipcbody.Size(); j++)
+                                for(size_t j = 0; j < ipcbody.Size(); j++)
                                 {
                                     std::string childName = json_check_string(ipcbody[j], "ipc");
                                     // sPos = childName.find(" ");
@@ -2094,16 +2080,16 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     ipcStatus = ipcStatus ? 0 : 1;
 
                                     BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                    if (child)
+                                    if(child)
                                     {
-                                        if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                        if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
                                             JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                            if (jsonChild)
+                                            if(jsonChild)
                                             {
-                                                if (jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
+                                                if(jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
                                                 {
-                                                    if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                    if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                     {
                                                         jsonChild->setParentDev(dev);
                                                         jsonChild->setName(childName);
@@ -2111,7 +2097,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                                         jsonChild->setParentId(subVo.DeviceID);
                                                         LogOut("HTTP", L_DEBUG, "update gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
                                                     }
-                                                    else if (jsonChild->getStatus() != ipcStatus)
+                                                    else if(jsonChild->getStatus() != ipcStatus)
                                                     {
                                                         jsonChild->setStatus(ipcStatus);
                                                         LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
@@ -2142,15 +2128,15 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                         "third.gb28181.server.ip" : "10.62.23.10",
                         "third.gb28181.server.port" : "9700"
                 }*/
-                if (body.HasMember("CCTV") && body["CCTV"].IsObject())
+                if(body.HasMember("CCTV") && body["CCTV"].IsObject())
                 {
                     rapidjson_sip::Value& cctvBody = body["CCTV"];
                     upID = json_check_string(cctvBody, "third.gb28181.server.id");
-                    upHost = json_check_string(cctvBody, "third.gb28181.server.ip");
+                    upHost =json_check_string(cctvBody, "third.gb28181.server.ip");
                     std::string port = json_check_string(cctvBody, "third.gb28181.server.port");
                     upPort = std::stoi(port);
                     std::string pswd = json_check_string(cctvBody, "third.gb28181.server.passwd");
-                    if (!pswd.empty())
+                    if(!pswd.empty())
                     {
                         upPassword = pswd;
                     }
@@ -2180,7 +2166,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     httphost = svrCfgi.getConfigData("CCTVHOST", httphost);
     int port = svrCfgi.getConfigInt("CCTVPORT", 8080);
     sipserver::SipServer* pSvr = GetServer();
-    if (pSvr)
+    if(pSvr)
     {
         pSvr->mediaIp = httphost.c_str();
     }
@@ -2203,48 +2189,48 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::stringstream ss;
     ss << std::put_time(std::localtime(&t), "%Y年%m月%d日%H时%M分%S秒");
-    std::string str_time = ss.str(); 
+    std::string str_time = ss.str();
 
     std::string dirstr = PostRequest(httpUrl.c_str(), std::string(buffer.GetString(), buffer.GetLength()));
-    dirstr = Utf8ToGbk(dirstr);
-    LogOut("HTTP", L_DEBUG, "notify gbinfo response:%s", dirstr.c_str());
+    // dirstr = Utf8ToGbk(dirstr);
+    // LogOut("HTTP", L_DEBUG, "notify gbinfo response:%s", dirstr.c_str());
     int count = 0;
-    if (!dirstr.empty())
+    if(!dirstr.empty())
     {
         rapidjson_sip::Document document;
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
-        if (document.HasParseError() || !document.IsObject())
+        if(document.HasParseError() || !document.IsObject())
         {
             LogOut("HTTP", L_DEBUG, "json error:%s,    res:%d, %s", dirstr.c_str(), res, str_time.c_str());
         }
         else
         {
             int errCode = json_check_int32(document, "code");
-            if (errCode == 200)
+            if(errCode == 200)
             {
                 resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
-                if (document.HasMember("data") && document["data"].IsObject())
+                if(document.HasMember("data") && document["data"].IsObject())
                 {
                     rapidjson_sip::Value& body = document["data"];
                     count = json_check_int32(body, "Count");
-                    if (body.HasMember("Data") && body["Data"].IsArray())
+                    if(body.HasMember("Data") && body["Data"].IsArray())
                     {
                         rapidjson_sip::Value& msbody = body["Data"];
-                        for (size_t i = 0; i < msbody.Size(); i++)
+                        for(size_t i = 0; i < msbody.Size(); i++)
                         {
                             VirtualOrganization voTop;
                             voTop.Name = json_check_string(msbody[i], "Title");
                             std::size_t sPos = voTop.Name.find(" ");
-                            if (sPos != std::string::npos)
+                            if(sPos != std::string::npos)
                             {
                                 voTop.Name = voTop.Name.substr(0, sPos);
                             }
                             voTop.DeviceID = json_check_string(msbody[i], "GBId");
                             voTop.ParentID = DeviceMng::Instance().getSelfId();
                             VirtualOrganization* vo = DeviceMng::Instance().findVirtualOrganization(voTop.DeviceID);
-                            if (vo)
+                            if(vo)
                             {
-                                if (vo->Name != voTop.Name || vo->ParentID != voTop.ParentID)
+                                if(vo->Name != voTop.Name || vo->ParentID != voTop.ParentID)
                                 {
                                     vo->Name = voTop.Name;
                                     vo->ParentID = voTop.ParentID;
@@ -2272,18 +2258,18 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                             std::string nvrIp = json_check_string(msbody[i], "ManageIp");
                             std::string nvrId = json_check_string(msbody[i], "nvrDid");
                             sPos = nvrId.find(" ");
-                            if (sPos != std::string::npos)
+                            if(sPos != std::string::npos)
                             {
                                 nvrId = nvrId.substr(0, sPos);
                             }
                             int nvrStatus = json_check_int32(msbody[i], "status");
                             BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(nvrId);
-                            if (dev)
+                            if(dev)
                             {
-                                if (dev->devType == BaseDevice::JSON_NVR)
+                                if(dev->devType == BaseDevice::JSON_NVR)
                                 {
                                     auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
-                                    if (Nvr)
+                                    if(Nvr)
                                     {
                                         Nvr->setStatus(nvrStatus ? 0 : 1);
                                         Nvr->setIp(nvrIp);
@@ -2303,22 +2289,22 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                             }
                             std::map<std::string, int> statusMap;
                             getJsonNvrChannelStatus(dev, statusMap);
-                            if (msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
+                            if(msbody[i].HasMember("Upward") && msbody[i]["Upward"].IsObject())
                             {
                                 rapidjson_sip::Value& upbody = msbody[i]["Upward"];
                                 VirtualOrganization subVo;
                                 subVo.Name = json_check_string(upbody, "Title");
                                 sPos = subVo.Name.find(" ");
-                                if (sPos != std::string::npos)
+                                if(sPos != std::string::npos)
                                 {
                                     subVo.Name = subVo.Name.substr(0, sPos);
                                 }
                                 subVo.DeviceID = json_check_string(upbody, "GBId");
                                 subVo.ParentID = voTop.DeviceID;
                                 VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                                if (sVo)
+                                if(sVo)
                                 {
-                                    if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                    if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
@@ -2338,14 +2324,14 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                 }
 
-                                if (upbody.HasMember("Data") && upbody["Data"].IsArray())
+                                if(upbody.HasMember("Data") && upbody["Data"].IsArray())
                                 {
                                     rapidjson_sip::Value& ipcbody = upbody["Data"];
-                                    for (size_t j = 0; j < ipcbody.Size(); j++)
+                                    for(size_t j = 0; j < ipcbody.Size(); j++)
                                     {
                                         std::string childName = json_check_string(ipcbody[j], "ipc");
                                         sPos = childName.find(" ");
-                                        if (sPos != std::string::npos)
+                                        if(sPos != std::string::npos)
                                         {
                                             childName = childName.substr(0, sPos);
                                         }
@@ -2353,20 +2339,20 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
                                         ipcStatus = ipcStatus ? 0 : 1;
                                         auto it = statusMap.find(childName);
-                                        if (it != statusMap.end())
+                                        if(it != statusMap.end())
                                         {
                                             ipcStatus = it->second;
                                         }
 
                                         BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                        if (child)
+                                        if(child)
                                         {
-                                            if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                            if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
                                                 JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                                if (jsonChild)
+                                                if(jsonChild)
                                                 {
-                                                    if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                    if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                     {
                                                         jsonChild->setParentDev(dev);
                                                         jsonChild->setName(childName);
@@ -2378,7 +2364,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
                                                         CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                                     }
-                                                    else if (isAll || jsonChild->getStatus() != ipcStatus)
+                                                    else if(isAll || jsonChild->getStatus() != ipcStatus)
                                                     {
 
                                                         jsonChild->setStatus(ipcStatus);
@@ -2408,22 +2394,22 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     }
                                 }
                             }
-                            if (msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
+                            if(msbody[i].HasMember("Downward") && msbody[i]["Downward"].IsObject())
                             {
                                 rapidjson_sip::Value& downbody = msbody[i]["Downward"];
                                 VirtualOrganization subVo;
                                 subVo.Name = json_check_string(downbody, "Title");
                                 sPos = subVo.Name.find(" ");
-                                if (sPos != std::string::npos)
+                                if(sPos != std::string::npos)
                                 {
                                     subVo.Name = subVo.Name.substr(0, sPos);
                                 }
                                 subVo.DeviceID = json_check_string(downbody, "GBId");
                                 subVo.ParentID = voTop.DeviceID;
                                 VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                                if (sVo)
+                                if(sVo)
                                 {
-                                    if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                    if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
@@ -2443,14 +2429,14 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), subVo, outStr);
                                     CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                 }
-                                if (downbody.HasMember("Data") && downbody["Data"].IsArray())
+                                if(downbody.HasMember("Data") && downbody["Data"].IsArray())
                                 {
                                     rapidjson_sip::Value& ipcbody = downbody["Data"];
-                                    for (size_t j = 0; j < ipcbody.Size(); j++)
+                                    for(size_t j = 0; j < ipcbody.Size(); j++)
                                     {
                                         std::string childName = json_check_string(ipcbody[j], "ipc");
                                         sPos = childName.find(" ");
-                                        if (sPos != std::string::npos)
+                                        if(sPos != std::string::npos)
                                         {
                                             childName = childName.substr(0, sPos);
                                         }
@@ -2458,19 +2444,19 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         int ipcStatus = json_check_int32(ipcbody[j], "status");
                                         ipcStatus = ipcStatus ? 0 : 1;
                                         auto it = statusMap.find(childName);
-                                        if (it != statusMap.end())
+                                        if(it != statusMap.end())
                                         {
                                             ipcStatus = it->second;
                                         }
                                         BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                        if (child)
+                                        if(child)
                                         {
-                                            if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                            if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
                                                 JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                                if (jsonChild)
+                                                if(jsonChild)
                                                 {
-                                                    if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                    if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                     {
                                                         jsonChild->setParentDev(dev);
                                                         jsonChild->setName(childName);
@@ -2482,7 +2468,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                         CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
                                                         CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                                     }
-                                                    else if (isAll || jsonChild->getStatus() != ipcStatus)
+                                                    else if(isAll || jsonChild->getStatus() != ipcStatus)
                                                     {
                                                         jsonChild->setStatus(ipcStatus);
                                                         LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
@@ -2511,22 +2497,22 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     }
                                 }
                             }
-                            if (msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
+                            if(msbody[i].HasMember("KKIpc") && msbody[i]["KKIpc"].IsObject())
                             {
                                 rapidjson_sip::Value& kkbody = msbody[i]["KKIpc"];
                                 VirtualOrganization subVo;
                                 subVo.Name = json_check_string(kkbody, "Title");
                                 sPos = subVo.Name.find(" ");
-                                if (sPos != std::string::npos)
+                                if(sPos != std::string::npos)
                                 {
                                     subVo.Name = subVo.Name.substr(0, sPos);
                                 }
                                 subVo.DeviceID = json_check_string(kkbody, "GBId");
                                 subVo.ParentID = voTop.DeviceID;
                                 VirtualOrganization* sVo = DeviceMng::Instance().findVirtualOrganization(subVo.DeviceID);
-                                if (sVo)
+                                if(sVo)
                                 {
-                                    if (sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
+                                    if(sVo->Name != subVo.Name || sVo->ParentID != subVo.ParentID)
                                     {
                                         sVo->Name = subVo.Name;
                                         sVo->ParentID = subVo.ParentID;
@@ -2546,14 +2532,14 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                     CreateVirtualOrganizationNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_ADD), subVo, outStr);
                                     CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                 }
-                                if (kkbody.HasMember("Data") && kkbody["Data"].IsArray())
+                                if(kkbody.HasMember("Data") && kkbody["Data"].IsArray())
                                 {
                                     rapidjson_sip::Value& ipcbody = kkbody["Data"];
-                                    for (size_t j = 0; j < ipcbody.Size(); j++)
+                                    for(size_t j = 0; j < ipcbody.Size(); j++)
                                     {
                                         std::string childName = json_check_string(ipcbody[j], "ipc");
                                         sPos = childName.find(" ");
-                                        if (sPos != std::string::npos)
+                                        if(sPos != std::string::npos)
                                         {
                                             childName = childName.substr(0, sPos);
                                         }
@@ -2561,22 +2547,22 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         int ipcStatus = json_check_int32(ipcbody[j], "status");
                                         ipcStatus = ipcStatus ? 0 : 1;
                                         auto it = statusMap.find(childName);
-                                        if (it != statusMap.end())
+                                        if(it != statusMap.end())
                                         {
                                             ipcStatus = it->second;
                                         }
 
                                         BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
-                                        if (child)
+                                        if(child)
                                         {
-                                            if (child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                                            if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
                                                 JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
-                                                if (jsonChild)
+                                                if(jsonChild)
                                                 {
-                                                    if (jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
+                                                    if(jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
                                                     {
-                                                        if (jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
+                                                        if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
                                                         {
                                                             jsonChild->setParentDev(dev);
                                                             jsonChild->setName(childName);
@@ -2588,7 +2574,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                                             CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
                                                             CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
                                                         }
-                                                        else if (isAll || jsonChild->getStatus() != ipcStatus)
+                                                        else if(isAll || jsonChild->getStatus() != ipcStatus)
                                                         {
                                                             jsonChild->setStatus(ipcStatus);
                                                             LogOut("HTTP", L_DEBUG, "status change gbid name:%s %s status:%d", childId.c_str(), childName.c_str(), ipcStatus);
@@ -2635,7 +2621,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     }
 
     LogOut("HTTP", L_DEBUG, "NotifySendTime %s", str_time.c_str());
-    if (ssph.isValid())
+    if(ssph.isValid())
     {
         std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId, ssph));
         mStack.post(std::move(timer), NotifySendTime, mDum);
@@ -2645,18 +2631,18 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
 void UaMgr::UaInfoUpdate()
 {
 #ifdef QINGDONG_CCTV
-    std::string upID, upHost, upPassword("admin123");
+    std::string upID, upHost, upPassword("12345");
     int upPort = 0;
     int num = getQDCCTVNodeInfo(upID, upHost, upPort, upPassword, false);
-    if (upID.empty())
+    if(upID.empty())
     {
         LogOut("HTTP", L_DEBUG, "get cctv upId null");
         Data user;
         shared_ptr<UaSessionInfo> uaState;
-        while ((uaState = GetNextUaInfoByUser(user)) != NULL)
+        while((uaState = GetNextUaInfoByUser(user)) != NULL)
         {
             user = uaState->toUri.user();
-            if (uaState->ssName == "CCTV" && uaState->cctvNum++ > 3)
+            if(uaState->ssName == "CCTV" && uaState->cctvNum++ > 3)
             {
                 //DoCancelRegist(user);
                 uaState->cctvNum = 0;
@@ -2670,9 +2656,9 @@ void UaMgr::UaInfoUpdate()
         LogOut("HTTP", L_DEBUG, "get cctv upId == :%s", upID.c_str());
         Data user(upID);
         shared_ptr<UaSessionInfo> uaState = GetUaInfoByUser(user);
-        if (uaState)
+        if(uaState)
         {
-            if (Data(upHost) != uaState->toUri.host() || upPort != uaState->toUri.port() || uaState->passwd != Data(upPassword))
+            if(Data(upHost) != uaState->toUri.host() || upPort != uaState->toUri.port() || uaState->passwd != Data(upPassword))
             {
                 LogOut("HTTP", L_DEBUG, "unregist user :%s host:%s port:%d", user.c_str(), upHost.c_str(), upPort);
                 DoCancelRegist(user);
@@ -2704,13 +2690,13 @@ void UaMgr::UaInfoUpdate()
 void UaMgr::checkStateThread()
 {
     uint32_t count = 0;
-    while (statuThreadFlag)
+    while(statuThreadFlag)
     {
-        if (count % 60 == 0)
+        if(count % 60 == 0)
         {
             ThreadPool::Instance().submit(std::bind(&UaMgr::UaInfoUpdate, this));
         }
-        if (count++ % 5 == 0)
+        if(count++ % 5 == 0)
         {
             CheckRegistState();
         }

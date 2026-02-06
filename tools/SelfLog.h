@@ -1,7 +1,7 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
-
+#include <string.h>
 #include <string>
 #include <map>
 #include <vector>
@@ -50,67 +50,70 @@
 
 typedef enum
 {
-    E_LOG_LV_FATAL      = 0,
-    E_LOG_LV_ERROR      = 1,
-    E_LOG_LV_WARN      	= 2,
-    E_LOG_LV_NOTICE		= 3,
-    E_LOG_LV_INFO       = 4,
-    E_LOG_LV_DEBUG      = 5,
+    E_LOG_LV_FATAL = 0,
+    E_LOG_LV_ERROR = 1,
+    E_LOG_LV_WARN = 2,
+    E_LOG_LV_NOTICE = 3,
+    E_LOG_LV_INFO = 4,
+    E_LOG_LV_DEBUG = 5,
 } APP_LOG_LEVEL;
 
 typedef enum
 {
-    E_LOG_TARGET_NONE   = 0,
+    E_LOG_TARGET_NONE = 0,
     E_LOG_TARGET_STDERR = 1,
-    E_LOG_TARGET_FILE   = 2,
-    E_LOG_TARGET_BOTH   = 3,
-    E_LOG_TARGET_MAX    = 4
+    E_LOG_TARGET_FILE = 2,
+    E_LOG_TARGET_BOTH = 3,
+    E_LOG_TARGET_MAX = 4
 } APP_LOG_TARGET;
 
 class CLog
 {
-	int nFileNum;
-	long nFileSize;
-	APP_LOG_TARGET nTarget;
-	FILE* mLogFilePtr;
-	std::string mPath;
+    int nFileNum;
+    long nFileSize;
+    APP_LOG_TARGET nTarget;
+    FILE* mLogFilePtr;
+    std::string mPath;
     std::string mName;
-	std::map<std::string,int> mLogMap;
-	std::vector<std::string> mArrLogFileName;
-	int nNoneColorlen;
-	int nNewLinelen;
-	long mCurFileSize;
-	IniFile mLogConfig;
+    std::map<std::string, int> mLogMap;
+    std::mutex vctMtx;
+    std::vector<std::string> mArrLogFileName;
+    int nNoneColorlen;
+    int nNewLinelen;
+    long mCurFileSize;
+    IniFile mLogConfig;
     std::thread mLogThread;
     bool mRunStatus;
     SafeQueue<std::tuple<std::string, int>> mLogs;
     bool changeFile;
 public:
-	CLog();
-	~CLog();
+    CLog();
+    ~CLog();
     static CLog& Instance();
-	void Output(const std::string name, int level, std::string &padmsg, const char* msg, ...);
-	void StopLog();
-	void InitLog();
-public:
-	void SetLogLevel(std::string name, int level);
-    void SetLogTarget(int eTarget);
-	void SetLoggerPath(const char* path, const char* name);
-	void SetLogFileSize(int size);//单位M
-	void SetLogFileNum(int num);
+    void Output(const std::string name, int level, std::string& padmsg, const char* msg, ...);
+    void StopLog();
+    void InitLog();
 
-	int GetLogLevel(const std::string name);
-	int GetLogTarget();
-	int GetLogFileSize();
-	int GetLogFileNum();
-	void GetLogPathName(std::string &path, std::string &name);
+    static CLog *m_Instance;
+public:
+    void SetLogLevel(std::string name, int level);
+    void SetLogTarget(int eTarget);
+    void SetLoggerPath(const char* path, const char* name);
+    void SetLogFileSize(int size);//单位M
+    void SetLogFileNum(int num);
+
+    int GetLogLevel(const std::string name);
+    int GetLogTarget();
+    int GetLogFileSize();
+    int GetLogFileNum();
+    void GetLogPathName(std::string& path, std::string& name);
 
 private:
-	bool LogOpen();
-	void LogClose();
+    bool LogOpen();
+    void LogClose();
     bool LogWrite(const char* szLog, int nSize, int nLevel);
-	bool SwitchFile();
-	bool LogInit();
+    bool SwitchFile();
+    bool LogInit();
     void writeLogThread();
 };
 

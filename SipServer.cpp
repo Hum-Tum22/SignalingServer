@@ -101,6 +101,7 @@
 #include "deviceMng/deviceMng.h"
 #include "deviceMng/JsonDevice.h"
 #include "SelfLog.h"
+#include "CodeConversion.h"
 #ifdef USE_MYSQL
 #include "MySqlDb.hxx"
 #endif
@@ -178,6 +179,7 @@ public:
             oDataStream str(strMsg);
             str << msg;
             str.flush();
+            strMsg = GbkToUtf8(strMsg.c_str()).c_str();
         }
         LogOut("SIPMSG", L_DEBUG, "OUTBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
@@ -213,6 +215,7 @@ public:
             oDataStream str(strMsg);
             str << msg;
             str.flush();
+            strMsg = GbkToUtf8(strMsg.c_str()).c_str();
         }
         LogOut("SIPMSG", L_DEBUG, "INBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
@@ -345,9 +348,9 @@ SipServer::run(int argc, char** argv)
     LogFileNumSet(fileNum);
     int fileSize = mProxyConfig->getConfigInt("LogFileSize", 10);
     LogFileSizeSet(fileSize);
-    int output = mProxyConfig->getConfigInt("LogOutPutType", 2);
+    int output = mProxyConfig->getConfigInt("LogOutPutType", 3);
     LogTargetSet(output);
-    resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", "./", true);
+    resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", ".", true);
     resip::Data logFileName = mProxyConfig->getConfigData("LogName", "File", true);
     LogPathNameSet(logPath.c_str(), logFileName.c_str());
     int level = mProxyConfig->getConfigInt("HTTP", L_ERROR);
@@ -399,9 +402,6 @@ SipServer::run(int argc, char** argv)
     //// Create DialogUsageManager that handles ServerRegistration,
     //// and potentially certificate subscription server
     //createDialogUsageManager();
-
-    char* test = new char[20];
-    delete test;
     if (!createRegistServer())
     {
         return false;
@@ -471,34 +471,34 @@ SipServer::run(int argc, char** argv)
         mRegSyncServerAMQP->getThread()->run();
     }*/
 
-//    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("12345");
-//    int upPort = 5060;
-//    Data passwd("12345");
-//#ifdef QINGDONG_CCTV
-//    mUserAgent->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
-//#endif
-//
-//    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
-//#ifdef QINGDONG_CCTV
-//    target.user() = upID.c_str();
-//    target.host() = upHost.c_str();
-//    target.port() = upPort;
-//    passwd = upPassword.c_str();
-//#else
-//    Data upId("34020000002000000002");
-//    target.user() = mProxyConfig->getConfigData("UPID", upId);
-//    Data uphost("192.168.1.223");
-//    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
-//    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
-//    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
-//#endif
-//    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
-//    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
-//    Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
-//    if(!(target.user().empty() || target.user().size() < 20))
-//    {
-//        mUserAgent->DoRegist(target, fromUri, passwd);
-//    }
+    //    std::string upID("37028806002001207783"), upHost("192.168.1.230"), upPassword("12345");
+    //    int upPort = 5060;
+    //    Data passwd("12345");
+    //#ifdef QINGDONG_CCTV
+    //    mUserAgent->getQDCCTVNodeInfo(upID, upHost, upPort, upPassword);
+    //#endif
+    //
+    //    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
+    //#ifdef QINGDONG_CCTV
+    //    target.user() = upID.c_str();
+    //    target.host() = upHost.c_str();
+    //    target.port() = upPort;
+    //    passwd = upPassword.c_str();
+    //#else
+    //    Data upId("34020000002000000002");
+    //    target.user() = mProxyConfig->getConfigData("UPID", upId);
+    //    Data uphost("192.168.1.223");
+    //    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
+    //    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
+    //    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
+    //#endif
+    //    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
+    //    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
+    //    Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
+    //    if(!(target.user().empty() || target.user().size() < 20))
+    //    {
+    //        mUserAgent->DoRegist(target, fromUri, passwd);
+    //    }
     mRunning = true;
 
     return true;
@@ -552,7 +552,7 @@ SipServer::shutdown()
     {
         mDumThread->join();
     }
-   
+
     if (mAsyncProcessorDispatcher)
     {
         // Both proxy and dum threads are down at this point, we can 
@@ -1162,7 +1162,7 @@ SipServer::createDialogUsageManager()
             mProxyConfig->getConfigBool("PresenceUsesRegistrationState", true),
             mProxyConfig->getConfigBool("PresenceNotifyClosedStateForNonPublishedUsers", true));*/
 
-        // Install rules so that the cert server receives SUBSCRIBEs and PUBLISHs
+            // Install rules so that the cert server receives SUBSCRIBEs and PUBLISHs
         MessageFilterRule::MethodList methodList;
         MessageFilterRule::EventList eventList;
         methodList.push_back(SUBSCRIBE);
@@ -1328,7 +1328,7 @@ SipServer::populateRegistrations()
             rec.mSipPath = NameAddrs(it->second.mPath);
             rec.mRegExpires = NeverExpire;
             rec.mSyncContact = true;  // Tag this permanent contact as being a synchronized contact so that it will
-                                      // not be synchronized to a paired server (this is actually configuration information)
+            // not be synchronized to a paired server (this is actually configuration information)
             mRegistrationPersistenceManager->updateContact(aor, rec);
         }
         catch (resip::ParseBuffer::Exception& e)

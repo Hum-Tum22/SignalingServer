@@ -2,6 +2,7 @@
 #include <vector>
 #include <queue>
 #include <stdio.h>
+#include "SelfLog.h"
 
 template <typename T>
 class unLockQueue
@@ -30,7 +31,7 @@ public:
 	~unLockQueue()
 	{
 		mVector.clear();
-		printf("*** unLockQueue delete\n");
+		LogOut("BLL", L_DEBUG, "*** unLockQueue delete");
 	}
 	int GetNext(T& tt)
 	{

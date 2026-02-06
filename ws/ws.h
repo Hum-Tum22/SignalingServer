@@ -1,8 +1,8 @@
 #pragma once
-#define ASIO_STANDALONE
+// #define ASIO_STANDALONE
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
-#include <websocketpp/extensions/permessage_deflate/enabled.hpp>
+// #include <websocketpp/extensions/permessage_deflate/enabled.hpp>
 #include <iostream>
 #include <mutex>
 
@@ -32,7 +32,8 @@ struct ws_config : public websocketpp::config::asio
 
     static bool const enable_multithreading = true;
 
-    struct transport_config : public core::transport_config {
+    struct transport_config : public core::transport_config
+    {
         typedef core::concurrency_type concurrency_type;
         typedef core::elog_type elog_type;
         typedef core::alog_type alog_type;
@@ -53,8 +54,8 @@ struct ws_config : public websocketpp::config::asio
     /// permessage_compress extension
     struct permessage_deflate_config {};
 
-    typedef websocketpp::extensions::permessage_deflate::enabled
-        <permessage_deflate_config> permessage_deflate_type;
+    // typedef websocketpp::extensions::permessage_deflate::enabled
+    //     <permessage_deflate_config> permessage_deflate_type;
 };
 
 typedef websocketpp::server<ws_config> server;
@@ -84,15 +85,16 @@ typedef struct _WsStreamInfo
     int mRdBufLen;
     bool isFirst;
     uint64_t nFrameTime;
+    int ctrlType;
 
     ~_WsStreamInfo()
     {
-        if (pBuffer)
+        if(pBuffer)
         {
             delete[] pBuffer;
             pBuffer = NULL;
         }
-        if (pRdBuffer)
+        if(pRdBuffer)
         {
             delete[] pRdBuffer;
             pRdBuffer = NULL;

@@ -33,6 +33,7 @@
 #include "stringbuffer.h"
 #include "document.h"
 #include "../SipServer.h"
+#include "SelfLog.h"
 
 #include "../media/rtp-udp-transport.h"
 #include "../media/MediaMng.h"
@@ -48,47 +49,48 @@ static unsigned int CallTimeCounterToByeOn = 6;  // BYE the call after the call 
 
 namespace resip
 {
-class CallTimer : public resip::DumCommand
-{
-   public:
-      CallTimer(UaMgr& userAgent, UaClientCall* call) : mUserAgent(userAgent), mCall(call) {}
-      CallTimer(const CallTimer& rhs) : mUserAgent(rhs.mUserAgent), mCall(rhs.mCall) {}
-      ~CallTimer() {}
+    class CallTimer : public resip::DumCommand
+    {
+    public:
+        CallTimer(UaMgr& userAgent, UaClientCall* call) : mUserAgent(userAgent), mCall(call) {}
+        CallTimer(const CallTimer& rhs) : mUserAgent(rhs.mUserAgent), mCall(rhs.mCall) {}
+        ~CallTimer() {}
 
-      void executeCommand() { mUserAgent.onCallTimeout(mCall); }
+        void executeCommand() { mUserAgent.onCallTimeout(mCall); }
 
-      resip::Message* clone() const { return new CallTimer(*this); }
-      EncodeStream& encode(EncodeStream& strm) const { strm << "CallTimer:"; return strm; }
-      EncodeStream& encodeBrief(EncodeStream& strm) const { return encode(strm); }
+        resip::Message* clone() const { return new CallTimer(*this); }
+        EncodeStream& encode(EncodeStream& strm) const { strm << "CallTimer:"; return strm; }
+        EncodeStream& encodeBrief(EncodeStream& strm) const { return encode(strm); }
 
-   private:
-       UaMgr& mUserAgent;
-      UaClientCall* mCall;
-};
+    private:
+        UaMgr& mUserAgent;
+        UaClientCall* mCall;
+    };
 }
 
 UaClientCall::UaClientCall(UaMgr& userAgent)
-    : AppDialogSet(userAgent.getDialogUsageManager()),
+    : AppDialogSet(userAgent.getDialogUsageManager()), rtp_ctx(NULL), psSource(NULL),
     mUserAgent(userAgent),
     mTimerExpiredCounter(0),
-    mPlacedCall(false),
-    mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty), rtp_ctx(NULL), psSource(NULL), mSessionState(-1),
+    mPlacedCall(false), mSessionState(-1),
+    mUACConnectedDialogId(Data::Empty, Data::Empty, Data::Empty),
     remotePort(0), startTime(0), stopTime(0), rtpType(0), devPort(0), myRtpPort(0)
 {
     InfoLog(<< " --- UaClientCall new " << myRtpPort);
-   mUserAgent.registerCall(this);
-   psSource = NULL;
+    mUserAgent.registerCall(this);
+    psSource = NULL;
+    fScale = 1.0;
 }
 
 UaClientCall::~UaClientCall()
 {
     InfoLog(<< " --- UaClientCall free " << myRtpPort);
     mUserAgent.unregisterCall(this);
-    if (isUACConnected())
+    if(isUACConnected())
     {
-        if (myRtpPort > 0)
+        if(myRtpPort > 0)
         {
-            if (mInviteSessionHandle.isValid())
+            if(mInviteSessionHandle.isValid())
             {
                 mInviteSessionHandle->end();
             }
@@ -101,17 +103,17 @@ UaClientCall::~UaClientCall()
     }
     else
     {
-        if (myRtpPort > 0)
+        if(myRtpPort > 0)
         {
-            if (psSource)
+            if(psSource)
             {
                 //psSource中使用了MediaStream::Ptr   先释放MediaStream::Ptr
                 delete psSource; psSource = NULL;
             }
-            printf("ua call close stream:%s\n", streamId.c_str());
+            LogOut("BLL", L_DEBUG, "ua call close stream:%s", streamId.c_str());
             mUserAgent.CloseStreamStreamId(streamId);
             mUserAgent.FreeRptPort(myRtpPort);
-            InfoLog(<< " rtp port free " << myRtpPort);
+            LogOut("BLL", L_DEBUG, " rtp port free %d", myRtpPort);
             /*sipserver::SipServer* pSvr = GetServer();
             ostringstream ss;
             ss << "http://" << (pSvr ? pSvr->zlmHost : "127.0.0.1") << ":" << (pSvr ? pSvr->zlmHttpPort : 8080) << "/index/api/stopSendRtp?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&vhost=__defaultVhost__&app=rtp&stream="
@@ -122,7 +124,7 @@ UaClientCall::~UaClientCall()
     }
 }
 
-void 
+void
 UaClientCall::initiateCall(const Uri& target, shared_ptr<UserProfile> profile)
 {
     Data myId = profile->getDefaultFrom().uri().user();
@@ -138,27 +140,26 @@ UaClientCall::initiateCall(const Uri& target, shared_ptr<UserProfile> profile)
     mPlacedCall = true;
 }
 
-void 
+void
 UaClientCall::terminateCall()
 {
-   AppDialogSet::end(); 
+    AppDialogSet::end();
 }
 
-void 
+void
 UaClientCall::timerExpired()
 {
     mTimerExpiredCounter++;
-    bool isTerminate = true;
     if(mTimerExpiredCounter < CallTimeCounterToByeOn)
     {
         // First few times, send a message to the other party
-        if (mSessionState < 0 || mSessionState > 0)
+        if(mSessionState < 0 || mSessionState > 0)
         {
-            if (mSessionState < 0)
+            if(mSessionState < 0)
             {
                 mSessionState = 0;
             }
-            if (mInviteSessionHandle.isValid())
+            if(mInviteSessionHandle.isValid())
             {
                 //PlainContents contents("Keepalive", Mime("Application", "MANSCDP+xml"));
                 PlainContents contents("Keepalive");
@@ -171,16 +172,15 @@ UaClientCall::timerExpired()
             mTimerExpiredCounter = 0;
         }
     }
-    else 
+    else
     {
         // Then hangup
         terminateCall();
-        isTerminate = false;
     }
     auto mdaStream = MediaMng::GetInstance().findStream(streamId);
-    if (mdaStream)
+    if(mdaStream)
     {
-        if (time(0) - mdaStream->LastFrameTime() > 5)
+        if(time(0) - mdaStream->LastFrameTime() > 5)
         {
             terminateCall();
         }
@@ -194,33 +194,33 @@ UaClientCall::timerExpired()
 shared_ptr<UserProfile>
 UaClientCall::selectUASUserProfile(const SipMessage& msg)
 {
-   return mUserAgent.getIncomingUserProfile(msg);
+    return mUserAgent.getIncomingUserProfile(msg);
 }
 
-bool 
+bool
 UaClientCall::isUACConnected()
 {
-   return !mUACConnectedDialogId.getCallId().empty();
+    return !mUACConnectedDialogId.getCallId().empty();
 }
 
-bool 
+bool
 UaClientCall::isStaleFork(const DialogId& dialogId)
 {
-   return (!mUACConnectedDialogId.getCallId().empty() && dialogId != mUACConnectedDialogId);
+    return (!mUACConnectedDialogId.getCallId().empty() && dialogId != mUACConnectedDialogId);
 }
 
-void 
+void
 UaClientCall::makeOffer(SdpContents& offer)
 {
     static Data txt("v=0\r\n"
-                    "o=- 0 0 IN IP4 0.0.0.0\r\n"
-                    "s=basicClient\r\n"
-                    "c=IN IP4 0.0.0.0\r\n"  
-                    "t=0 0\r\n"
-                    "m=audio 8000 RTP/AVP 0 101\r\n"
-                    "a=rtpmap:0 pcmu/8000\r\n"
-                    "a=rtpmap:101 telephone-event/8000\r\n"
-                    "a=fmtp:101 0-15\r\n");
+        "o=- 0 0 IN IP4 0.0.0.0\r\n"
+        "s=basicClient\r\n"
+        "c=IN IP4 0.0.0.0\r\n"
+        "t=0 0\r\n"
+        "m=audio 8000 RTP/AVP 0 101\r\n"
+        "a=rtpmap:0 pcmu/8000\r\n"
+        "a=rtpmap:101 telephone-event/8000\r\n"
+        "a=fmtp:101 0-15\r\n");
 
     static HeaderFieldValue hfv(txt.data(), txt.size());
     static Mime type("application", "sdp");
@@ -231,7 +231,7 @@ UaClientCall::makeOffer(SdpContents& offer)
     // Set sessionid and version for this offer
     uint64_t currentTime = Timer::getTimeMicroSec();
     offer.session().origin().getSessionId() = currentTime;
-    offer.session().origin().getVersion() = currentTime;  
+    offer.session().origin().getVersion() = currentTime;
 }
 void UaClientCall::makeMyOffer(SdpContents& offer, std::string myId)
 {
@@ -239,18 +239,18 @@ void UaClientCall::makeMyOffer(SdpContents& offer, std::string myId)
     offer.session().origin() = resip::SdpContents::Session::Origin(Data(myId), 0/* CreateSessionID(12345)*/, 0, SdpContents::IP4, Data(mySdpIp));
     offer.session().connection() = resip::SdpContents::Session::Connection(SdpContents::IP4, Data(mySdpIp));
     offer.session().name() = Data(sessionName);
-    if (sessionName == "Play")
+    if(sessionName == "Play")
     {
         offer.session().addTime(resip::SdpContents::Session::Time(0, 0));
     }
-    else if (sessionName == "Playback")
+    else if(sessionName == "Playback")
     {
         offer.session().addTime(resip::SdpContents::Session::Time(startTime, stopTime));
     }
     //offer.session().OtherAttrHelper().addAttribute("y", ssrc.c_str());// = CreateSSRC(name, DesId);// y
 
     Data dprotocol = "RTP/AVP";
-    if (rtpType == 1 || rtpType == 2)
+    if(rtpType == 1 || rtpType == 2)
     {
         dprotocol = "TCP/RTP/AVP";
     }
@@ -264,12 +264,12 @@ void UaClientCall::makeMyOffer(SdpContents& offer, std::string myId)
             videoMedium.addCodec(resip::SdpContents::Session::Codec("PS", 96, 90000));
         }
 
-        if (rtpType == 1)
+        if(rtpType == 1)
         {
             //videoMedium.addAttribute("TCP_CLIENT", Data(rtpPort));
             videoMedium.addAttribute("setup", "active");
         }
-        else if (rtpType == 2)
+        else if(rtpType == 2)
         {
             //videoMedium.addAttribute("TCP_SERVER", Data(rtpPort));
             videoMedium.addAttribute("setup", "passive");
@@ -325,19 +325,32 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     ssrc = offer.session().YSSRC().Value().c_str();
 
     remoteIp = offer.session().origin().getAddress();
-    
+    // channelId = offer.session().uri().user().c_str();
+    // LogOut("BLL", L_DEBUG, "sdp channelId:%s", channelId.c_str());
+    std::string uriStr = offer.session().uri().toString().c_str();
+    // uri=64010000041310000345:3
+    std::regex eSdpUri("(.*):(.*)");
+    std::smatch smSdpUri;
 
-    const SdpContents::Session::MediumContainer& rmedialist = offer.session().media();
-    for (auto& iter : rmedialist)
+    std::regex_search(uriStr, smSdpUri, eSdpUri);
+    for(uint32_t i = 1; i < smSdpUri.size(); i++)
     {
-        if (iter.protocol() == Data("RTP/AVP"))
+        channelId = smSdpUri[i].str();
+        LogOut("BLL", L_DEBUG, "sdp channelId:%s, sdp uri line:%s", channelId.c_str(), uriStr.c_str());
+        break;
+    }
+
+    const SdpContents::Session::MediumContainer &rmedialist = offer.session().media();
+    for(auto& iter : rmedialist)
+    {
+        if(iter.protocol() == Data("RTP/AVP"))
         {
             rtpType = 0;
         }
-        else if (iter.protocol() == Data("TCP/RTP/AVP"))
+        else if(iter.protocol() == Data("TCP/RTP/AVP"))
         {
             rtpType = 1;
-            if (iter.exists("setup"))
+            if(iter.exists("setup"))
             {
                 //active passive
                 //if(iter.getValues("setup"))
@@ -347,7 +360,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
         {
             rtpType = 0;
         }
-        if (iter.port() > 0)
+        if(iter.port() > 0)
         {
             remotePort = iter.port();
             break;
@@ -356,14 +369,15 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
 
     //解析h_Subject
     std::vector<std::string> subjectArray;
-    if (msg.exists(h_Subject))
+    if(msg.exists(h_Subject))
     {
         std::string line = msg.header(h_Subject).value().c_str();
+        // line = "37028806251320111563:0,34020000002000000002:222";
         std::regex eSubject("(.*):(.*),(.*):(.*)");
         std::smatch smSubject;
 
         std::regex_search(line, smSubject, eSubject);
-        for (uint32_t i = 1; i < smSubject.size(); i++)
+        for(uint32_t i = 1; i < smSubject.size(); i++)
         {
             subjectArray.push_back(smSubject[i].str());
         }
@@ -371,29 +385,31 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
 
     //创建answer sdp
     mResponseSdp = offer;
-    
+
     mResponseSdp.session().connection().setAddress(DnsUtil::getLocalIpAddress());
     mResponseSdp.session().origin().setAddress(DnsUtil::getLocalIpAddress());
 
-    if (subjectArray.size() == 4)
+    if(subjectArray.size() == 4)
     {
-        if (sessionName == Data("Play"))
+        if(sessionName == Data("Play"))
         {
+
             channelId = subjectArray[0];
 
             //channelId = "37028806251320111559";
             //channelId = "37028806251320111506";
-            
+
+            ushort rtcpPortIn = 1;
             remoteId = subjectArray[2];
             streamId = channelId + "_" + std::to_string(0);
             auto mdaStream = MediaMng::GetInstance().findStream(streamId);
-            if (mdaStream)
+            if(mdaStream)
             {
                 //流存在//直接回复
                 //mResponseSdp
                 myRtpPort = mUserAgent.GetAvailableRtpPort();
                 InfoLog(<< " rtp port use " << myRtpPort);
-                if (myRtpPort == 0)
+                if(myRtpPort == 0)
                 {
                     WarningCategory warning;
                     warning.hostname() = DnsUtil::getLocalIpAddress();
@@ -403,9 +419,9 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     return;
                 }
                 SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
-                for (auto& iter : medialist)
+                for(auto& iter : medialist)
                 {
-                    if (iter.exists("recvonly"))
+                    if(iter.exists("recvonly"))
                     {
                         iter.clearAttribute("recvonly");
                         iter.addAttribute("sendonly");
@@ -414,9 +430,9 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     break;
                 }
                 auto transport = std::make_shared<RTPUdpTransport>();
-                unsigned short localport[2] = { myRtpPort, myRtpPort + 1};
-                unsigned short peerport[2] = { remotePort, remotePort + 1 };
-                if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
+                ushort localport[2] = { myRtpPort, myRtpPort + rtcpPortIn };
+                ushort peerport[2] = { remotePort, remotePort + rtcpPortIn };
+                if(0 != transport->Init(localport, remoteIp.c_str(), peerport))
                 {
                     psSource = new PSFileSource("", ssrc.convertInt());
                     psSource->SetTransport("sip", transport);
@@ -426,7 +442,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 std::cout << "found stream :" << channelId << std::endl;
                 handle->provideAnswer(mResponseSdp);
                 ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
-                if (uas && !uas->isAccepted())
+                if(uas && !uas->isAccepted())
                 {
                     uas->accept();
                 }
@@ -435,7 +451,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             {
                 //流不存在申请
                 bool chlOnline = makeBLeg();
-                if (!chlOnline)
+                if(!chlOnline)
                 {
                     WarningCategory warning;
                     warning.hostname() = DnsUtil::getLocalIpAddress();
@@ -447,7 +463,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 {
                     myRtpPort = mUserAgent.GetAvailableRtpPort();
                     InfoLog(<< " rtp port use " << myRtpPort);
-                    if (myRtpPort == 0)
+                    if(myRtpPort == 0)
                     {
                         WarningCategory warning;
                         warning.hostname() = DnsUtil::getLocalIpAddress();
@@ -457,9 +473,9 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                         return;
                     }
                     SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
-                    for (auto& iter : medialist)
+                    for(auto& iter : medialist)
                     {
-                        if (iter.exists("recvonly"))
+                        if(iter.exists("recvonly"))
                         {
                             iter.clearAttribute("recvonly");
                             iter.addAttribute("sendonly");
@@ -468,69 +484,112 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                         break;
                     }
                     auto transport = std::make_shared<RTPUdpTransport>();
-                    unsigned short localport[2] = { myRtpPort, myRtpPort + 1 };
-                    unsigned short peerport[2] = { remotePort, remotePort + 1};
-                    if (0 != transport->Init(localport, remoteIp.c_str(), peerport))
+                    unsigned short localport[2] = { myRtpPort, myRtpPort + rtcpPortIn };
+                    unsigned short peerport[2] = { remotePort, remotePort + rtcpPortIn };
+                    if(0 != transport->Init(localport, remoteIp.c_str(), peerport))
                     {
                         MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
-                        if (streamInfo)
+                        if(streamInfo)
                         {
                             psSource = new PSFileSource("", ssrc.convertInt());
                             psSource->SetTransport("sip", transport);
                             streamInfo->increasing();
-                            printf("xxxxxxxxxxxxxxxxx stream:%s ref:%d\n", streamId.c_str(), streamInfo->refNum());
+                            LogOut("BLL", L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
                             psSource->setMediaStream(streamInfo);
                         }
                         //streamInfo->setMediaSource(psSource);
                         //return true;
                     }
                     //直接回复
-                        
+
                     //mResponseSdp
                     std::cout << "makeBLeg OK :" << std::endl;
                     handle->provideAnswer(mResponseSdp);
                     ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
-                    if (uas && !uas->isAccepted())
+                    if(uas && !uas->isAccepted())
                     {
                         uas->accept();
                     }
                 }
             }
         }
-        else if (sessionName == Data("Playback"))
+        else if(sessionName == Data("Playback"))
         {
-            WarningCategory warning;
-            warning.hostname() = DnsUtil::getLocalIpAddress();
-            warning.code() = 488;
-            warning.text() = "playback not suppered!";
-            handle->reject(488, &warning);
-            return;
-            if (offer.session().getTimes().size() == 2)
+            // WarningCategory warning;
+            // warning.hostname() = DnsUtil::getLocalIpAddress();
+            // warning.code() = 488;
+            // warning.text() = "playback not suppered!";
+            // handle->reject(488, &warning);
+            // return;
+            if(channelId.empty())
+            {
+                channelId = subjectArray[0];
+            }
+            ushort rtcpPortIn = 1;
+            if(offer.session().getTimes().size() > 0)
             {
                 startTime = offer.session().getTimes().front().getStart();
                 stopTime = offer.session().getTimes().front().getStop();
             }
-            IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
-            SipServerDeviceInfo devuinfo;
-            list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channelId.c_str());
-            for (auto& it : chlist)
+            else
             {
-                if (it.getStatus())
+                LogOut("BLL", L_ERROR, "Playback time error:%Zu", offer.session().getTimes().size());
+            }
+            if(mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, "", 0, 0, startTime, stopTime))
+            {
+                streamId = MediaMng::GetInstance().CreateStreamId(channelId, startTime, stopTime);
+                LogOut("BLL", L_DEBUG, "Playback streamId:%s", streamId.c_str());
+                myRtpPort = mUserAgent.GetAvailableRtpPort();
+                InfoLog(<< " rtp port use " << myRtpPort);
+                if(myRtpPort == 0)
                 {
-                    devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
-                    devId = devuinfo.getDeviceId();
-                    devIp = devuinfo.getIp();
-                    devPort = devuinfo.getPort();
-
-                    CDateTime staTime(startTime);
-                    CDateTime endTime(stopTime);
-                    //streamId = std::str_format("%s_%s_%s_%s", devId.c_str(), channelId.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+                    WarningCategory warning;
+                    warning.hostname() = DnsUtil::getLocalIpAddress();
+                    warning.code() = 488;
+                    warning.text() = "Port exhausted!";
+                    handle->reject(488, &warning);
+                    return;
+                }
+                SdpContents::Session::MediumContainer& medialist = mResponseSdp.session().media();
+                for(auto& iter : medialist)
+                {
+                    if(iter.exists("recvonly"))
+                    {
+                        iter.clearAttribute("recvonly");
+                        iter.addAttribute("sendonly");
+                    }
+                    iter.setPort(myRtpPort);
                     break;
                 }
+                auto transport = std::make_shared<RTPUdpTransport>();
+                unsigned short localport[2] = { myRtpPort, myRtpPort + rtcpPortIn };
+                unsigned short peerport[2] = { remotePort, remotePort + rtcpPortIn };
+                if(0 != transport->Init(localport, remoteIp.c_str(), peerport))
+                {
+                    MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
+                    if(streamInfo)
+                    {
+                        psSource = new PSFileSource("", ssrc.convertInt());
+                        psSource->SetTransport("sip", transport);
+                        streamInfo->increasing();
+                        LogOut("BLL", L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
+                        psSource->setMediaStream(streamInfo);
+                    }
+                    //streamInfo->setMediaSource(psSource);
+                    //return true;
+                }
+                //直接回复
+
+                //mResponseSdp
+                std::cout << "makeBLeg OK :" << std::endl;
+                handle->provideAnswer(mResponseSdp);
+                ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(handle.get());
+                if(uas && !uas->isAccepted())
+                {
+                    uas->accept();
+                }
             }
-            //拉流
-            bool chlOnline = makeBLeg();
-            if (!chlOnline)
+            else
             {
                 WarningCategory warning;
                 warning.hostname() = DnsUtil::getLocalIpAddress();
@@ -538,12 +597,40 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 warning.text() = "make bleg error!";
                 handle->reject(488, &warning);
             }
+                // IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
+            // SipServerDeviceInfo devuinfo;
+            // list<GBDeviceChannel> chlist = DevMgr.GetGBDeviceMapper().GetGBDeviceChannelMapper().queryChannelByChannelId(channelId.c_str());
+            // for(auto& it : chlist)
+            // {
+            //     if(it.getStatus())
+            //     {
+            //         devuinfo = DevMgr.GetGBDeviceMapper().getDeviceByDeviceId(it.getDeviceId());
+            //         devId = devuinfo.getDeviceId();
+            //         devIp = devuinfo.getIp();
+            //         devPort = devuinfo.getPort();
+
+            //         CDateTime staTime(startTime);
+            //         CDateTime endTime(stopTime);
+            //         //streamId = std::str_format("%s_%s_%s_%s", devId.c_str(), channelId.c_str(), staTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str(), endTime.tmFormat("%Y-%m-%dT%H:%M:%S").c_str());
+            //         break;
+            //     }
+            // }
+            // //拉流
+            // bool chlOnline = makeBLeg();
+            // if(!chlOnline)
+            // {
+            //     WarningCategory warning;
+            //     warning.hostname() = DnsUtil::getLocalIpAddress();
+            //     warning.code() = 488;
+            //     warning.text() = "make bleg error!";
+            //     handle->reject(488, &warning);
+            // }
         }
-        else if (sessionName == Data("Download"))
+        else if(sessionName == Data("Download"))
         {
             //拉流
             bool chlOnline = makeBLeg();
-            if (!chlOnline)
+            if(!chlOnline)
             {
                 WarningCategory warning;
                 warning.hostname() = DnsUtil::getLocalIpAddress();
@@ -577,10 +664,10 @@ resip::InviteSessionHandle& UaClientCall::getInviteSessionHandle()
     return mInviteSessionHandle;
 }
 
-void __stdcall UaClientCall::VskX86NvrRtPreDataCb(uint32_t handle, const uint8_t*data, size_t dataSize, void *pUser)
+void __stdcall UaClientCall::VskX86NvrRtPreDataCb(uint32_t handle, const uint8_t* data, size_t dataSize, void* pUser)
 {
     UaClientCall* pThis = (UaClientCall*)pUser;
-    if (pThis)
+    if(pThis)
     {
         /*if (pThis->pStreamInfo && pThis->pStreamInfo->psSource)
         {
@@ -588,7 +675,7 @@ void __stdcall UaClientCall::VskX86NvrRtPreDataCb(uint32_t handle, const uint8_t
         }
         else
         {
-            
+
         }*/
     }
 }
@@ -599,113 +686,113 @@ void __stdcall UaClientCall::VskX86NvrRtPreDataCb(uint32_t handle, const uint8_t
 void
 UaClientCall::onNewSession(ClientInviteSessionHandle h, InviteSession::OfferAnswerType oat, const SipMessage& msg)
 {
-   InfoLog(<< "onNewSession(ClientInviteSessionHandle): msg=" << msg.brief());
-   mInviteSessionHandle = h->getSessionHandle();  // Note:  each forked leg will update mInviteSession - need to set mInviteSessionHandle for final answering leg on 200
-   if(mInviteSessionHandleReplaced.isValid())
-   {
-       // See comment in flowTerminated for an explanation of this logic
-       ((UaClientCall*)mInviteSessionHandleReplaced->getAppDialogSet().get())->terminateCall();
-   }
-   mUserAgent.setCallStatus(streamId, CALL_UAC_NEW_GET1XX);
-   m_CallEvt.notify_one();
-   //cout << "***************  ******************* 1 " << msg << endl;
+    InfoLog(<< "onNewSession(ClientInviteSessionHandle): msg=" << msg.brief());
+    mInviteSessionHandle = h->getSessionHandle();  // Note:  each forked leg will update mInviteSession - need to set mInviteSessionHandle for final answering leg on 200
+    if(mInviteSessionHandleReplaced.isValid())
+    {
+        // See comment in flowTerminated for an explanation of this logic
+        ((UaClientCall*)mInviteSessionHandleReplaced->getAppDialogSet().get())->terminateCall();
+    }
+    mUserAgent.setCallStatus(streamId, CALL_UAC_NEW_GET1XX);
+    m_CallEvt.notify_one();
+    //cout << "***************  ******************* 1 " << msg << endl;
 }
 
 void
 UaClientCall::onNewSession(ServerInviteSessionHandle h, InviteSession::OfferAnswerType oat, const SipMessage& msg)
 {
-   InfoLog(<< "onNewSession(ServerInviteSessionHandle):  msg=" << msg.brief());
-   mInviteSessionHandle = h->getSessionHandle();
-   //UaClientCall* p = this;
-   // First check if this INVITE is to replace an existing session
-   if(msg.exists(h_Replaces))
-   {
-      pair<InviteSessionHandle, int> presult;
-      presult = mDum.findInviteSession(msg.header(h_Replaces));
-      if(!(presult.first == InviteSessionHandle::NotValid())) 
-      {         
-         UaClientCall* callToReplace = dynamic_cast<UaClientCall *>(presult.first->getAppDialogSet().get());
-         InfoLog(<< "onNewSession(ServerInviteSessionHandle): replacing existing call");
+    InfoLog(<< "onNewSession(ServerInviteSessionHandle):  msg=" << msg.brief());
+    mInviteSessionHandle = h->getSessionHandle();
+    //UaClientCall* p = this;
+    // First check if this INVITE is to replace an existing session
+    if(msg.exists(h_Replaces))
+    {
+        pair<InviteSessionHandle, int> presult;
+        presult = mDum.findInviteSession(msg.header(h_Replaces));
+        if(!(presult.first == InviteSessionHandle::NotValid()))
+        {
+            UaClientCall* callToReplace = dynamic_cast<UaClientCall*>(presult.first->getAppDialogSet().get());
+            InfoLog(<< "onNewSession(ServerInviteSessionHandle): replacing existing call");
 
-         // Copy over flag that indicates if we placed the call or not
-         mPlacedCall = callToReplace->mPlacedCall;
+            // Copy over flag that indicates if we placed the call or not
+            mPlacedCall = callToReplace->mPlacedCall;
 
-         if(mPlacedCall)
-         {
-            // Restart Call Timer
-            unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
-            mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
-         }
+            if(mPlacedCall)
+            {
+                // Restart Call Timer
+                unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
+                mUserAgent.mStack.post(std::move(timer), CallTimerTime, &mUserAgent.getDialogUsageManager());
+            }
 
-         // Session to replace was found - end old session
-         callToReplace->end();
-      }
-      else
-      {
-          // Session to replace not found - reject it
-          h->reject(481 /* Call/Transaction Does Not Exist */);
-      }
-   }
-   else
-   {
-       //h->provisional(100);
-       h->provisional(180);
-       if (msg.isFromWire())
-       {
-           //鉴权处理
-           
-       }
-   }
-   mUserAgent.setCallStatus(streamId, CALL_UAS_NEW);
-   m_CallEvt.notify_one();
-   //cout << "***************  ******************* 2\n" << msg << endl;
+            // Session to replace was found - end old session
+            callToReplace->end();
+        }
+        else
+        {
+            // Session to replace not found - reject it
+            h->reject(481 /* Call/Transaction Does Not Exist */);
+        }
+    }
+    else
+    {
+        //h->provisional(100);
+        h->provisional(180);
+        if(msg.isFromWire())
+        {
+            //鉴权处理
+
+        }
+    }
+    mUserAgent.setCallStatus(streamId, CALL_UAS_NEW);
+    m_CallEvt.notify_one();
+    //cout << "***************  ******************* 2\n" << msg << endl;
 }
 
 void
 UaClientCall::onFailure(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-   WarningLog(<< "onFailure: msg=" << msg.brief());
-   mUserAgent.setCallStatus(streamId, CALL_UAC_FAILURE);
-   if (msg.isResponse()) 
-   {
-       //关闭自己申请的流
-      switch(msg.header(h_StatusLine).statusCode()) 
-      {
-         case 408:
-         case 503:
+    WarningLog(<< "onFailure: msg=" << msg.brief());
+    mUserAgent.setCallStatus(streamId, CALL_UAC_FAILURE);
+    if(msg.isResponse())
+    {
+        //关闭自己申请的流
+        switch(msg.header(h_StatusLine).statusCode())
+        {
+        case 408:
+        case 503:
             if(!msg.isFromWire())
             {
-               // Try another flow? 
+                // Try another flow? 
                 m_CallEvt.notify_one();
             }
-         default:
+        default:
             break;
-      }
-   }
-   //cout << "***************  ******************* 3\n" << msg << endl;
+        }
+    }
+    //cout << "***************  ******************* 3\n" << msg << endl;
 }
 
 void
 UaClientCall::onEarlyMedia(ClientInviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
-   InfoLog(<< "onEarlyMedia: msg=" << msg.brief() << ", sdp=" << sdp);
-   //cout << "***************  ******************* 4\n" << msg << endl;
+    InfoLog(<< "onEarlyMedia: msg=" << msg.brief() << ", sdp=" << sdp);
+    //cout << "***************  ******************* 4\n" << msg << endl;
 }
 
 void
 UaClientCall::onProvisional(ClientInviteSessionHandle h, const SipMessage& msg)
 {
-   InfoLog(<< "onProvisional: msg=" << msg.brief());
-   mUserAgent.setCallStatus(streamId, CALL_UAC_GET1XX_PROV);
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      InfoLog(<< "onProvisional: from stale fork, msg=" << msg.brief());
-      return;
-   }
-   InfoLog(<< "onProvisional: msg=" << msg.brief());
-   //cout << "***************  ******************* 5\n" << msg << endl;
-   
+    InfoLog(<< "onProvisional: msg=" << msg.brief());
+    mUserAgent.setCallStatus(streamId, CALL_UAC_GET1XX_PROV);
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        InfoLog(<< "onProvisional: from stale fork, msg=" << msg.brief());
+        return;
+    }
+    InfoLog(<< "onProvisional: msg=" << msg.brief());
+    //cout << "***************  ******************* 5\n" << msg << endl;
+
 }
 
 void
@@ -719,7 +806,7 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
         // our first 200 response, then this is the leg we accept, store the connected DialogId
         mUACConnectedDialogId = h->getDialogId();
         // Note:  each forked leg will update mInviteSessionHandle (in onNewSession call) - need to set mInviteSessionHandle for final answering leg on 200
-        mInviteSessionHandle = h->getSessionHandle();  
+        mInviteSessionHandle = h->getSessionHandle();
 
         // start call timer
         unique_ptr<ApplicationMessage> timer(new CallTimer(mUserAgent, this));
@@ -760,80 +847,87 @@ UaClientCall::onConnected(ClientInviteSessionHandle h, const SipMessage& msg)
         // We already have a connected leg - end this one with a BYE
         h->end();
     }
-   /*cout << "*************** onConnected ***************************\n"
-       << msg
-       << "***********************************************\n" << endl;*/
+    /*cout << "*************** onConnected ***************************\n"
+        << msg
+        << "***********************************************\n" << endl;*/
 }
 void
 UaClientCall::onConnected(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 7\n" << msg << endl;
-   InfoLog(<< "onConnected: msg=" << msg.brief());
-   /*cout << "*************** onConnected 1 ***************************\n"
-       << msg
-       << "***********************************************\n" << endl;*/
-   //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED);
+    InfoLog(<< "onConnected: msg=" << msg.brief());
+    /*cout << "*************** onConnected 1 ***************************\n"
+        << msg
+        << "***********************************************\n" << endl;*/
+        //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED);
 }
 
 void UaClientCall::onConnectedConfirmed(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 8\n" << msg << endl;
     InfoLog(<< "onConnectedConfirmed: msg=" << msg.brief());
-    if (msg.isRequest())
+    if(msg.isRequest())
     {
-        if (msg.method() == ACK)
+        if(msg.method() == ACK)
         {
-            /*mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(), 
+            /*mMyUasInviteVideoInfo.devId, mMyUasInviteVideoInfo.channelID, ssrc.c_str(),
                 connectport.convertInt(), mUserAgent.GetAvailableRtpPort()*/
-            MediaStream::Ptr streamInfo =  MediaMng::GetInstance().findStream(streamId);
+            MediaStream::Ptr streamInfo = MediaMng::GetInstance().findStream(streamId);
             //auto dev = mUserAgent.GetStreamInfo(streamId);
-            if (streamInfo)
+            if(streamInfo)
             {
-                if (psSource)
+                if(psSource)
                 {
-                    psSource->run();
+                    if(sessionName == Data("Play"))
+                    {
+                        psSource->run();
+                    }
+                    else if(sessionName == Data("Playback"))
+                    {
+                        psSource->runPlayback();
+                    }
                     mUserAgent.setCallStatus(streamId, CALL_MY_MEDIA_OK);
                 }
                 //if(streamInfo->getStreamId())
-                for (int i = 0; i < 2 * 5; i++)
-                {
-                    resip::UaMgr::streamStatus smStatus = resip::UaMgr::_UERAGERNT_NOT_STREAM;// = (resip::UaMgr::streamStatus)dev->streamStatus;
-                    if (smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
-                    {
-                        //dev->psSource->run();
-                        mUserAgent.setCallStatus(streamId, CALL_MY_MEDIA_OK);
-                        break;
-                    }
-                    else if (smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
-                    {
-                        mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
-                        break;
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                }
+                // for(int i = 0; i < 2 * 5; i++)
+                // {
+                //     resip::UaMgr::streamStatus smStatus = resip::UaMgr::_UERAGERNT_NOT_STREAM;// = (resip::UaMgr::streamStatus)dev->streamStatus;
+                //     if(smStatus == resip::UaMgr::_UERAGERNT_STREAM_OK)
+                //     {
+                //         //dev->psSource->run();
+                //         mUserAgent.setCallStatus(streamId, CALL_MY_MEDIA_OK);
+                //         break;
+                //     }
+                //     else if(smStatus == resip::UaMgr::_UERAGERNT_NOT_STREAM)
+                //     {
+                //         mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
+                //         break;
+                //     }
+                //     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                // }
             }
-            
+
         }
     }
-    
-    
+
+
     /*cout << "*************** onConnectedConfirmed ***************************\n"
         << msg
         << "***********************************************\n" << endl;*/
-    //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED_CONFIRMED);
+        //mUserAgent.setCallStatus(streamId, CALL_UAS_CONNECTED_CONFIRMED);
 }
 void
 UaClientCall::onStaleCallTimeout(ClientInviteSessionHandle h)
 {
     //cout << "***************  ******************* 9\n" << endl;
-   WarningLog(<< "onStaleCallTimeout");
+    WarningLog(<< "onStaleCallTimeout");
 }
 
 void
 UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::TerminatedReason reason, const SipMessage* msg)
 {
     //cout << "***************  ******************* 10\n" << endl;
-    if (isUACConnected())
+    if(isUACConnected())
     {
         mUserAgent.setCallStatus(streamId, CALL_UAC_TERMINATED);
     }
@@ -841,77 +935,77 @@ UaClientCall::onTerminated(InviteSessionHandle h, InviteSessionHandler::Terminat
     {
         //mUserAgent.setCallStatus(streamId, CALL_UAS_TERMINATED);
     }
-   Data reasonData;
-   string strUrl;
-   switch(reason)
-   {
-   case InviteSessionHandler::RemoteBye:
-      reasonData = "received a BYE from peer";
-      {
-          if (isUACConnected())
-          {
-              m_CallEvt.notify_one();
-          }
-          else
-          {
-              //mUserAgent.CloseStreamStreamId(streamId);
-          }
-      }
-      break;
-   case InviteSessionHandler::RemoteCancel:
-      reasonData = "received a CANCEL from peer";
-      break;   
-   case InviteSessionHandler::Rejected:
-      reasonData = "received a rejection from peer";
-      break;
-   case InviteSessionHandler::LocalBye:
-      reasonData = "ended locally via BYE";
-      break;
-   case InviteSessionHandler::LocalCancel:
-      reasonData = "ended locally via CANCEL";
-      break;
-   case InviteSessionHandler::Replaced:
-      reasonData = "ended due to being replaced";
-      break;
-   case InviteSessionHandler::Referred:
-      reasonData = "ended due to being referred";
-      break;
-   case InviteSessionHandler::Error:
-      reasonData = "ended due to an error";
-      break;
-   case InviteSessionHandler::Timeout:
-      reasonData = "ended due to a timeout";
-      break;
-   default:
-      assert(false);
-      break;
-   }
+    Data reasonData;
+    string strUrl;
+    switch(reason)
+    {
+    case InviteSessionHandler::RemoteBye:
+        reasonData = "received a BYE from peer";
+        {
+            if(isUACConnected())
+            {
+                m_CallEvt.notify_one();
+            }
+            else
+            {
+                //mUserAgent.CloseStreamStreamId(streamId);
+            }
+        }
+        break;
+    case InviteSessionHandler::RemoteCancel:
+        reasonData = "received a CANCEL from peer";
+        break;
+    case InviteSessionHandler::Rejected:
+        reasonData = "received a rejection from peer";
+        break;
+    case InviteSessionHandler::LocalBye:
+        reasonData = "ended locally via BYE";
+        break;
+    case InviteSessionHandler::LocalCancel:
+        reasonData = "ended locally via CANCEL";
+        break;
+    case InviteSessionHandler::Replaced:
+        reasonData = "ended due to being replaced";
+        break;
+    case InviteSessionHandler::Referred:
+        reasonData = "ended due to being referred";
+        break;
+    case InviteSessionHandler::Error:
+        reasonData = "ended due to an error";
+        break;
+    case InviteSessionHandler::Timeout:
+        reasonData = "ended due to a timeout";
+        break;
+    default:
+        assert(false);
+        break;
+    }
 
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      if(msg)
-      {
-         InfoLog(<< "onTerminated: from stale fork, reason=" << reasonData << ", msg=" << msg->brief());
-      }
-      else
-      {
-         InfoLog(<< "onTerminated: from stale fork, reason=" << reasonData);
-      }
-      return;
-   }
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        if(msg)
+        {
+            InfoLog(<< "onTerminated: from stale fork, reason=" << reasonData << ", msg=" << msg->brief());
+        }
+        else
+        {
+            InfoLog(<< "onTerminated: from stale fork, reason=" << reasonData);
+        }
+        return;
+    }
 
-   if(msg)
-   {
-      InfoLog(<< "onTerminated: reason=" << reasonData << ", msg=" << msg->brief());
-      /*cout << "*************** onTerminated ***************************\n"
-          << *msg
-          << "***********************************************\n" << endl;*/
-   }
-   else
-   {
-      InfoLog(<< "onTerminated: reason=" << reasonData);
-   }
+    if(msg)
+    {
+        InfoLog(<< "onTerminated: reason=" << reasonData << ", msg=" << msg->brief());
+        /*cout << "*************** onTerminated ***************************\n"
+            << *msg
+            << "***********************************************\n" << endl;*/
+    }
+    else
+    {
+        InfoLog(<< "onTerminated: reason=" << reasonData);
+    }
 }
 
 void
@@ -919,7 +1013,7 @@ UaClientCall::onRedirected(ClientInviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 11\n" << msg << endl;
    // DUM will recurse on redirect requests, so nothing to do here
-   InfoLog(<< "onRedirected: msg=" << msg.brief());
+    InfoLog(<< "onRedirected: msg=" << msg.brief());
 }
 
 void
@@ -927,113 +1021,111 @@ UaClientCall::onAnswer(InviteSessionHandle h, const SipMessage& msg, const SdpCo
 {
     //cout << "***************  ******************* 12 " << msg << endl;
     mUserAgent.setCallStatus(streamId, CALL_UAC_ANSWER_200OK);
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      InfoLog(<< "onAnswer: from stale fork, msg=" << msg.brief() << ", sdp=" << sdp);
-      return;
-   }
-   InfoLog(<< "onAnswer: msg=" << msg.brief() << ", sdp=" << sdp);
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        InfoLog(<< "onAnswer: from stale fork, msg=" << msg.brief() << ", sdp=" << sdp);
+        return;
+    }
+    InfoLog(<< "onAnswer: msg=" << msg.brief() << ", sdp=" << sdp);
 
-   NameAddr myaddr = h->myAddr();
-   NameAddr peeraddr = h->peerAddr();
-   NameAddr remoteTarget = h->remoteTarget();
-   NameAddr pendingRemoteTarget = h->pendingRemoteTarget();
-   std::thread t(&UaClientCall::createRtpServer, this, 30000, "192.168.1.221", 15060);
-   t.detach();
-   // Process Answer here
-   //Tuple sourceTuple = msg.getSource();
-   //in_addr_t msgSourceAddress = sourceTuple.toGenericIPAddress().v4Address.sin_addr.s_addr;
-   //call->onAnswer(this, sdp, msgSourceAddress);
-   //开启一个rtpserver接收rtp数据
-   m_CallEvt.notify_one();
+    NameAddr myaddr = h->myAddr();
+    NameAddr peeraddr = h->peerAddr();
+    NameAddr remoteTarget = h->remoteTarget();
+    NameAddr pendingRemoteTarget = h->pendingRemoteTarget();
+    std::thread t(&UaClientCall::createRtpServer, this, 30000, "192.168.1.221", 15060);
+    t.detach();
+    // Process Answer here
+    //Tuple sourceTuple = msg.getSource();
+    //in_addr_t msgSourceAddress = sourceTuple.toGenericIPAddress().v4Address.sin_addr.s_addr;
+    //call->onAnswer(this, sdp, msgSourceAddress);
+    //开启一个rtpserver接收rtp数据
+    m_CallEvt.notify_one();
 }
 
 void
 UaClientCall::onOffer(InviteSessionHandle h, const SipMessage& msg, const SdpContents& sdp)
 {
     //cout << "***************  ******************* 13\n" << msg << endl;
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      InfoLog(<< "onOffer: from stale fork, msg=" << msg.brief() << ", sdp=" << sdp);
-      return;
-   }
-   InfoLog(<< "onOffer: msg=" << msg.brief() << ", sdp=" << sdp);
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        InfoLog(<< "onOffer: from stale fork, msg=" << msg.brief() << ", sdp=" << sdp);
+        return;
+    }
+    InfoLog(<< "onOffer: msg=" << msg.brief() << ", sdp=" << sdp);
 
-   // Provide Answer here - for test client just echo back same SDP as received for now
+    // Provide Answer here - for test client just echo back same SDP as received for now
 
-   if (msg.isClientTransaction()) // my is uac
-   {
-       InfoLog(<< "my is uac" << msg.brief());
-   }
-   else //my is uas
-   {
-       InfoLog(<< "my is uas" << msg.brief());
+    if(msg.isClientTransaction()) // my is uac
+    {
+        InfoLog(<< "my is uac" << msg.brief());
+    }
+    else //my is uas
+    {
+        InfoLog(<< "my is uas" << msg.brief());
 
-       //流存在  直接返回;不存在则申请
-       //mUserAgent.setCallStatus(streamId, CALL_UAS_RECEIVE_OFFER);
-       ReceiveInviteOffRequest(h, msg, sdp);
-   }
-  
-   /*cout << "*************** onOffer ***************************\n"
-       << msg
-       << "***********************************************\n" << endl;*/
+        ReceiveInviteOffRequest(h, msg, sdp);
+    }
+
+    /*cout << "*************** onOffer ***************************\n"
+        << msg
+        << "***********************************************\n" << endl;*/
 }
 
 void
 UaClientCall::onOfferRequired(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 14\n" << msg << endl;
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      InfoLog(<< "onOfferRequired: from stale fork, msg=" << msg.brief());
-      return;
-   }
-   InfoLog(<< "onOfferRequired: msg=" << msg.brief());
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        InfoLog(<< "onOfferRequired: from stale fork, msg=" << msg.brief());
+        return;
+    }
+    InfoLog(<< "onOfferRequired: msg=" << msg.brief());
 
-   // Provide Offer Here
-   SdpContents offer;
-   makeOffer(offer);
+    // Provide Offer Here
+    SdpContents offer;
+    makeOffer(offer);
 
-   h->provideOffer(offer);
+    h->provideOffer(offer);
 }
 
 void
 UaClientCall::onOfferRejected(InviteSessionHandle h, const SipMessage* msg)
 {
     //cout << "***************  ******************* 15\n" << msg << endl;
-   if(isStaleFork(h->getDialogId()))
-   {
-      // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
-      if(msg)
-      {
-         WarningLog(<< "onOfferRejected: from stale fork, msg=" << msg->brief());
-      }
-      else
-      {
-         WarningLog(<< "onOfferRejected: from stale fork");
-      }
-      return;
-   }
-   if(msg)
-   {
-      WarningLog(<< "onOfferRejected: msg=" << msg->brief());
-   }
-   else
-   {
-      WarningLog(<< "onOfferRejected");
-   }
+    if(isStaleFork(h->getDialogId()))
+    {
+        // If we receive a response from a stale fork (ie. after someone sends a 200), then we want to ignore it
+        if(msg)
+        {
+            WarningLog(<< "onOfferRejected: from stale fork, msg=" << msg->brief());
+        }
+        else
+        {
+            WarningLog(<< "onOfferRejected: from stale fork");
+        }
+        return;
+    }
+    if(msg)
+    {
+        WarningLog(<< "onOfferRejected: msg=" << msg->brief());
+    }
+    else
+    {
+        WarningLog(<< "onOfferRejected");
+    }
 }
 
 void
 UaClientCall::onOfferRequestRejected(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 16\n" << msg << endl;
-   InfoLog(<< "onOfferRequestRejected: msg=" << msg.brief());
-   // This is called when we are waiting to resend a INVITE with no sdp after a glare condition, and we 
-   // instead receive an inbound INVITE or UPDATE
+    InfoLog(<< "onOfferRequestRejected: msg=" << msg.brief());
+    // This is called when we are waiting to resend a INVITE with no sdp after a glare condition, and we 
+    // instead receive an inbound INVITE or UPDATE
 }
 
 void
@@ -1045,49 +1137,310 @@ UaClientCall::onRemoteSdpChanged(InviteSessionHandle h, const SipMessage& msg, c
    /// SDP is unchanged from current remote SDP no handler is called
    /// There is not much we can do about this.  If session timers are used then they are managed seperately per leg
    /// and we have no real mechanism to notify the other peer of new SDP without starting a new offer/answer negotiation
-   InfoLog(<< "onRemoteSdpChanged: msg=" << msg << ", sdp=" << sdp);
+    InfoLog(<< "onRemoteSdpChanged: msg=" << msg << ", sdp=" << sdp);
 
-   // Process SDP Answer here
+    // Process SDP Answer here
 }
-
+bool not_space(char c)
+{
+    return c != ' ';
+}
 void
 UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 18\n" << msg << endl;
-   InfoLog(<< "onInfo: msg=" << msg.brief());
+    // InfoLog(<< "onInfo: msg=" << msg.brief());
+    InfoLog(<< "onInfo: msg=" << msg);
+    Contents *body = msg.getContents();
+    if(body && !body->getBodyData().empty())
+    {
+        std::string strCmdType, strSubCmdType, strSubCmdValue;
+        std::istringstream ss(body->getBodyData().c_str());
+        std::string line;
+        while(std::getline(ss, line) && !line.empty())
+        {
+            // std::string line;
+            // 使用 std::copy_if 复制除了空格以外的所有字符
+            // std::copy_if(readline.begin(), readline.end(), std::back_inserter(line), not_space);
+            // PLAY MANSRTSP/1.0\r\n
+            // CSeq: 839\r\n
+            // Range: npt=158-\r\n
+            std::regex eRtspPlay("(.*) (.*)/(.*)");
+            std::smatch smRtspPlay;
+            std::regex_search(line, smRtspPlay, eRtspPlay);
+            std::vector<std::string> firstLines;
+            for(uint32_t i = 1; i < smRtspPlay.size(); i++)
+            {
+                firstLines.push_back(smRtspPlay[i].str());
+            }
+            if(firstLines.size() == 3)
+            {
+                std::string protocal, version;
+                strCmdType = firstLines[0];
+                protocal = firstLines[1];
+                version = firstLines[2];
+                LogOut("BLL", L_DEBUG, "rtsp cmd type:%s, %s, %s", strCmdType.c_str(), protocal.c_str(),version.c_str());
+            }
+            //CSeq: 839
+            std::regex eRtspSeq("(.*): (.*)");
+            std::smatch smRtspSeq;
+            std::regex_search(line, smRtspSeq, eRtspSeq);
+            std::vector<std::string> RtspSeqs;
+            for(uint32_t i = 1; i < smRtspSeq.size(); i++)
+            {
+                RtspSeqs.push_back(smRtspSeq[i].str());
+                LogOut("BLL", L_DEBUG, "rtsp seq:%s", smRtspSeq[i].str().c_str());
+            }
+            if(RtspSeqs.size() == 2)
+            {
+                LogOut("BLL", L_DEBUG, "rtsp seq:%s, %s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
+            }
+            if(strCmdType == "PLAY")
+            {
+                //Range: npt=158-\r\n
+                strSubCmdType = "Range";
+                std::regex eRtspRange("Range: npt=(.*)-(.*)");
+                std::smatch smRtspRange;
+                std::regex_search(line, smRtspRange, eRtspRange);
+                std::vector<std::string> RtspRange;
+                for(uint32_t i = 1; i < smRtspRange.size(); i++)
+                {
+                    RtspRange.push_back(smRtspRange[i].str());
+                    LogOut("BLL", L_DEBUG, "rtsp Range:%s", smRtspRange[i].str().c_str());
+                }
+                if(RtspRange.size() >= 1)
+                {
+                    std::string nptValue1, nptValue2;
+                    strSubCmdValue = RtspRange[0];
+                    // int rangeType = 0;
+                    // if(RtspRange[0] == "-")
+                    // {
+                    //     split = RtspRange[0]; //(∞, nptValue2)  一般不常见
+                    //     rangeType = 1;
+                    // }
+                    // else
+                    // {
+                    //     nptValue1 = RtspRange[0];
+                    // }
+                    // if(RtspRange.size() == 2)
+                    // {
+                    //     split = RtspRange[1];
+                    //     rangeType = 2;
+                    //     //(nptValue1, ∞)
+                    // }
+                    // if(RtspRange.size() == 3)
+                    // {
+                    //     nptValue2 = RtspRange[2];//(nptValue1, nptValue2)
+                    //     rangeType = 3;
+                    // }
+                    // if(rangeType == 1)
+                    // {
+                    //     strSubCmdValue = nptValue2;
+                    //     if(nptValue2 == "now")
+                    //     {
+                    //         // Range头取值为“ntp=now-”,不携带Scale头,表示从暂停位置以原倍速恢复播放
+                    //     }
+                    //     else
+                    //     {
+                    //         //未见到过  不知道怎么处理
+                    //     }
+                    // }
+                    // else if(rangeType == 2)
+                    // {
+                    //     strSubCmdValue = nptValue1;
+                    //     if(nptValue1 == "now")
+                    //     {
+                    //         // Range头取值为“ntp=now-”,不携带Scale头,表示从暂停位置以原倍速恢复播放
+                    //     }
+                    //     else
+                    //     {
+                    //         // playtime = start + nptValue1;
+                    //     }
+                    // }
+                    // else if(rangeType == 3)
+                    // {
+                    //     //未见到过  不知道怎么处理
+                    // }
+                    auto mdaStream = MediaMng::GetInstance().findStream(streamId);
+                    if(mdaStream)
+                    {
+                        BaseDevice::Ptr parentDev = NULL;
+                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        if (childDev)
+                        {
+                            parentDev = childDev->getParentDev();
+                        }
+                        else
+                        {
+                            DebugLog(<< mdaStream->getDeviceId() << "  child device not found");
+                        }
+                        if(parentDev)
+                        {
+                            if(parentDev->devType == BaseDevice::JSON_NVR)
+                            {
+                                auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
+                                if(JsonNvr)
+                                {
+                                    if(strSubCmdValue == "now")
+                                    {
+                                        int err = 0;
+                                        JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Play, 0, 0, err);
+                                        JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Speed, fScale * 1024, 0, err);
+                                    }
+                                    else
+                                    {
+                                        uint32_t nptValue = 0;
+                                        try
+                                        {
+                                            nptValue = std::atoi(strSubCmdValue.c_str());
+                                        }
+                                        catch(const std::exception& e)
+                                        {
+                                            std::cerr << e.what() << '\n';
+                                        }
+                                        uint32_t pointTime = startTime + nptValue;
+                                        LogOut("BLL", L_DEBUG, "play back ctrl pointTime:%u, nptValue:%u,start:%u ",
+                                         pointTime, nptValue, startTime);
+                                        int err = 0;
+                                        JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_TimePos, (uint32_t)pointTime, 0, err);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // LogOut("BLL", L_DEBUG, "rtsp seq key%s, value:%s", RtspSeqs[0].c_str(), RtspSeqs[1].c_str());
+                }
+                //Scale头应支持的基本取值为0.25、0.5、1、2、4
+                // Scale:2.0
+                strSubCmdType = "Scale";
+                std::regex eRtspScale("Scale:(.*)");
+                std::smatch smRtspScale;
+                std::regex_search(line, smRtspScale, eRtspScale);
+                std::vector<std::string> RtspScales;
+                for(uint32_t i = 1; i < smRtspScale.size(); i++)
+                {
+                    RtspScales.push_back(smRtspScale[i].str());
+                    LogOut("BLL", L_DEBUG, "rtsp Scale:%s", smRtspScale[i].str().c_str());
+                }
+                if(strSubCmdType == "Scale" && RtspScales.size() == 1)
+                {
+                    auto mdaStream = MediaMng::GetInstance().findStream(streamId);
+                    if(mdaStream)
+                    {
+                        BaseDevice::Ptr parentDev = NULL;
+                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        if (childDev)
+                        {
+                            parentDev = childDev->getParentDev();
+                        }
+                        else
+                        {
+                            DebugLog(<< mdaStream->getDeviceId() << "  child device not found");
+                        }
+                        if(parentDev)
+                        {
+                            if(parentDev->devType == BaseDevice::JSON_NVR)
+                            {
+                                auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
+                                if(JsonNvr)
+                                {
+                                    try
+                                    {
+                                        fScale = std::atof(RtspScales[0].c_str());
+                                    }
+                                    catch(const std::exception& e)
+                                    {
+                                        fScale = 1.0;
+                                        std::cerr << e.what() << '\n';
+                                    }
+                                    int err = 0;
+                                    LogOut("BLL", L_DEBUG, "play back ctrl Scale %f:%s ", streamId.c_str());
+                                    JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Speed, fScale*1024, 0, err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //PauseTime:now
+                std::regex eRtspPause("(.*):(.*)");
+                std::smatch smRtspPause;
+                std::regex_search(line, smRtspPause, eRtspPause);
+                std::vector<std::string> RtspPauses;
+                for(uint32_t i = 1; i < smRtspPause.size(); i++)
+                {
+                    RtspPauses.push_back(smRtspPause[i].str());
+                    LogOut("BLL", L_DEBUG, "rtsp PauseTime:%s", smRtspPause[i].str().c_str());
+                }
+                if(RtspPauses.size() == 2 && RtspPauses[0] == "PauseTime" && RtspPauses[1] == "now")
+                {
+                    auto mdaStream = MediaMng::GetInstance().findStream(streamId);
+                    if(mdaStream)
+                    {
+                        BaseDevice::Ptr parentDev = NULL;
+                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        if (childDev)
+                        {
+                            parentDev = childDev->getParentDev();
+                        }
+                        else
+                        {
+                            DebugLog(<< mdaStream->getDeviceId() << "  child device not found");
+                        }
+                        if(parentDev)
+                        {
+                            if(parentDev->devType == BaseDevice::JSON_NVR)
+                            {
+                                auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
+                                if(JsonNvr)
+                                {
+                                    LogOut("BLL", L_DEBUG, "play back ctrl PauseTime :%s", streamId.c_str());
+                                    int err = 0;
+                                    JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Pause, 0, 0, err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            line = "";
+        }
+    }
 
-   // Handle message here
-   h->acceptNIT();
+    // Handle message here
+    h->acceptNIT();
 }
 
 void
 UaClientCall::onInfoSuccess(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 19\n" << msg << endl;
-   InfoLog(<< "onInfoSuccess: msg=" << msg.brief());
+    InfoLog(<< "onInfoSuccess: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onInfoFailure(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 20\n" << msg << endl;
-   WarningLog(<< "onInfoFailure: msg=" << msg.brief());
+    WarningLog(<< "onInfoFailure: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onRefer(InviteSessionHandle h, ServerSubscriptionHandle ss, const SipMessage& msg)
 {
     //cout << "***************  ******************* 21\n" << msg << endl;
-   InfoLog(<< "onRefer: msg=" << msg.brief());
+    InfoLog(<< "onRefer: msg=" << msg.brief());
 
-   // Handle Refer request here
+    // Handle Refer request here
 }
 
 void
 UaClientCall::onReferAccepted(InviteSessionHandle h, ClientSubscriptionHandle csh, const SipMessage& msg)
 {
     //cout << "***************  ******************* 22\n" << msg << endl;
-   InfoLog(<< "onReferAccepted: msg=" << msg.brief());
+    InfoLog(<< "onReferAccepted: msg=" << msg.brief());
 }
 void UaClientCall::onAckReceived(InviteSessionHandle h, const SipMessage& msg)
 {
@@ -1102,33 +1455,33 @@ void
 UaClientCall::onReferRejected(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 24\n" << msg << endl;
-   WarningLog(<< "onReferRejected: msg=" << msg.brief());
+    WarningLog(<< "onReferRejected: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onReferNoSub(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 25\n" << msg << endl;
-   InfoLog(<< "onReferNoSub: msg=" << msg.brief());
+    InfoLog(<< "onReferNoSub: msg=" << msg.brief());
 
-   // Handle Refer request with (no-subscription indication) here
+    // Handle Refer request with (no-subscription indication) here
 }
 
 void
 UaClientCall::onMessage(InviteSessionHandle h, const SipMessage& msg)
 {
     //cout << "***************  ******************* 26\n" << msg << endl;
-   InfoLog(<< "onMessage: msg=" << msg.brief());
+    InfoLog(<< "onMessage: msg=" << msg.brief());
 
-   // Handle message here
-   h->acceptNIT();
+    // Handle message here
+    h->acceptNIT();
 
-   if(!mPlacedCall)
-   {
-      // If we didn't place the call - answer the message with another message
-      PlainContents plain("test message answer");
-      h->message(plain);
-   }
+    if(!mPlacedCall)
+    {
+        // If we didn't place the call - answer the message with another message
+        PlainContents plain("test message answer");
+        h->message(plain);
+    }
 }
 
 void
@@ -1137,7 +1490,7 @@ UaClientCall::onMessageSuccess(InviteSessionHandle h, const SipMessage& msg)
     //cout << "***************  ******************* 27\n" << msg << endl;
     mTimerExpiredCounter = 0;
     mSessionState = msg.header(h_StatusLine).statusCode();
-   InfoLog(<< "onMessageSuccess: msg=" << msg.brief());
+    InfoLog(<< "onMessageSuccess: msg=" << msg.brief());
 }
 
 void
@@ -1145,7 +1498,7 @@ UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
 {
     mSessionState = msg.header(h_StatusLine).statusCode();
     //cout << "***************  ******************* 28\n" << msg << endl;
-    if (mSessionState == 408)
+    if(mSessionState == 408)
     {
         mTimerExpiredCounter++;
     }
@@ -1153,17 +1506,17 @@ UaClientCall::onMessageFailure(InviteSessionHandle h, const SipMessage& msg)
     {
         mTimerExpiredCounter = 0;
     }
-   WarningLog(<< "onMessageFailure: msg=" << msg.brief());
+    WarningLog(<< "onMessageFailure: msg=" << msg.brief());
 }
 
 void
 UaClientCall::onForkDestroyed(ClientInviteSessionHandle h)
 {
     //cout << "***************  ******************* 29\n" << endl;
-   InfoLog(<< "onForkDestroyed:");
+    InfoLog(<< "onForkDestroyed:");
 }
 
-void 
+void
 UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
 {
     Data msgData;
@@ -1172,9 +1525,9 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
         ds << msg;
         ds.flush();
     }
-    if (isUACConnected())
+    if(isUACConnected())
     {
-        if (msg.isRequest() && msg.method() == ACK)
+        if(msg.isRequest() && msg.method() == ACK)
         {
             msg.header(h_RequestLine).uri().host() = devIp.c_str();
             msg.header(h_RequestLine).uri().port() = devPort;
@@ -1185,73 +1538,73 @@ UaClientCall::onReadyToSend(InviteSessionHandle h, SipMessage& msg)
     {
 
     }
-    
+
     //cout << "***************  ******************* 30\n" << msgData << endl;
 }
 
-void 
+void
 UaClientCall::onFlowTerminated(InviteSessionHandle h)
 {
     //cout << "***************  ******************* 31\n" << endl;
-   if(h->isConnected())
-   {
-      NameAddr inviteWithReplacesTarget;
-      if(h->remoteTarget().uri().exists(p_gr))
-      {
-         // If remote contact is a GRUU then use it
-         inviteWithReplacesTarget.uri() = h->remoteTarget().uri();
-      }
-      else
-      {
-         //.Use remote AOR
-         inviteWithReplacesTarget.uri() = h->peerAddr().uri();
-      }
-      InfoLog(<< "UaClientCall::onFlowTerminated: trying INVITE w/replaces to " << inviteWithReplacesTarget);
-      // The flow terminated - try an Invite (with Replaces) to recover the call
-      UaClientCall *replacesCall = new UaClientCall(mUserAgent);      
+    if(h->isConnected())
+    {
+        NameAddr inviteWithReplacesTarget;
+        if(h->remoteTarget().uri().exists(p_gr))
+        {
+            // If remote contact is a GRUU then use it
+            inviteWithReplacesTarget.uri() = h->remoteTarget().uri();
+        }
+        else
+        {
+            //.Use remote AOR
+            inviteWithReplacesTarget.uri() = h->peerAddr().uri();
+        }
+        InfoLog(<< "UaClientCall::onFlowTerminated: trying INVITE w/replaces to " << inviteWithReplacesTarget);
+        // The flow terminated - try an Invite (with Replaces) to recover the call
+        UaClientCall* replacesCall = new UaClientCall(mUserAgent);
 
-      // Copy over flag that indicates wether original call was placed or received
-      replacesCall->mPlacedCall = mPlacedCall;  
+        // Copy over flag that indicates wether original call was placed or received
+        replacesCall->mPlacedCall = mPlacedCall;
 
-      // Note:  We want to end this call since it is to be replaced.  Normally the endpoint
-      // receiving the INVITE with replaces would send us a BYE for the session being replaced.
-      // However, since the old flow is dead, we will never see this BYE.  We need this call to
-      // go away somehow, however we cannot just end it directly here via terminateCall.
-      // Since the flow to other party is likely fine - if we terminate this call now the BYE 
-      // is very likely to make it to the far end, before the above INVITE - if this happens then 
-      // the replaces logic of the INVITE will have no effect.  We want to delay the release of 
-      // this call, by passing our handle to the new INVITE call and have it terminate this call, 
-      // once we know the far end has processed our new INVITE.
-      replacesCall->mInviteSessionHandleReplaced = mInviteSessionHandle;
+        // Note:  We want to end this call since it is to be replaced.  Normally the endpoint
+        // receiving the INVITE with replaces would send us a BYE for the session being replaced.
+        // However, since the old flow is dead, we will never see this BYE.  We need this call to
+        // go away somehow, however we cannot just end it directly here via terminateCall.
+        // Since the flow to other party is likely fine - if we terminate this call now the BYE 
+        // is very likely to make it to the far end, before the above INVITE - if this happens then 
+        // the replaces logic of the INVITE will have no effect.  We want to delay the release of 
+        // this call, by passing our handle to the new INVITE call and have it terminate this call, 
+        // once we know the far end has processed our new INVITE.
+        replacesCall->mInviteSessionHandleReplaced = mInviteSessionHandle;
 
-      SdpContents offer;
-      replacesCall->makeOffer(offer);
-      shared_ptr<SipMessage> invite = mUserAgent.getDialogUsageManager().makeInviteSession(inviteWithReplacesTarget, h, getUserProfile(), &offer, replacesCall);
-      mUserAgent.getDialogUsageManager().send(invite);
-   }
+        SdpContents offer;
+        replacesCall->makeOffer(offer);
+        shared_ptr<SipMessage> invite = mUserAgent.getDialogUsageManager().makeInviteSession(inviteWithReplacesTarget, h, getUserProfile(), &offer, replacesCall);
+        mUserAgent.getDialogUsageManager().send(invite);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // DialogSetHandler ///////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-void 
+void
 UaClientCall::onTrying(AppDialogSetHandle h, const SipMessage& msg)
 {
-   InfoLog(<< "onTrying: msg=" << msg.brief());
-   if(isUACConnected()) return;  // Ignore 100's if already connected
+    InfoLog(<< "onTrying: msg=" << msg.brief());
+    if(isUACConnected()) return;  // Ignore 100's if already connected
 
-   // Handle message here
+    // Handle message here
 }
 
-void 
+void
 UaClientCall::onNonDialogCreatingProvisional(AppDialogSetHandle h, const SipMessage& msg)
 {
-   InfoLog(<< "onNonDialogCreatingProvisional: msg=" << msg.brief());
-   if(isUACConnected()) return;  // Ignore provionals if already connected
+    InfoLog(<< "onNonDialogCreatingProvisional: msg=" << msg.brief());
+    if(isUACConnected()) return;  // Ignore provionals if already connected
 
-   //ServerInviteSession* sis = (ServerInviteSession*)(h->getInviteSession().get());
-   //sis->provisional(180);
-   // Handle message here
+    //ServerInviteSession* sis = (ServerInviteSession*)(h->getInviteSession().get());
+    //sis->provisional(180);
+    // Handle message here
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1260,83 +1613,83 @@ UaClientCall::onNonDialogCreatingProvisional(AppDialogSetHandle h, const SipMess
 void
 UaClientCall::onUpdatePending(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
-   InfoLog(<< "onUpdatePending(ClientSubscriptionHandle): " << msg.brief());
-   if (msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
-   {
-      //process Refer Notify Here
-   }
-   h->acceptUpdate();
+    InfoLog(<< "onUpdatePending(ClientSubscriptionHandle): " << msg.brief());
+    if(msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
+    {
+        //process Refer Notify Here
+    }
+    h->acceptUpdate();
 }
 
 void
 UaClientCall::onUpdateActive(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
-   InfoLog(<< "onUpdateActive(ClientSubscriptionHandle): " << msg.brief());
-   if (msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
-   {
-      //process Refer Notify Here
-   }
-   h->acceptUpdate();
+    InfoLog(<< "onUpdateActive(ClientSubscriptionHandle): " << msg.brief());
+    if(msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
+    {
+        //process Refer Notify Here
+    }
+    h->acceptUpdate();
 }
 
 void
 UaClientCall::onUpdateExtension(ClientSubscriptionHandle h, const SipMessage& msg, bool outOfOrder)
 {
-   InfoLog(<< "onUpdateExtension(ClientSubscriptionHandle): " << msg.brief());
-   if (msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
-   {
-      //process Refer Notify Here
-   }
-   h->acceptUpdate();
+    InfoLog(<< "onUpdateExtension(ClientSubscriptionHandle): " << msg.brief());
+    if(msg.exists(h_Event) && msg.header(h_Event).value() == "refer")
+    {
+        //process Refer Notify Here
+    }
+    h->acceptUpdate();
 }
 
-void 
+void
 UaClientCall::onNotifyNotReceived(resip::ClientSubscriptionHandle h)
 {
-   InfoLog(<< "onNotifyNotReceived(ClientSubscriptionHandle)");
-   h->end();
+    InfoLog(<< "onNotifyNotReceived(ClientSubscriptionHandle)");
+    h->end();
 }
 
 void
 UaClientCall::onTerminated(ClientSubscriptionHandle h, const SipMessage* msg)
 {
-   if(msg)
-   {
-      InfoLog(<< "onTerminated(ClientSubscriptionHandle): " << msg->brief());
-      //Note:  Final notify is sometimes only passed in the onTerminated callback
-      if (msg->isRequest() && msg->exists(h_Event) && msg->header(h_Event).value() == "refer")
-      {
-         //process Refer Notify Here
-      }
-   }
-   else
-   {
-      InfoLog(<< "onTerminated(ClientSubscriptionHandle)");
-   }
+    if(msg)
+    {
+        InfoLog(<< "onTerminated(ClientSubscriptionHandle): " << msg->brief());
+        //Note:  Final notify is sometimes only passed in the onTerminated callback
+        if(msg->isRequest() && msg->exists(h_Event) && msg->header(h_Event).value() == "refer")
+        {
+            //process Refer Notify Here
+        }
+    }
+    else
+    {
+        InfoLog(<< "onTerminated(ClientSubscriptionHandle)");
+    }
 }
 
 void
 UaClientCall::onNewSubscription(ClientSubscriptionHandle h, const SipMessage& msg)
 {
-   InfoLog(<< "onNewSubscription(ClientSubscriptionHandle): " << msg.brief());
+    InfoLog(<< "onNewSubscription(ClientSubscriptionHandle): " << msg.brief());
 }
 
-int 
+int
 UaClientCall::onRequestRetry(ClientSubscriptionHandle h, int retrySeconds, const SipMessage& msg)
 {
-   InfoLog(<< "onRequestRetry(ClientSubscriptionHandle): " << msg.brief());
-   return -1;
+    InfoLog(<< "onRequestRetry(ClientSubscriptionHandle): " << msg.brief());
+    return -1;
 }
 
-void 
+void
 UaClientCall::onRedirectReceived(AppDialogSetHandle h, const SipMessage& msg)
 {
-   InfoLog(<< "onRedirectReceived: msg=" << msg.brief());
+    InfoLog(<< "onRedirectReceived: msg=" << msg.brief());
 }
 void UaClientCall::createRtpServer(short localport, const char* peerIp, short peerPort)
 {
     rtp_ctx = new rtp_receiver(localport, peerIp, peerPort);
-    if (rtp_ctx)
+    if(rtp_ctx)
     {
         rtp_ctx->initRtpContext(0, 96, "PS");
         rtp_ctx->run();
@@ -1373,30 +1726,30 @@ void UaClientCall::createRtpServer(short localport, const char* peerIp, short pe
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are 
+ modification, are permitted provided that the following conditions are
  met:
 
- 1. Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
 
  2. Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution. 
+    documentation and/or other materials provided with the distribution.
 
- 3. Neither the name of SIP Spectrum nor the names of its contributors 
-    may be used to endorse or promote products derived from this 
-    software without specific prior written permission. 
+ 3. Neither the name of SIP Spectrum nor the names of its contributors
+    may be used to endorse or promote products derived from this
+    software without specific prior written permission.
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  ==================================================================== */
@@ -1405,7 +1758,7 @@ RequestStreamTask::RequestStreamTask(std::string dId, std::string dIp, int dPort
     :devId(dId), devIp(dIp), devPort(dPort), channelId(channelId), mUserAgent(userAgent), rtpPort(iRtpPort), rtpType(rtptype), pmAlegCall(pAlegcall)
     , sessionName(sesName), startTime(stime), stopTime(etime)
 {
-    if (sessionName == "Play")
+    if(sessionName == "Play")
     {
         streamId = channelId;// std::str_format("%s_%s", devId.c_str(), channelId.c_str());
     }
@@ -1418,25 +1771,25 @@ RequestStreamTask::RequestStreamTask(std::string dId, std::string dIp, int dPort
 }
 bool RequestStreamTask::TaskRun()
 {
-    if (pmAlegCall)
+    if(pmAlegCall)
     {
-        if (pmAlegCall->sessionName == Data("Play"))
+        if(pmAlegCall->sessionName == Data("Play"))
         {
-            if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
+            if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
             {
-                if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, rtpPort, rtpType, pmAlegCall))
+                if(mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, rtpPort, rtpType, pmAlegCall))
                 {
                     UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
-                    while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
+                    while(state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
                     {
                         state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
-                        switch (state)
+                        switch(state)
                         {
                         case UaClientCall::CALL_UAC_FAILURE:
                         {
-                            if (pmAlegCall)
+                            if(pmAlegCall)
                             {
-                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                if(pmAlegCall->getInviteSessionHandle().isValid())
                                 {
                                     WarningCategory warning;
                                     warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1449,9 +1802,9 @@ bool RequestStreamTask::TaskRun()
                         }
                         case UaClientCall::CALL_UAC_TERMINATED:
                         {
-                            if (pmAlegCall)
+                            if(pmAlegCall)
                             {
-                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                if(pmAlegCall->getInviteSessionHandle().isValid())
                                 {
                                     WarningCategory warning;
                                     warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1466,10 +1819,10 @@ bool RequestStreamTask::TaskRun()
                         case UaClientCall::CALL_MEDIA_READY:
                         case UaClientCall::CALL_UAC_CONNECTED:
                         {
-                            if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 auto dev = mUserAgent.GetStreamInfo(streamId);
-                                if (dev)
+                                if(dev)
                                 {
                                     /*pmAlegCall->pStreamInfo = dynamic_cast<JsonDevice*>(dev);
                                     auto transport = std::make_shared<RTPUdpTransport>();
@@ -1483,7 +1836,7 @@ bool RequestStreamTask::TaskRun()
                                 }
                                 pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
                                 ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
-                                if (uas && !uas->isAccepted())
+                                if(uas && !uas->isAccepted())
                                 {
                                     uas->accept();
                                 }
@@ -1492,9 +1845,9 @@ bool RequestStreamTask::TaskRun()
                         }
                         case UaClientCall::CALL_MEDIA_ERROR:
                         {
-                            if (pmAlegCall)
+                            if(pmAlegCall)
                             {
-                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                if(pmAlegCall->getInviteSessionHandle().isValid())
                                 {
                                     WarningCategory warning;
                                     warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1507,9 +1860,9 @@ bool RequestStreamTask::TaskRun()
                         }
                         case UaClientCall::CALL_MEDIA_TIMEOUT:
                         {
-                            if (pmAlegCall)
+                            if(pmAlegCall)
                             {
-                                if (pmAlegCall->getInviteSessionHandle().isValid())
+                                if(pmAlegCall->getInviteSessionHandle().isValid())
                                 {
                                     WarningCategory warning;
                                     warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1526,13 +1879,13 @@ bool RequestStreamTask::TaskRun()
                     }
                 }
             }
-            else if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+            else if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
             {
-                if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                if(pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
                 {
                     pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
                     ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
-                    if (uas && !uas->isAccepted())
+                    if(uas && !uas->isAccepted())
                     {
                         uas->accept();
                     }
@@ -1541,16 +1894,16 @@ bool RequestStreamTask::TaskRun()
             else
             {
                 UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
-                while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
+                while(state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
                 {
                     state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
-                    switch (state)
+                    switch(state)
                     {
                     case UaClientCall::CALL_UAC_FAILURE:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1563,9 +1916,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_UAC_TERMINATED:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1580,11 +1933,11 @@ bool RequestStreamTask::TaskRun()
                     case UaClientCall::CALL_MEDIA_READY:
                     case UaClientCall::CALL_UAC_CONNECTED:
                     {
-                        if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                        if(pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
                         {
                             pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
                             ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
-                            if (uas && !uas->isAccepted())
+                            if(uas && !uas->isAccepted())
                             {
                                 uas->accept();
                             }
@@ -1593,9 +1946,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_MEDIA_ERROR:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1608,9 +1961,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_MEDIA_TIMEOUT:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1627,21 +1980,21 @@ bool RequestStreamTask::TaskRun()
                 }
             }
         }
-        else if (pmAlegCall->sessionName == Data("Playback"))
+        else if(pmAlegCall->sessionName == Data("Playback"))
         {
-            if (mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
+            if(mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
             {
                 UaClientCall::CALL_STATE state = UaClientCall::CALL_UAC_RES_START;
-                while (state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
+                while(state != UaClientCall::CALL_NOT_FOUND && state != UaClientCall::CALL_MEDIA_STREAM_CLOSED)
                 {
                     state = (UaClientCall::CALL_STATE)mUserAgent.getCallStatus(streamId);
-                    switch (state)
+                    switch(state)
                     {
                     case UaClientCall::CALL_UAC_FAILURE:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1654,9 +2007,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_UAC_TERMINATED:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1671,11 +2024,11 @@ bool RequestStreamTask::TaskRun()
                     case UaClientCall::CALL_MEDIA_READY:
                     case UaClientCall::CALL_UAC_CONNECTED:
                     {
-                        if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                        if(pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
                         {
                             pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
                             ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
-                            if (uas && !uas->isAccepted())
+                            if(uas && !uas->isAccepted())
                             {
                                 uas->accept();
                             }
@@ -1684,9 +2037,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_MEDIA_ERROR:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1699,9 +2052,9 @@ bool RequestStreamTask::TaskRun()
                     }
                     case UaClientCall::CALL_MEDIA_TIMEOUT:
                     {
-                        if (pmAlegCall)
+                        if(pmAlegCall)
                         {
-                            if (pmAlegCall->getInviteSessionHandle().isValid())
+                            if(pmAlegCall->getInviteSessionHandle().isValid())
                             {
                                 WarningCategory warning;
                                 warning.hostname() = DnsUtil::getLocalIpAddress();;
@@ -1718,27 +2071,27 @@ bool RequestStreamTask::TaskRun()
                 }
             }
         }
-        else if (pmAlegCall->sessionName == Data("Download"))
+        else if(pmAlegCall->sessionName == Data("Download"))
         {
         }
     }
     else
     {
-        if (sessionName == "Play")
+        if(sessionName == "Play")
         {
-            if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
+            if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_NOT_STREAM)
             {
-                if (mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, rtpPort, rtpType))
+                if(mUserAgent.RequestLiveStream(devId, devIp, devPort, channelId, 0, rtpPort, rtpType))
                 {
                 }
             }
-            else if (mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
+            else if(mUserAgent.getStreamStatus(streamId) == resip::UaMgr::streamStatus::_UERAGERNT_STREAM_OK)
             {
-                if (pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
+                if(pmAlegCall && pmAlegCall->getInviteSessionHandle().isValid())
                 {
                     pmAlegCall->getInviteSessionHandle()->provideAnswer(pmAlegCall->mResponseSdp);
                     ServerInviteSession* uas = dynamic_cast<ServerInviteSession*>(pmAlegCall->getInviteSessionHandle().get());
-                    if (uas && !uas->isAccepted())
+                    if(uas && !uas->isAccepted())
                     {
                         uas->accept();
                     }
@@ -1746,21 +2099,21 @@ bool RequestStreamTask::TaskRun()
             }
             else
             {
-                
+
             }
         }
-        else if (sessionName == "Playback")
+        else if(sessionName == "Playback")
         {
-            if (mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
+            if(mUserAgent.RequestVodStream(devId, devIp, devPort, channelId, streamId, rtpPort, rtpType, startTime, stopTime))
             {
-                
+
             }
         }
-        else if (sessionName == "Download")
+        else if(sessionName == "Download")
         {
         }
     }
-  
+
     return true;
 };
 
@@ -1799,7 +2152,7 @@ bool PushRtpStream::TaskRun()
     //    //"{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=rtp&stream=34020000001180000800_34020000001320000014"
     //    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     //}
-    if (isStream)
+    if(isStream)
     {
         //std::this_thread::sleep_for(std::chrono::milliseconds(500));
         ostringstream ss;

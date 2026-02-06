@@ -149,12 +149,13 @@ unsigned int JsonStream::DataHeard::GetFrameBufSize()
 	return 0;// GetHeaderLen() + framelen + VKDATA2ENDLEN;
 }
 
-JsonStream::JsonStream(const char* devId, const char* streamId) :MediaStream(devId, streamId), mFrame(512 * 1024), lastTime(0), curTime(0), nFrameNum(0), frameRate(0)
+JsonStream::JsonStream(const char *devId, const char *streamId) :MediaStream(devId, streamId), mFrame(512 * 1024), lastTime(0), curTime(0), nFrameNum(0), frameRate(0)
+,exitCode(false)
 {
 }
 JsonStream::~JsonStream()
 {
-
+	exitCode = true;
 }
 time_t JsonStream::LastFrameTime()
 {
@@ -177,7 +178,15 @@ void CALLBACK JsonStream::DataPlayCallBack(unsigned int PlayHandle, unsigned int
 		pThis->OnVskJsonStream(pBuffer, (size_t)BufferSize);
 	}
 }
-void CALLBACK JsonStream::PlayBackEndCb(unsigned int pbhandle, int errorcode, void* puser)
+void CALLBACK JsonStream::DataPlayCallBack2(unsigned int PlayHandle, unsigned int DateType, uint8_t* pBuffer, unsigned int BufferSize, void* pUser)
+{
+	JsonStream* pThis = (JsonStream*)pUser;
+	if (pThis)
+	{
+		pThis->OnVskJsonStreamToAvFrame(pBuffer, (size_t)BufferSize);
+	}
+}
+void CALLBACK JsonStream::PlayBackEndCb(unsigned int pbhandle, int errorcode, void *puser)
 {
 
 }
@@ -337,7 +346,200 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 		printf("parse vsk frame header failed %02x %02x %02x %02x\r\n", data[0], data[1], data[2], data[3]);
 	}
 }
-int JsonStream::PraseFrameHeard(unsigned char* pbuf, unsigned int buflen, DataHeard* pheard/*out*/, unsigned int* skipsize/*out*/)
+void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
+{
+	DataHeard xDataHeard;
+	xDataHeard.Clear();
+	// printf("-----OnVskJsonStreamToAvFrame call back-----\n");
+
+	unsigned int skipsize = 0;
+	int ret = PraseFrameHeard(data, size, &xDataHeard, &skipsize);
+	if (ret == _VKDATA_OK && (int)xDataHeard.framelen > 0)
+	{
+		/*VideoNoViskHeadFrameInfo xStream;
+		memset(&xStream, 0, sizeof(xStream));
+		xStream.nEncodeType = xDataHeard.codect;
+		xStream.nFrameType = xDataHeard.framet;
+		xStream.nGapMs = xDataHeard.gapms;
+		xStream.nFrameRate = xDataHeard.framerate;*/
+		if (IskeyFrame(xDataHeard) == 1)	// sps, i帧才能获取时间, pps没有时间戳
+		{
+			/*xStream.nWidth = xDataHeard.KeyFramE.vwidth;
+			xStream.nHeight = xDataHeard.KeyFramE.vheight;
+			xStream.nTimeStamp = (uint32)xDataHeard.KeyFramE.timestamp;*/
+		}
+		else if (!xDataHeard.IsVideo())
+		{
+			/*xStream.nAudioChs = xDataHeard.audio.chl;
+			xStream.nSamplingRate = xDataHeard.audio.frate;*/
+		}
+
+		unsigned int heardlen = FrameHeardLen(xDataHeard.codect, xDataHeard.framet);
+
+		if (xDataHeard.codect == PT_H264)
+		{
+			if (xDataHeard.framet == H264E_NALU_SPS || xDataHeard.framet == H264E_NALU_PPS)
+			{
+				mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+			}
+			else
+			{
+				if (nFrameNum == 0)
+				{
+					firstTime = std::chrono::steady_clock::now();
+				}
+				nFrameNum++;
+				latestTime = std::chrono::steady_clock::now();
+				int gap = 0;
+				if (frameRate == 0)
+				{
+					if(xDataHeard.framerate < 15 || xDataHeard.framerate > 60)
+					{
+						frameRate = 30;
+					}
+					else
+					{
+						frameRate = xDataHeard.framerate;
+					}
+				}
+				gap = 1000 / frameRate;
+				
+				if (xDataHeard.framet == H264E_NALU_ISLICE)
+				{
+					curTime = xDataHeard.KeyFramE.timestamp*1000;
+					lastTime = curTime + gap;
+					//printf("json idr:%ld, gapms:%d rate:%d, utc:%ju\n", time(0), gap, frameRate, xDataHeard.KeyFramE.timestamp);
+					if (mFrame.freeSize() < xDataHeard.framelen)
+					{
+						mFrame.resetBuf(xDataHeard.framelen * 2);
+					}
+					LogOut("BLL", L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, xDataHeard.KeyFramE.timestamp);
+					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
+					int ret = 1;
+					while(ret == 1)
+					{
+						ret = OnJsonMediaVideoStream(switchFromToMediacodec(xDataHeard.codect),
+							(uint8_t*)mFrame.data(), mFrame.dataSize(), frameRate, 0, xDataHeard.KeyFramE.vwidth, xDataHeard.KeyFramE.vheight,
+							curTime);
+						if(exitCode)
+						{
+							break;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(5));
+					}
+					// OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t *)mFrame.data(), mFrame.dataSize(), gap);
+					mFrame.clear();
+				}
+				else
+				{
+					int ret = 1;
+					while(ret == 1)
+					{
+						ret = OnJsonMediaVideoStream(switchFromToMediacodec(xDataHeard.codect),
+							data + skipsize + heardlen, xDataHeard.framelen, frameRate, 3, 0, 0, lastTime);
+						if(exitCode)
+						{
+							break;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(5));
+					}
+					lastTime += gap;
+					// OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, gap);
+				}
+			}
+		}
+		else if (xDataHeard.codect == PT_H265)
+		{
+			if (xDataHeard.framet == H265_NALU_VPS || xDataHeard.framet == H265_NALU_SPS || xDataHeard.framet == H265_NALU_PPS)
+			{
+				mFrame.writeBuf((char*)(data + skipsize + heardlen), xDataHeard.framelen);
+			}
+			else
+			{
+				if (nFrameNum == 0)
+				{
+					firstTime = std::chrono::steady_clock::now();
+				}
+				nFrameNum++;
+				latestTime = std::chrono::steady_clock::now();
+				int gap = 0;
+				if (frameRate == 0)
+				{
+					if (xDataHeard.framerate > 0)
+					{
+						gap = 1000 / xDataHeard.framerate;
+					}
+					else
+					{
+						gap = xDataHeard.gapms > 0 ? xDataHeard.gapms : 40;
+					}
+				}
+				else
+				{
+					gap = 1000 / frameRate;
+				}
+				if (xDataHeard.framet == H265_NALU_ISLICE || xDataHeard.framet == H265_NALU_ISLICE_MAX)
+				{
+					curTime = xDataHeard.KeyFramE.timestamp * 1000;
+					lastTime = curTime + gap;
+					if(mFrame.freeSize() < xDataHeard.framelen)
+					{
+						mFrame.resetBuf(xDataHeard.framelen * 2);
+					}
+					LogOut("BLL", L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, curTime);
+					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
+					int ret = 1;
+					while(ret == 1)
+					{
+						ret = OnJsonMediaVideoStream(switchFromToMediacodec(xDataHeard.codect),
+							(uint8_t*)mFrame.data(), mFrame.dataSize(), frameRate, 0, xDataHeard.KeyFramE.vwidth, xDataHeard.KeyFramE.vheight,
+							curTime);
+						if(exitCode)
+						{
+							break;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(5));
+					}
+					// OnMediaStream(switchFromToGB(xDataHeard.codect), (uint8_t *)mFrame.data(), mFrame.dataSize(), gap);
+					mFrame.clear();
+				}
+				else
+				{
+					int ret = 1;
+					while(ret == 1)
+					{
+						ret = OnJsonMediaVideoStream(switchFromToMediacodec(xDataHeard.codect),
+							data + skipsize + heardlen, xDataHeard.framelen, frameRate, 3, 0, 0, lastTime);
+						if(exitCode)
+						{
+							break;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(5));
+					}
+					lastTime += gap;
+					// OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, gap);
+				}
+			}
+		}
+		else
+		{
+
+		}
+		/*xStream.pBuf = pBuffer + skipsize + heardlen;
+		xStream.nFrameLen = xDataHeard.framelen;
+
+		xStream.nUserData = pLinkData->mnUserData;
+		xStream.pUser = pLinkData->mpUser;
+		xStream.nPlayHandle = PlayHandle;*/
+
+		//OnMediaStream(switchFromToGB(xDataHeard.codect), data + skipsize + heardlen, xDataHeard.framelen, xDataHeard.gapms > 0 ? xDataHeard.gapms : 40);
+	}
+	else
+	{
+		LogOut("BLL", L_DEBUG, "parse vsk frame header failed %02x %02x %02x %02x\r\n", data[0], data[1], data[2], data[3]);
+	}
+}
+int JsonStream::PraseFrameHeard(unsigned char *pbuf, unsigned int buflen, DataHeard *pheard/*out*/, unsigned int *skipsize/*out*/)
 {
 	int temnstartpos = MatchDataHeard(pbuf, buflen); //KMPMatch(pbuf, buflen, VISKINGFILEHEARD_2, VKDATA2HEARDLEN);//
 	if (temnstartpos >= 0)
@@ -648,5 +850,22 @@ STREAM_CODEC JsonStream::switchFromToGB(int type)
 	case PT_AAC:
 	default:
 		return GB_CODEC_UNKNOWN;
+	}
+}
+MEDIA_CODEC_TYPE JsonStream::switchFromToMediacodec(int type)
+{
+	switch(type)
+	{
+	case PT_H264:
+		return CODEC_H264;
+	case PT_H265:
+		return CODEC_H265;
+	case PT_G711A:
+	case PT_G711U:
+	case PT_PCMA:
+	case PT_PCMU:
+	case PT_AAC:
+	default:
+		return CODEC_UNKNOW;
 	}
 }

@@ -723,3 +723,100 @@ void AddDeviceItemToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* Device
 void AddIPCInfoToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* DeviceListElement, const CatalogItemExpandInfo* expand)
 {
 }
+bool CreateRecordInfoResponse(const std::string deviceId, const uint32_t sn, int SumNum, const std::vector<RecordInfoResponseItem> &records, std::string &outstr)
+{
+	try
+	{
+		XMLDocument doc;
+		doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\" encoding=\"GB2312\""));
+		XMLElement* ResponseElement = doc.NewElement("Response");
+		doc.InsertEndChild(ResponseElement);
+
+		XMLElement* CmdTypeElement = doc.NewElement("CmdType");
+		CmdTypeElement->InsertEndChild(doc.NewText("RecordInfo"));
+		ResponseElement->InsertEndChild(CmdTypeElement);
+
+		XMLElement* SNElement = doc.NewElement("SN");
+		SNElement->InsertEndChild(doc.NewText(to_string(sn).c_str()));
+		ResponseElement->InsertEndChild(SNElement);
+
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		DeviceIDElement->InsertEndChild(doc.NewText(deviceId.c_str()));
+		ResponseElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* NameElement = doc.NewElement("Name");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		NameElement->InsertEndChild(doc.NewText(deviceId.c_str()));
+		ResponseElement->InsertEndChild(NameElement);
+
+		XMLElement* SumNumElement = doc.NewElement("SumNum");
+		SumNumElement->InsertEndChild(doc.NewText(to_string(SumNum).c_str()));
+		ResponseElement->InsertEndChild(SumNumElement);
+
+		XMLElement* RecordListElement = doc.NewElement("RecordList");
+		RecordListElement->SetAttribute("Num", records.size());			//item num
+		ResponseElement->InsertEndChild(RecordListElement);
+
+		//add item
+		for(auto &it : records)
+		{
+			insertRecordInfo(doc, RecordListElement, it);
+		}
+
+		XMLPrinter printer;
+		doc.Print(&printer);
+		outstr = printer.CStr();
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+void insertRecordInfo(tinyxml2::XMLDocument &doc, XMLElement *RecordListElement, const RecordInfoResponseItem &item)
+{
+	try
+	{
+		XMLElement* ItemElement = doc.NewElement("Item");
+		RecordListElement->InsertEndChild(ItemElement);
+
+		//printf("xml gbid %s\n", item.DeviceID.c_str());
+		XMLElement* DeviceIDElement = doc.NewElement("DeviceID");
+		DeviceIDElement->InsertEndChild(doc.NewText(item.DeviceID.c_str()));
+		ItemElement->InsertEndChild(DeviceIDElement);
+
+		XMLElement* NameElement = doc.NewElement("Name");
+		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+		ItemElement->InsertEndChild(NameElement);
+
+		XMLElement* FilePathElement = doc.NewElement("FilePath");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
+		FilePathElement->InsertEndChild(doc.NewText(item.FilePath.c_str()));
+		ItemElement->InsertEndChild(FilePathElement);
+
+		XMLElement* AddressElement = doc.NewElement("Address");
+		AddressElement->InsertEndChild(doc.NewText(item.Address.c_str()));
+		ItemElement->InsertEndChild(AddressElement);
+
+		XMLElement* StartTimeElement = doc.NewElement("StartTime");
+		StartTimeElement->InsertEndChild(doc.NewText(item.StartTime.c_str()));
+		ItemElement->InsertEndChild(StartTimeElement);
+
+		XMLElement* EndTimeElement = doc.NewElement("EndTime");
+		EndTimeElement->InsertEndChild(doc.NewText(item.EndTime.c_str()));
+		ItemElement->InsertEndChild(EndTimeElement);
+
+		XMLElement* SecrecyElement = doc.NewElement("Secrecy");
+		SecrecyElement->InsertEndChild(doc.NewText(std::to_string(item.Secrecy).c_str()));
+		ItemElement->InsertEndChild(SecrecyElement);
+
+		XMLElement* TypeElement = doc.NewElement("Type");
+		TypeElement->InsertEndChild(doc.NewText(item.RecordType.c_str()));
+		ItemElement->InsertEndChild(TypeElement);
+
+		XMLElement* RecorderIDElement = doc.NewElement("RecorderID");
+		RecorderIDElement->InsertEndChild(doc.NewText(item.RecorderID.c_str()));
+		ItemElement->InsertEndChild(RecorderIDElement);
+	}
+	catch (...)
+	{
+	}
+}
