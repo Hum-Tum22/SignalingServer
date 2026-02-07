@@ -304,7 +304,7 @@ SqliteDb::getUserAuthInfo(const AbstractDb::Key& key) const
         if (bDbPassword)
         {
             MyServerConfig& svrCfgi = GetSipServerConfig();
-            a1 << svrCfgi.getConfigData("password", "12345", true);
+            a1 << svrCfgi.getConfigData("Password", "12345", true);
         }
         else
         {

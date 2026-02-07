@@ -54,6 +54,7 @@ public:
     void UacTimerTask();
     void UaInfoUpdate();
     int NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle &ssph, bool all = false);
+    int NotifyYixinHwInfo(resip::ServerSubscriptionHandle &ssph, bool all = false);
 protected:
     // Postable Handler ////////////////////////////////////////////////////////////
     virtual void post(Message*);  // Used to receive Connection Terminated messages
@@ -216,6 +217,7 @@ public:
 
     
     int getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword, bool notify = false);
+    int getYxDeviceInfo(bool notify = false);
 public:
     resip::ThreadIf* mDumThread;
     CUserMessageMrg* mMessageMgr;

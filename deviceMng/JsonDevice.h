@@ -9,8 +9,8 @@
 class JsonNvrDevic : public BaseDevice
 {
 public:
-    JsonNvrDevic(const char* Id, const char* Ip, int port, const char* name, const char* pswd) :BaseDevice(Id, JSON_NVR),
-        mIP(Ip), mPort(port), mName(name), mPswd(pswd), status(0), mLoginId(0)
+    JsonNvrDevic(const char* Id, const char* Ip, int port, const char* user, const char* pswd) :BaseDevice(Id, JSON_NVR),
+        mIP(Ip), mPort(port), mUser(user), mPswd(pswd), status(0), mLoginId(0)
     {
     };
     ~JsonNvrDevic();
@@ -83,6 +83,12 @@ public:
     void setPswd(const std::string pswd);
     const std::string& getPswd() const;
 
+    void setName(const std::string name);
+    const std::string& getName() const;
+
+    void setGBID(const std::string gbid);
+    const std::string& getGBID() const;
+
     enum JsonPbCtrlCode
     {
         JsonPbCtrl_Play = 0,	// 继续播放
@@ -109,7 +115,9 @@ private:
     std::string mIP;
     short mPort;
     std::string mName;
+    std::string mUser;
     std::string mPswd;
+    std::string mGBID;
     int status;
     ULHandle mLoginId;
 };
@@ -132,6 +140,9 @@ public:
     void setChildIp(std::string Ip);
     const std::string getChildIp();
 
+    void setGBID(std::string gbid);
+    const std::string getGBID();
+
     void setChannel(int chl);
     const int getChannel();
     void setLastPtzCmd(int chl);
@@ -143,6 +154,7 @@ private:
     int status;
     std::string parentId;
     std::string ChildIp;
+    std::string mGBID;
     int channel;
     int ptzCmd;
 };

@@ -47,6 +47,7 @@
 #include "../deviceMng/JsonDevice.h"
 #include "../media/MediaMng.h"
 #include "../media/mediaIn/JsonStream.h"
+#include "dbManager.h"
 
 #include <memory>
 #include <string.h>
@@ -55,6 +56,7 @@
 #include "stringbuffer.h"
 #include "document.h"
 #include <iomanip>
+#include <list>
 using namespace resip;
 using namespace std;
 #define RESIPROCATE_SUBSYSTEM Subsystem::TEST
@@ -939,7 +941,11 @@ void
 UaMgr::sendNotify(resip::ServerSubscriptionHandle& h, bool all)
 {
     //NotifyQDCCTVNodeInfo(h, all);
+#ifdef QINGDONG_CCTV
     ThreadPool::Instance().submit(std::bind(&UaMgr::NotifyQDCCTVNodeInfo, this, h, all));
+#elif YIXIN_HUAWEI
+    ThreadPool::Instance().submit(std::bind(&UaMgr::NotifyYixinHwInfo, this, h, all));
+#endif
 }
 
 void
@@ -1758,6 +1764,64 @@ void getJsonNvrChannelStatus(BaseDevice::Ptr& dev, std::map<std::string, int>& s
         }
     }
 }
+
+void getJsonNvrChannelList(BaseDevice::Ptr dev, std::list<JsonChildDevic> &channelList)
+{
+    if(dev->devType == BaseDevice::JSON_NVR)
+    {
+        auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
+        if(Nvr)
+        {
+            int err = 0;
+            uint32_t msgSize = 4 * 1024 * 1024;
+            char* Buffer = new char[msgSize];
+            Nvr->Dev_ListIPC(Buffer, msgSize, err);
+            if(err == 0)
+            {
+                rapidjson_sip::Document document;
+                document.Parse(Buffer);
+                if(!document.HasParseError())
+                {
+                    if(document.HasMember("ipc_list") && document["ipc_list"].IsArray())
+                    {
+                        rapidjson_sip::Value& body = document["ipc_list"];
+                        for(uint32_t i = 0; i < body.Size(); i++)
+                        {
+                            std::string devNum = json_check_string(body[i], "device_number");
+                            std::string channelName = json_check_string(body[i], "device_name");
+                            int channelNo = json_check_int32(body[i], "chid");
+                            int online = json_check_int32(body[i], "online_status");
+                            // CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, channelNo, &channelInfo);
+                            // if(channelList.getDeviceId().empty())
+                            // {
+                            //     CDbManager::Instance().AddSubDeviceInfo(dev->deviceId, "", channelNo, channelName);
+                            //     CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, channelNo, &channelInfo);
+                            // }
+                            JsonChildDevic childDev("");
+                            childDev.setStatus(online);
+                            childDev.setName(channelName);
+                            childDev.setParentId(dev->deviceId);
+                            childDev.setChildIp("");
+                            childDev.setGBID("");
+                            childDev.setChannel(channelNo + 1);
+                            channelList.emplace_back(childDev);
+                            // std::string name;
+                            // int status;
+                            // std::string parentId;
+                            // std::string mGBID;
+                            // int channel;
+                        }
+                    }
+                }
+            }
+            if(Buffer)
+            {
+                delete[] Buffer; Buffer = NULL;
+            }
+        }
+    }
+}
+
 int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort, std::string& upPassword, bool notify)
 {
     Data httpUrl("http://");
@@ -1798,7 +1862,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
         if(document.HasParseError() || !document.IsObject())
         {
-            LogOut(HTTP, L_DEBUG, "json error:%s,    res:%d", dirstr.c_str(), res);
+            LogOut(HTTP, L_DEBUG, "json error:%s,    res:%d", dirstr.c_str(), res.Code());
         }
         else
         {
@@ -2157,6 +2221,112 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     }
     return 0;
 }
+int UaMgr::getYxDeviceInfo(bool notify)
+{
+    std::list<std::shared_ptr<JsonNvrDevic>> devList;
+    CDbManager::Instance().QueryDeviceInfoList(devList);
+    for(auto &it :devList)
+    {
+        BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(it->deviceId);
+        if(dev)
+        {
+            if(dev->devType == BaseDevice::JSON_NVR)
+            {
+                auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
+                if(Nvr)
+                {
+                    if(Nvr->getIp() != it->getIp())
+                    {
+                        Nvr->setIp(it->getIp());
+                    }
+                    if(Nvr->getPort() != it->getPort())
+                    {
+                        Nvr->setPort(it->getPort());
+                    }
+                    if(Nvr->getUser() != it->getUser())
+                    {
+                        Nvr->setUser(it->getUser());
+                    }
+                    if(Nvr->getPswd() != it->getPswd())
+                    {
+                        Nvr->setPswd(it->getPswd());
+                    }
+                    if(Nvr->getName() != it->getName())
+                    {
+                        Nvr->setName(it->getName());
+                    }
+                    if(Nvr->getGBID() != it->getGBID())
+                    {
+                        Nvr->setGBID(it->getGBID());
+                    }
+                }
+            }
+        }
+        else
+        {
+            DeviceMng::Instance().addDevice(it);
+        }
+    }
+
+    std::list<JsonChildDevic> channelList;
+    CDbManager::Instance().QuerySubDeviceInfoList(channelList);
+    for(auto & it: channelList)
+    {
+        BaseChildDevice* child = DeviceMng::Instance().findChildDevice(it.getDeviceId());
+        if(child)
+        {
+            if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+            {
+                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                if(jsonChild)
+                {
+                    if(jsonChild->getName() != it.getName())
+                    {
+                        jsonChild->setName(it.getName());
+                    }
+                    if(jsonChild->getParentId() != it.getParentId())
+                    {
+                        jsonChild->setParentId(it.getParentId());
+                    }
+                    if(jsonChild->getGBID() != it.getGBID())
+                    {
+                        jsonChild->setGBID(it.getGBID());
+                    }
+                    if(jsonChild->getChannel() != it.getChannel())
+                    {
+                        jsonChild->setChannel(it.getChannel());
+                    }
+                }
+            }
+        }
+        else
+        {
+            auto chidDev = new JsonChildDevic(it.getDeviceId().c_str());
+            chidDev->setStatus(0);
+            chidDev->setParentId(it.getParentId());
+            chidDev->setName(it.getName());
+            chidDev->setGBID(it.getGBID());
+            chidDev->setChannel(it.getChannel());
+            DeviceMng::Instance().addChildDevice(chidDev);
+        }
+    }
+    MyServerConfig& svrCfgi =GetSipServerConfig();
+    resip::Uri target;
+    resip::Data upId("34020000002000000002");
+    target.user() = svrCfgi.getConfigData("UPID", upId);
+    resip::Data uphost("192.168.1.223");
+    target.host() = svrCfgi.getConfigData("UPHOST", uphost);
+    target.port() = svrCfgi.getConfigInt("UPPORT", 8080);
+    resip::Data passwd = svrCfgi.getConfigData("UPPASSWORD", passwd);
+    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
+    std::cout << "yixin config " << upId << " " << uphost << " " << target.port() << " " << passwd << std::endl;
+    // Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
+    if(!(target.user().empty() || target.user().size() < 20))
+    {
+        DoRegist(target, passwd, "YXHW");
+    }
+    return 0;
+}
 int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAll)
 {
     Data httpUrl("http://");
@@ -2201,7 +2371,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
         rapidjson_sip::ParseResult res = document.Parse((char*)dirstr.c_str());
         if(document.HasParseError() || !document.IsObject())
         {
-            LogOut(HTTP, L_DEBUG, "json error:%s,    res:%d, %s", dirstr.c_str(), res, str_time.c_str());
+            LogOut(HTTP, L_DEBUG, "json error:%s,    res:%d, %s", dirstr.c_str(), res.Code(), str_time.c_str());
         }
         else
         {
@@ -2628,6 +2798,68 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
     }
     return count;
 }
+int UaMgr::NotifyYixinHwInfo(resip::ServerSubscriptionHandle& ssph, bool isAll)
+{
+
+    auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&t), "%Y年%m月%d日%H时%M分%S秒");
+    std::string str_time = ss.str();
+
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
+    std::list<std::shared_ptr<JsonNvrDevic>> devList;
+    CDbManager::Instance().QueryDeviceInfoList(devList);
+    for(auto &it :devList)
+    {
+        std::list<JsonChildDevic> channelList;
+        getJsonNvrChannelList(it, channelList);
+        for(auto &item : channelList)
+        {
+            BaseChildDevice* child = DeviceMng::Instance().findChildDevice(item.getDeviceId());
+            if(child)
+            {
+                if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
+                {
+                    JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                    if(jsonChild)
+                    {
+                        if(jsonChild->getName() != item.getName() || jsonChild->getParentId() != it->deviceId)
+                        {
+                            jsonChild->setParentDev(it);
+                            jsonChild->setName(item.getName());
+                            jsonChild->setStatus(item.getStatus());
+                            jsonChild->setParentId(it->deviceId);
+                            LogOut(HTTP, L_DEBUG, "update gbid name:%s %s status:%d", item.getDeviceId().c_str(), item.getName().c_str(), item.getStatus());
+
+                            std::string outStr;
+                            CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(CSubscriptionMrg::EVENT_UPDATE), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                            CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
+                        }
+                        else if(isAll || jsonChild->getStatus() != item.getStatus())
+                        {
+
+                            jsonChild->setStatus(item.getStatus());
+                            LogOut(HTTP, L_DEBUG, "status change gbid name:%s %s status:%d", item.getDeviceId().c_str(), item.getName().c_str(), item.getStatus());
+
+                            std::string outStr;
+                            CreateNotifyCatalog(myId.c_str(), mMessageMgr->getMsgId(), CSubscriptionMrg::eventToString(item.getStatus() ? CSubscriptionMrg::EVENT_ON : CSubscriptionMrg::EVENT_OFF), jsonChild->GetCatalogItem(myId.c_str()), NULL, outStr);
+                            CSubscriptionMrg::Instance().NotifyCatalogByHandle(ssph, outStr);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    LogOut(HTTP, L_DEBUG, "NotifySendTime %s", str_time.c_str());
+    if(ssph.isValid())
+    {
+        std::unique_ptr<ApplicationMessage> timer(new NotifyTimer(*this, ++mCurrentNotifyTimerId, ssph));
+        mStack.post(std::move(timer), NotifySendTime, mDum);
+    }
+    return 0;
+}
 void UaMgr::UaInfoUpdate()
 {
 #ifdef QINGDONG_CCTV
@@ -2685,6 +2917,8 @@ void UaMgr::UaInfoUpdate()
             LogOut(HTTP, L_DEBUG, "DoRegist   error");
         }
     }
+#elif YIXIN_HUAWEI
+    getYxDeviceInfo();
 #endif
 }
 void UaMgr::checkStateThread()

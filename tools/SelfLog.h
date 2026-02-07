@@ -96,6 +96,8 @@ typedef enum
     BLL = MOD6,
     CONFIG = MOD7,
     THREAD = MOD8,
+    DB = MOD9,
+    TOOL= MOD10,
     CUSTOM_MAX_LOG_MODULE,
 } CUSTOM_LOG_MODULE; ///< 该枚举定义可以跟据需要自由修改
 

@@ -352,19 +352,26 @@ SipServer::run(int argc, char** argv)
     LogTargetSet(output);
     resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", ".", true);
     resip::Data logFileName = mProxyConfig->getConfigData("LogName", "File", true);
-    int level = mProxyConfig->getConfigInt("HTTP", L_ERROR);
+    int level = mProxyConfig->getConfigInt("HTTP", L_DEBUG);
     LogLevelSet(HTTP, level);
-    level = mProxyConfig->getConfigInt("SIPMSG", L_ERROR);
+    level = mProxyConfig->getConfigInt("SIPMSG", L_DEBUG);
     LogLevelSet(SIPMSG, level);
-    level = mProxyConfig->getConfigInt("CTRL", L_ERROR);
+    level = mProxyConfig->getConfigInt("CTRL", L_DEBUG);
     LogLevelSet(CTRL, level);
-    level = mProxyConfig->getConfigInt("SDK", L_ERROR);
+    level = mProxyConfig->getConfigInt("SDK", L_DEBUG);
     LogLevelSet(SDK, level);
-    level = mProxyConfig->getConfigInt("MEDIA", L_ERROR);
+    level = mProxyConfig->getConfigInt("MEDIA", L_DEBUG);
     LogLevelSet(MEDIA, level);
     // BLL represents "Business Logic Layer."
-    level = mProxyConfig->getConfigInt("BLL", L_ERROR);
+    level = mProxyConfig->getConfigInt("BLL", L_DEBUG);
     LogLevelSet(BLL, level);
+    level = mProxyConfig->getConfigInt("DB", L_DEBUG);
+    LogLevelSet(DB, level);
+    level = mProxyConfig->getConfigInt("CONFIG", L_DEBUG);
+    LogLevelSet(CONFIG, level);
+    level = mProxyConfig->getConfigInt("THREAD", L_DEBUG);
+    LogLevelSet(CONFIG, level);
+    
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 
@@ -478,19 +485,19 @@ SipServer::run(int argc, char** argv)
     //#endif
     //
     //    Uri target;// ("sip:34020000002000000002@192.168.2.140:5060");
-    //#ifdef QINGDONG_CCTV
+    // #ifdef QINGDONG_CCTV
     //    target.user() = upID.c_str();
     //    target.host() = upHost.c_str();
     //    target.port() = upPort;
     //    passwd = upPassword.c_str();
-    //#else
+    // #else
     //    Data upId("34020000002000000002");
     //    target.user() = mProxyConfig->getConfigData("UPID", upId);
     //    Data uphost("192.168.1.223");
     //    target.host() = mProxyConfig->getConfigData("UPHOST", uphost);
     //    target.port() = mProxyConfig->getConfigInt("UPPORT", 8080);
     //    passwd = mProxyConfig->getConfigData("UPPASSWORD", passwd);
-    //#endif
+    // #endif
     //    //Uri target("sip:34021000002000000001@192.168.1.138:5060");
     //    std::cout << "cctv config " << upID << " " << upHost << " " << upPort << " " << upPassword << std::endl;
     //    Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");

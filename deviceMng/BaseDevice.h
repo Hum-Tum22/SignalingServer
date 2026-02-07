@@ -47,10 +47,11 @@ public:
     virtual ~BaseChildDevice() {};
     const std::string& getDeviceId() { return deviceId; };
 
+    void setId(const std::string id) { deviceId = id; };
     void setParentDev(BaseDevice::Ptr dev) { mParentDev = dev; };
     const BaseDevice::Ptr getParentDev() { return mParentDev; };
 
 private:
-    const std::string deviceId;
+    std::string deviceId;
     BaseDevice::Ptr mParentDev;
 };

@@ -772,7 +772,7 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                     offset += sizeof(pts);
                     if(frame.IsKeyFram())
                     {
-                        LogOut(BLL, L_DEBUG, "ws send I frame time:%llu: frame time:%llu", m_clock, frame.PTS());
+                        LogOut(BLL, L_DEBUG, "ws send I frame time:%ju: frame time:%ju", m_clock, frame.PTS());
                     }
                     else
                     {

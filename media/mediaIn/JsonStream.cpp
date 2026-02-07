@@ -413,7 +413,7 @@ void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
-					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, xDataHeard.KeyFramE.timestamp);
+					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%ju frame rate:%u,timestamp:%ju", nFrameNum, frameRate, xDataHeard.KeyFramE.timestamp);
 					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
 					int ret = 1;
 					while(ret == 1)
@@ -486,7 +486,7 @@ void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 					{
 						mFrame.resetBuf(xDataHeard.framelen * 2);
 					}
-					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%llu frame rate:%u,timestamp:%llu", nFrameNum, frameRate, curTime);
+					LogOut(BLL, L_DEBUG, "recv I frame; frame number:%ju frame rate:%u,timestamp:%ju", nFrameNum, frameRate, curTime);
 					mFrame.writeBuf((char *)(data + skipsize + heardlen), xDataHeard.framelen);
 					int ret = 1;
 					while(ret == 1)

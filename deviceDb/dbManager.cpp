@@ -1,11 +1,15 @@
 #include "dbManager.h"
-
+#include "SelfLog.h"
+#include "TypeConversion.h"
+#include "SipServerConfig.h"
 #include <string.h>
+#include <unistd.h>
+#include <sstream>
 
 
 const static char *gpDeviceInfoSql = "CREATE TABLE IF NOT EXISTS `device_info` (" \
 "  `id` INT NOT NULL AUTO_INCREMENT,"  \
-"  `deviceId` VARCHAR(20) NOT NULL,"  \
+"  `GBID` VARCHAR(20) NOT NULL,"  \
 "  `deviceIp` VARCHAR(45) NULL,"  \
 "  `devicePort` INT NULL,"  \
 "  `deviceUser` VARCHAR(45) NULL,"  \
@@ -15,22 +19,28 @@ const static char *gpDeviceInfoSql = "CREATE TABLE IF NOT EXISTS `device_info` (
 "  `updateTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
 "  PRIMARY KEY(`id`),"  \
 "      UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE,"  \
-"      UNIQUE INDEX `deviceId_UNIQUE` (`deviceId` ASC) VISIBLE)"  \
+"      UNIQUE INDEX `GBID_UNIQUE` (`GBID` ASC) VISIBLE)"  \
 "  ENGINE = InnoDB"  \
 "  DEFAULT CHARACTER SET = utf8mb4"  \
 "  COLLATE = utf8mb4_0900_ai_ci;";
 
 const static char *gpDeviceChannelInfoSql = "CREATE TABLE IF NOT EXISTS `sub_device_info` (" \
 "  `id` INT NOT NULL AUTO_INCREMENT,"  \
-"  `deviceId` VARCHAR(20) NOT NULL,"  \
-"  `channelNo` INT NULL,"  \
+"  `parentId` INT NOT NULL,"  \
+"  `GBID` VARCHAR(20) NOT NULL,"  \
+"  `channelNo` INT NOT NULL DEFAULT 0,"  \
 "  `channelName` VARCHAR(255) NULL,"  \
 "  `createTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,"  \
 "  `updateTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
 "  PRIMARY KEY(`id`),"  \
-"      UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE,"  \
-"      UNIQUE INDEX `deviceId_UNIQUE` (`deviceId` ASC) VISIBLE)"  \
-"  ENGINE = InnoDB"  \
+"      UNIQUE INDEX `id_UNIQUE` (`id` ASC),"  \
+"      UNIQUE INDEX `GBID_UNIQUE` (`GBID`),"  \
+"      UNIQUE INDEX `uk_parent_channel` (`parentId`, `channelNo`),"  \
+"    CONSTRAINT `fk_sub_device_parent`"
+"    FOREIGN KEY (`parentId`) REFERENCES `device_info` (`id`)"
+"    ON DELETE CASCADE"
+"    ON UPDATE RESTRICT"
+") ENGINE = InnoDB"  \
 "  DEFAULT CHARACTER SET = utf8mb4"  \
 "  COLLATE = utf8mb4_0900_ai_ci;";
 
@@ -40,20 +50,39 @@ CDbManager& CDbManager::Instance()
     return g_CDbManager;
 }
 CDbManager::CDbManager() : user("root")
-, password("qd123456")
-, mDbName("GB28181")
-, mDbIp("192.168.1.223")
+, password("123456")    //Vsk@2025?CMS
+, mDbName("yixin")
+, mDbIp("127.0.0.1")
 , port(3306)
 , mIsConnect(false)
 {
 #ifdef USE_MYSQL
     mysql = mysql_init(NULL);
 #endif
-    // memset(mstrDbError, 0, gnErrBufSize + 1);
+    MyServerConfig& svrCfgi =GetSipServerConfig();
 
-	// mbConnected = false;
-	// mnConnectedValidTime = 0;
-	// NLogDebug(MOD8, "new CMySql end: %d", mbConnected);
+    resip::Data dbName = svrCfgi.getConfigData("dbName", "yixin", true);
+    if(dbName.empty())
+    {
+        mDbName = dbName.c_str();
+    }
+    
+    resip::Data dbIp = svrCfgi.getConfigData("dbIp", "127.0.0.1", true);
+    if(!dbIp.empty())
+    {
+        mDbIp = dbIp.c_str();
+    }
+    
+    resip::Data dbPswd = svrCfgi.getConfigData("Password", "", true);
+    if(!dbPswd.empty())
+    {
+        password = dbPswd.c_str();
+    }
+    int dbport = svrCfgi.getConfigInt("dbPort", 0);
+    if(dbport > 0)
+    {
+        port = dbport;
+    }
 }
 
 CDbManager::~CDbManager()
@@ -100,6 +129,172 @@ int CDbManager::InitTableData()
     return 0;
 }
 
+int CDbManager::QueryDeviceInfoList(std::list<std::shared_ptr<JsonNvrDevic>> &devList)
+{
+    std::ostringstream oss;
+    oss << "select id,GBID,deviceIp,devicePort,deviceUser,devicePswd,deviceName from device_info";
+    oss.flush();
+    std::string strSql = oss.str();
+    std::list< std::vector<std::string> >  xResult;
+    if(!ExecSelect(strSql.c_str(), xResult))
+    {
+        LogOut(DB, L_ERROR, "QueryDeviceNodeInfo ExecSelect failed 0");
+        return -1;
+    }
+    //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
+    for(auto & it: xResult)
+    {
+        if(it.size() < 7)
+        {
+            continue;
+        }
+        
+        int nIndex = 0;
+        std::string nvrId = it[nIndex++];
+        std::string GBID = it[nIndex++];
+        std::string devIp = it[nIndex++];
+        int devPort = String2Int(it[nIndex++]);
+        std::string devUser = it[nIndex++];
+        std::string devPswd = it[nIndex++];
+        std::string devName = it[nIndex++];
+        auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), devIp.c_str(), devPort, devUser.c_str(), devPswd.c_str());
+        jsonNvr->setStatus(0);
+        jsonNvr->setName(devName);
+        jsonNvr->setGBID(GBID);
+        devList.emplace_back(jsonNvr);
+    }
+    return 0;
+}
+int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList)
+{
+    std::ostringstream oss;
+    oss << "select id,parentId,GBID,channelNo,channelName from sub_device_info";
+    oss.flush();
+    std::string strSql = oss.str();
+    std::list< std::vector<std::string> >  xResult;
+    if(!ExecSelect(strSql.c_str(), xResult))
+    {
+        LogOut(DB, L_INFO, "QueryDeviceNodeInfo ExecSelect failed 0");
+        return -1;
+    }
+    //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
+    for(auto & it: xResult)
+    {
+        if(it.size() < 5)
+        {
+            continue;
+        }
+        
+        int nIndex = 0;
+        std::string dbId = it[nIndex++];
+        std::string parentId = it[nIndex++];
+        std::string GBID = it[nIndex++];
+        int channelNo = String2Int(it[nIndex++]);
+        std::string name = it[nIndex++];
+        JsonChildDevic channelInfo(dbId.c_str());
+        channelInfo.setStatus(0);
+        channelInfo.setParentId(parentId);
+        channelInfo.setName(name);
+        channelInfo.setGBID(GBID);
+        channelInfo.setChannel(channelNo);
+        channelList.emplace_back(channelInfo);
+    }
+    return 0;
+}
+int CDbManager::QuerySubDeviceInfo(const std::string parentId, const int chlNo, JsonChildDevic &channelInfo)
+{
+    std::ostringstream oss;
+    oss << "select id,parentId,GBID,channelNo,channelName from sub_device_info where parentId='" << parentId << "' and channelNo='" << chlNo << "';";
+    oss.flush();
+    std::string strSql = oss.str();
+    std::vector<std::string>  xResult;
+    if(!ExecOneStringRowSelect(strSql.c_str(), xResult))
+    {
+        LogOut(DB, L_INFO, "QueryDeviceNodeInfo ExecSelect failed 0");
+        return -1;
+    }
+    //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
+
+    if(xResult.size() < 5)
+    {
+        return -2;
+    }
+    
+    int nIndex = 0;
+    std::string dbId = xResult[nIndex++];
+    std::string nvrId = xResult[nIndex++];
+    std::string GBID = xResult[nIndex++];
+    int channelNo = String2Int(xResult[nIndex++]);
+    std::string name = xResult[nIndex++];
+    channelInfo.setId(dbId);
+    channelInfo.setStatus(0);
+    channelInfo.setParentId(nvrId);
+    channelInfo.setName(name);
+    channelInfo.setGBID(GBID);
+    channelInfo.setChannel(channelNo);
+    return 0;
+}
+int CDbManager::IsExistSubDeviceInfo(const std::string parentId, const int chlNo)
+{
+    // std::ostringstream oss;
+    // oss << "select id,GBID,deviceIp,devicePort,deviceUser,devicePswd,deviceName from device_info";
+    // oss.flush();
+    // std::string strSql = oss.str();
+    // std::list< std::vector<std::string> >  xResult;
+    // if(!ExecSelect(strSql.c_str(), xResult))
+    // {
+    //     LogOut(DB, L_INFO, "QueryDeviceNodeInfo ExecSelect failed 0");
+    //     return ERR_IV_DB_EXECUTE;
+    // }
+    // //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
+    // for(auto & it: xResult)
+    // {
+    //     const std::vector<std::string>& xVec = *iter;
+    //     if(it.size() < 7)
+    //     {
+    //         continue;
+    //     }
+        
+    //     int nIndex = 0;
+    //     std::string nvrId = it[nIndex++];
+    //     std::string GBID = it[nIndex++];
+    //     std::string devIp = it[nIndex++];
+    //     int devPort = StringToInt(it[nIndex++]);
+    //     std::string devUser = it[nIndex++];
+    //     std::string devPswd = it[nIndex++];
+    //     std::string devName = it[nIndex++];
+    //     auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), devIp.c_str(), devPort, devUser.c_str(), devPswd.c_str());
+    //     jsonNvr->setStatus(0);
+    //     jsonNvr->setName(devName);
+    //     jsonNvr->setGBID(GBID);
+    //     devList.push(jsonNvr);
+    // }
+    return 0;
+}
+int CDbManager::AddSubDeviceInfo(const std::string parentId, const std::string gbid, const int chlNo, const std::string name)
+{
+    std::ostringstream oss;
+    oss << "insert into sub_device_info (id, parentId, GBID, channelNo, channelName )";
+    oss << " values (";
+    oss << "NULL,";
+    oss << "'" << parentId;
+    oss << "', '" << gbid;
+    oss << "', '" << chlNo;
+    oss << "', '" << name << "'";
+    // oss << "', DEFAULT";
+    // oss << ", DEFAULT";
+    oss << ");";
+    oss.flush();
+    std::string strSql = oss.str();
+    uint32_t nDataID = 0;
+    if(!ExecInsert(strSql.c_str(), nDataID))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    return 0;
+}
+
 bool CDbManager::ConnectDb(const char* pCharSet/* = "utf8mb4"*/)
 {
     std::unique_lock<std::mutex> lock(dbMtx);
@@ -119,23 +314,29 @@ bool CDbManager::ConnectDb(const char* pCharSet/* = "utf8mb4"*/)
     const char *key_file = "/var/lib/mysql/client-key.pem";
     const char *cert_file = "/var/lib/mysql/client-cert.pem";
     const char *ca_file = "/var/lib/mysql/ca.pem";
+    unsigned long clientflag = 0;
 
-    if (mysql_ssl_set(mysql, key_file, cert_file, ca_file, NULL, NULL) != 0)
-    {         /* CRL path */
-        // NLogDebug(MOD8, "Error setting SSL parameters");
-        return false;
+    if(access(key_file, F_OK) == 0 && access(cert_file, F_OK) == 0 && access(ca_file, F_OK) == 0)
+    {
+        if (mysql_ssl_set(mysql, key_file, cert_file, ca_file, NULL, NULL) != 0)
+        {         /* CRL path */
+            // NLogDebug(MOD8, "Error setting SSL parameters");
+            return false;
+        }
+        clientflag = CLIENT_SSL;
     }
+    
 
 	//nRes = mysql_options(mysql, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
 	//nRes = mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "utf8");
 
 	bool result = false;
-	if(mysql_real_connect(mysql, mDbIp.c_str(), user.c_str(), password.c_str(), mDbName.c_str(), port,NULL,CLIENT_SSL))//localhost
+	if(mysql_real_connect(mysql, mDbIp.c_str(), user.c_str(), password.c_str(), mDbName.c_str(), port,NULL, clientflag))//localhost
 	{ 
 		// 这个日志会在 获取版本信息中也打印出来， 不再显示。
-		//NLogDebug(MOD8, "CDbManager::ConnectDb 1 ip:%s port:%d name:%s pswd:%s successful!", mxDbConfig.mstrDbIP.c_str(), mxDbConfig.mnDbPort, mxDbConfig.mstrDbName.c_str(), mxDbConfig.mstrDbPassword.c_str());
+		LogOut(DB, L_INFO, "ConnectDb 1 ip:%s port:%d name:%s pswd:%s successful!", mDbIp.c_str(), port, mDbName.c_str(), password.c_str());
 		
-		// mbConnected = true;
+		mIsConnect = true;
 		// mnConnectedValidTime = time(0) + gnDbStateValidPeriodS;
 		result = true;
 	}
@@ -145,7 +346,7 @@ bool CDbManager::ConnectDb(const char* pCharSet/* = "utf8mb4"*/)
 		if (nErr == CR_ALREADY_CONNECTED)
 		{
 			// snprintf(mstrDbError, gnErrBufSize, "connect error no=%d,msg = %s, res:%d\n", nErr, mysql_error(mysql), nRes);
-			// NLogDebug(MOD8, "CDbManager::ConnectDb 2 ip:%s port:%d name:%s pswd:%s successful!", mxDbConfig.mstrDbIP.c_str(), mxDbConfig.mnDbPort, mxDbConfig.mstrDbName.c_str(), mxDbConfig.mstrDbPassword.c_str(), mstrDbError);
+			LogOut(DB, L_INFO, "ConnectDb 2 ip:%s port:%d name:%s pswd:%s errmsg:%s", mDbIp.c_str(), port, mDbName.c_str(), password.c_str(), mysql_error(mysql));
 
             mIsConnect = true;
 			result = true;
@@ -154,7 +355,7 @@ bool CDbManager::ConnectDb(const char* pCharSet/* = "utf8mb4"*/)
 		{
 			// error:CDbManager::ConnectDb 3 ip:127.0.0.1 port:3306 name:iv_db pswd:Ivillege error: connect error no=2003,msg = Can't connect to MySQL server on '127.0.0.1' (111)
 			// snprintf(mstrDbError, gnErrBufSize, "connect error no=%d,msg = %s\n", nErr, mysql_error(mysql));	
-			// NLogError(MOD8, "CDbManager::ConnectDb 3 ip:%s port:%d name:%s pswd:%s error: %s", mxDbConfig.mstrDbIP.c_str(), mxDbConfig.mnDbPort, mxDbConfig.mstrDbName.c_str(), mxDbConfig.mstrDbPassword.c_str(), mstrDbError);
+			LogOut(DB, L_INFO, "ConnectDb 3 ip:%s port:%d name:%s pswd:%s error: %s", mDbIp.c_str(), port, mDbName.c_str(), password.c_str(), mysql_error(mysql));
 			result = false;
 		}
 	}
@@ -513,12 +714,12 @@ bool CDbManager::ExecDbSQL(const char* sql)
 		{
 			if (no == CR_SERVER_LOST || no == CR_SERVER_GONE_ERROR)
 			{
-				// NLogError(MOD8, "mysqld down sql:%s ;error msg: %d %s", sql, no, mstrDbError);
+				LogOut(DB, L_INFO, "exe sql error msg: %d %s sql:%s", no, mysql_error(mysql), sql);
 				//system("killall -9 mysqld");
 			}
 			else if (no == CR_CONN_HOST_ERROR)
 			{
-				// NLogError(MOD8, " error database connect Exception 1 errorno: %d, %s", no, mstrDbError);
+                LogOut(DB, L_INFO, "exe sql error msg: %d %s sql:%s", no, mysql_error(mysql), sql);
 			}
         }
         else if(no == 1213)
@@ -529,11 +730,11 @@ bool CDbManager::ExecDbSQL(const char* sql)
                 return ExecDbSQL(sql);
             }
         }
-
-		// NLogError(MOD8, " error errorno: %d,%s", no, mstrDbError);
+        LogOut(DB, L_INFO, "exe sql error msg: %d %s sql:%s", no, mysql_error(mysql), sql);
 	}
 	catch (...)
 	{
+        LogOut(DB, L_INFO, "exe sql error catch msg: %s", mysql_error(mysql));
 		// NLogError(MOD8, "CDbManager::ExecSQL  excepted! %s", sql);
 	}
 

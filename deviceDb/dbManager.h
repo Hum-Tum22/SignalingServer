@@ -1,10 +1,12 @@
 #pragma once
+#include "JsonDevice.h"
 #ifdef USE_MYSQL
 #include <mysql/mysql.h>
 #endif
 #include <mutex>
 #include <vector>
 #include <list>
+#include <memory>
 class CDbManager
 {
 public:
@@ -15,6 +17,12 @@ public:
     bool initDb();
     int CreateTables();
 	int InitTableData();
+    int QueryDeviceInfoList(std::list<std::shared_ptr<JsonNvrDevic>> &devList);
+    int QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList);
+    int QuerySubDeviceInfo(const std::string parentId, const int chlNo, JsonChildDevic &channelInfo);
+    int IsExistSubDeviceInfo(const std::string parentId, const int chlNo);
+    int AddSubDeviceInfo(const std::string parentId, const std::string gbid, const int chlNo, const std::string name);
+protected:
     bool ConnectDb(const char* pCharSet = "utf8mb4");
 	bool DisConnectDb();//调用int sqlite3_close(sqlite3 *);//CloseSqlite();
 	bool IsConnected();

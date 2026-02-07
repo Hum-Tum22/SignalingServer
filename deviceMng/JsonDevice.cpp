@@ -121,7 +121,7 @@ void JsonNvrDevic::JsonNvrLogIn(int& err)
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
 
@@ -154,7 +154,7 @@ void JsonNvrDevic::GetChannelEncoderParam(int channel, char* pBuffer, uint32_t* 
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
             return;
@@ -179,7 +179,7 @@ ULHandle JsonNvrDevic::Dev_Preview(int channelId, int streamType, void* VideoTra
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
 
@@ -223,7 +223,7 @@ void JsonNvrDevic::SearchRecordInfoList(int channel, uint64_t st, uint64_t et, s
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
 
@@ -248,7 +248,7 @@ ULHandle JsonNvrDevic::Dev_PlayBack(int channelId, long start, long end, void *V
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
 
@@ -338,10 +338,10 @@ void JsonNvrDevic::Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argu
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
-            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
+            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str());
         }
     }
     if (mLoginId > 0)
@@ -373,10 +373,10 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t& BufSize, int& err)
     }
     if (err == 0 && mLoginId == 0)
     {
-        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mName.c_str(), mPswd.c_str(), err);
+        mLoginId = JsonSdkInterface::Instance().JsonSdkLogIn(mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str(), err);
         if (err != 0)
         {
-            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mName.c_str(), mPswd.c_str());
+            LogOut(SDK, L_ERROR, "json sdk login err:%d,ip:%s, port:%d, user:%s,pswd:%s", err, mIP.c_str(), mPort, mUser.c_str(), mPswd.c_str());
         }
     }
     if (mLoginId > 0)
@@ -419,11 +419,11 @@ const short JsonNvrDevic::getPort() const
 
 void JsonNvrDevic::setUser(const std::string user)
 {
-    mName = user;
+    mUser = user;
 }
 const std::string& JsonNvrDevic::getUser() const
 {
-    return mName;
+    return mUser;
 }
 
 void JsonNvrDevic::setPswd(const std::string pswd)
@@ -433,6 +433,24 @@ void JsonNvrDevic::setPswd(const std::string pswd)
 const std::string& JsonNvrDevic::getPswd() const
 {
     return mPswd;
+}
+
+void JsonNvrDevic::setName(const std::string name)
+{
+    mName = name;
+}
+const std::string& JsonNvrDevic::getName() const
+{
+    return mName;
+}
+
+void JsonNvrDevic::setGBID(const std::string gbid)
+{
+    mGBID = gbid;
+}
+const std::string& JsonNvrDevic::getGBID() const
+{
+    return mGBID;
 }
 
 
@@ -489,6 +507,14 @@ void JsonChildDevic::setChildIp(std::string Ip)
 const std::string JsonChildDevic::getChildIp()
 {
     return ChildIp;
+}
+void JsonChildDevic::setGBID(std::string gbid)
+{
+    mGBID = gbid;
+}
+const std::string JsonChildDevic::getGBID()
+{
+    return mGBID;
 }
 void JsonChildDevic::setChannel(int chl)
 {
