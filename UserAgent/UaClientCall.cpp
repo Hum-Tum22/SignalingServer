@@ -1299,7 +1299,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                                             std::cerr << e.what() << '\n';
                                         }
                                         uint32_t pointTime = startTime + nptValue;
-                                        LogOut(BLL, L_DEBUG, "play back ctrl pointTime:%u, nptValue:%u,start:%u ",
+                                        LogOut(BLL, L_DEBUG, "play back ctrl pointTime:%u, nptValue:%u,start:%ju ",
                                          pointTime, nptValue, startTime);
                                         int err = 0;
                                         JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_TimePos, (uint32_t)pointTime, 0, err);
@@ -1354,7 +1354,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                                         std::cerr << e.what() << '\n';
                                     }
                                     int err = 0;
-                                    LogOut(BLL, L_DEBUG, "play back ctrl Scale %f:%s ", streamId.c_str());
+                                    LogOut(BLL, L_DEBUG, "play back ctrl Scale %.2f:%s ", fScale, streamId.c_str());
                                     JsonNvr->Dev_PlayBackCtrl(mdaStream->getStreamHandle(), JsonNvrDevic::JsonPbCtrl_Speed, fScale*1024, 0, err);
                                 }
                             }

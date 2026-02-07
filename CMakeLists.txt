@@ -141,6 +141,7 @@ SET(LIBS
 # if (USE_MYSQL)
 SET(LIBS ${LIBS}
 	libmysqlclient.a
+		z
     libzstd.a
 )
 # endif()

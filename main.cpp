@@ -398,6 +398,16 @@ int main(int argc, char** argv)
         for(auto &it: devList)
         {
             mGBIdMng.AddDevCodeID(it->getGBID());
+        }
+        std::list<JsonChildDevic> chlList;
+        CDbManager::Instance().QuerySubDeviceInfoList(chlList);
+        for (auto &it: chlList)
+        {
+            mGBIdMng.AddDevCodeID(it.getGBID());
+        }
+
+        for(auto &it: devList)
+        {
             it->DevConnect();
             std::list<JsonChildDevic> channelList;
             getJsonNvrChannelList(it, channelList);
@@ -405,7 +415,7 @@ int main(int argc, char** argv)
             {
                 JsonChildDevic channelInfo("");
                 CDbManager::Instance().QuerySubDeviceInfo(it->deviceId, item.getChannel(), channelInfo);
-                LogOut(BLL, L_INFO, "channel info nvrid:%s,nvrGBID:%s channel:%d, channelId:%s channelGBID:%s", 
+                LogOut(BLL, L_INFO, "channel info nvrid:%s,nvrGBID:%s channel:%d, channelId:%s channelGBID:%s",
                 it->deviceId.c_str(), it->getGBID().c_str(), item.getChannel(), channelInfo.getDeviceId().c_str(), channelInfo.getGBID().c_str());
                 if(channelInfo.getDeviceId().empty())
                 {
@@ -415,10 +425,6 @@ int main(int argc, char** argv)
                     {
                         mGBIdMng.AddDevCodeID(gbid);
                     }
-                }
-                else
-                {
-                    mGBIdMng.AddDevCodeID(channelInfo.getGBID());
                 }
             }
         }
