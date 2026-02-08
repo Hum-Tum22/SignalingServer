@@ -578,6 +578,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
 
     DeviceMng::Instance().getVirtualOrganization(user, vcList);
     DeviceMng::Instance().getChildDevice(user, vChildList);
+    LogOut(SIPMSG, L_INFO, "user:%s size :%ju %ju", user.c_str(), vcList.size(), vChildList.size());
 
     int voSize = vcList.size();
     int childSize = vChildList.size();

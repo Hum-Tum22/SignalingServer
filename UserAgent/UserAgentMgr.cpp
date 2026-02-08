@@ -2302,11 +2302,16 @@ int UaMgr::getYxDeviceInfo(bool notify)
         else
         {
             auto chidDev = new JsonChildDevic(it.getDeviceId().c_str());
-            chidDev->setStatus(0);
+            chidDev->setStatus(1);
             chidDev->setParentId(it.getParentId());
             chidDev->setName(it.getName());
             chidDev->setGBID(it.getGBID());
             chidDev->setChannel(it.getChannel());
+            BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(it.getParentId());
+            if(dev)
+            {
+                chidDev->setParentDev(dev);    
+            }
             DeviceMng::Instance().addChildDevice(chidDev);
         }
     }
