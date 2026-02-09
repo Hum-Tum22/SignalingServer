@@ -335,7 +335,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     std::regex_search(uriStr, smSdpUri, eSdpUri);
     for(uint32_t i = 1; i < smSdpUri.size(); i++)
     {
-        channelId = smSdpUri[i].str();
+        // channelId = smSdpUri[i].str();
         LogOut(BLL, L_DEBUG, "sdp channelId:%s, sdp uri line:%s", channelId.c_str(), uriStr.c_str());
         break;
     }
@@ -372,8 +372,10 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
     if(msg.exists(h_Subject))
     {
         std::string line = msg.header(h_Subject).value().c_str();
+        LogOut(BLL, L_DEBUG, "h_Subject line: %s", line.c_str());
         // line = "37028806251320111563:0,34020000002000000002:222";
         std::regex eSubject("(.*):(.*),(.*):(.*)");
+        // std::regex eSubject("(.*):(.*);");
         std::smatch smSubject;
 
         std::regex_search(line, smSubject, eSubject);
@@ -388,21 +390,27 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
 
     mResponseSdp.session().connection().setAddress(DnsUtil::getLocalIpAddress());
     mResponseSdp.session().origin().setAddress(DnsUtil::getLocalIpAddress());
-
-    if(subjectArray.size() == 4)
+    for(size_t i = 0; i < subjectArray.size(); i++)
+    {
+        LogOut(BLL, L_DEBUG, "subjectArray i:%Zu %s", i, subjectArray[i].c_str());
+    }
+    
+    if(subjectArray.size() >= 4)
     {
         if(sessionName == Data("Play"))
         {
 
             channelId = subjectArray[0];
+            LogOut(BLL, L_DEBUG, "subjectArray size:%Zu channelId:%s", subjectArray.size(), channelId.c_str());
 
             //channelId = "37028806251320111559";
             //channelId = "37028806251320111506";
 
             ushort rtcpPortIn = 1;
-            remoteId = subjectArray[2];
+            remoteId = subjectArray.size() > 2 ? subjectArray[2]: "";
             streamId = channelId + "_" + std::to_string(0);
             auto mdaStream = MediaMng::GetInstance().findStream(streamId);
+            LogOut(BLL, L_DEBUG, "remoteId:%s, streamId:%s", remoteId.c_str(), streamId.c_str());
             if(mdaStream)
             {
                 //流存在//直接回复
@@ -456,7 +464,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     WarningCategory warning;
                     warning.hostname() = DnsUtil::getLocalIpAddress();
                     warning.code() = 488;
-                    warning.text() = "make bleg error!";
+                    warning.text() = "play make bleg error!";
                     handle->reject(488, &warning);
                 }
                 else
@@ -594,7 +602,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 WarningCategory warning;
                 warning.hostname() = DnsUtil::getLocalIpAddress();
                 warning.code() = 488;
-                warning.text() = "make bleg error!";
+                warning.text() = "vod make bleg error!";
                 handle->reject(488, &warning);
             }
                 // IDeviceMngrSvr& DevMgr = GetIDeviceMngr();
@@ -635,7 +643,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 WarningCategory warning;
                 warning.hostname() = DnsUtil::getLocalIpAddress();
                 warning.code() = 488;
-                warning.text() = "make bleg error!";
+                warning.text() = "download make bleg error!";
                 handle->reject(488, &warning);
             }
         }

@@ -17,6 +17,7 @@
 
 #include "../deviceMng/deviceMng.h"
 #include "../deviceMng/JsonDevice.h"
+#include "SipServerConfig.h"
 
 using namespace std;
 using namespace resip;
@@ -630,8 +631,17 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
                 if (pChildDev)
                 {
                     CatalogItem item;
-                    item.DeviceID = pChildDev->getDeviceId();
-                    item.ParentID = pChildDev->getParentId();
+                    item.DeviceID = pChildDev->getGBID();
+                    if(pChildDev->getParentDev())
+                    {
+                        auto devNvr = std::dynamic_pointer_cast<JsonNvrDevic>(pChildDev->getParentDev());
+                        item.ParentID = devNvr->getGBID();
+                    }
+                    else
+                    {
+                        MyServerConfig& svr = GetSipServerConfig();
+					    item.ParentID = svr.getConfigData("GBID", "34020000002000000001", true).c_str();
+                    }
                     item.Name = Utf8ToGbk(pChildDev->getName());
 
                     item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
@@ -677,7 +687,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
             resip::Data callId = SendResponsePageMsg(target, it, MsgCmdType_Catalog, Routlist);
             while (findMsgCallID(callId))
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }

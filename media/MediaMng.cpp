@@ -108,7 +108,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
     BaseChildDevice* childDev = NULL;
     if (!deviceId.empty())
     {
-        childDev = DeviceMng::Instance().findChildDevice(deviceId);
+        childDev = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
         if (childDev)
         {
             parentDev = childDev->getParentDev();
@@ -138,6 +138,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                 Nvr->Dev_ListIPC(Buffer, msgSize, err);
                 if (err == 0)
                 {
+                    // LogOut(BLL, L_ERROR, "nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
                     rapidjson_sip::Document document;
                     document.Parse(Buffer);
                     if (!document.HasParseError())
@@ -154,15 +155,24 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                                     devNum = devNum.substr(0, sPos);
                                 }
                                 JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
-                                if (pChild && devNum == pChild->getName())
+                                int child = json_check_int32(body[i], "chid");
+                                int online = json_check_int32(body[i], "online_status");
+#ifdef YIXIN_HUAWEI
+                                if(pChild->getChannel() == child + 1)
+                                {
+                                    chl = child;
+                                    pChild->setStatus(online == 1 ? 1 : 0);
+                                    break;
+                                }
+#endif
+#ifdef QINGDONG_CCTV
+                                if(pChild && devNum == pChild->getName())
                                 {
                                     int enable_flag = json_check_int32(body[i], "enable_flag");
                                     if (enable_flag == 2)
                                     {
-                                        int child = json_check_int32(body[i], "chid");
-                                        int online = json_check_int32(body[i], "online_status");
                                         chl = child;
-                                        if (pChild->getChannel() != child)
+                                        if(pChild->getChannel() != child)
                                         {
                                             pChild->setChannel(child);
                                         }
@@ -183,6 +193,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                                     }
                                     break;
                                 }
+#endif
                             }
                         }
                     }
@@ -216,7 +227,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                         ULHandle playhandle = Nvr->Dev_Preview(chl, streamNo, (void*)JsonStream::DataPlayCallBack, (void*)streamIn.get(), err);
                         if (err == 0)
                         {
-                            DebugLog(<< "child device pull stream ok streameId:" << deviceId << " " << streamId);
+                            LogOut(BLL, L_INFO, "play child device pull stream ok handle:%lu streameId:%s chl:%d, deviceId:%s", playhandle, streamId.c_str(), chl, deviceId.c_str());
                             streamIn->setStreamHandle(playhandle);
                             streamIn->setStreamType(0);
                             streamIn->setFrameRate(fps);
@@ -240,6 +251,10 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                 }
             }
         }
+        else
+        {
+            DebugLog(<< " parent device type:" << parentDev->devType);
+        }
     }
     return NULL;
 }
@@ -249,7 +264,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
     BaseChildDevice* childDev = NULL;
     if (!deviceId.empty())
     {
-        childDev = DeviceMng::Instance().findChildDevice(deviceId);
+        childDev = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
         if (childDev)
         {
             parentDev = childDev->getParentDev();
@@ -298,10 +313,22 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                                 JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
                                 const char* devName = devNum.c_str();
                                 const char* chidName = pChild->getName().c_str();
-                                if (devNum == pChild->getName())
+                                int child = json_check_int32(body[i], "chid");
+                                int online = json_check_int32(body[i], "online_status");
+#ifdef YIXIN_HUAWEI
+                                if(pChild->getChannel() == child + 1)
                                 {
+                                    chl = child;
+                                    pChild->setStatus(online == 1 ? 1 : 0);
+                                    break;
+                                }
+#endif
+
+#ifdef QINGDONG_CCTV
+                                if(devNum == pChild->getName())
+                                {
+                                    chl = child;
                                     int enable_flag = json_check_int32(body[i], "enable_flag");
-                                    chl = json_check_int32(body[i], "chid");
                                     if (pChild->getChannel() != chl)
                                     {
                                         pChild->setChannel(chl);
@@ -312,6 +339,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                                     }
                                     break;
                                 }
+#endif
                             }
                         }
                     }
@@ -346,7 +374,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                     if (err == 0)
                     {
                         //Nvr->Dev_PlayBackCtrl(playhandle, JsonNvrDevic::JsonPbCtrl_Speed, 1024, 0, err);
-                        LogOut(BLL, L_INFO, "%s child device pull stream ok handle:%lu streameId:%s", deviceId.c_str(), playhandle, streamId.c_str());
+                        LogOut(BLL, L_INFO, "%s playback child device pull stream ok handle:%lu streameId:%s chl:%d", deviceId.c_str(), playhandle, streamId.c_str(), chl);
                         streamIn->setStreamHandle(playhandle);
                         streamIn->setStreamType(1);
                         streamIn->setFrameRate(25);
@@ -436,7 +464,7 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
     BaseChildDevice* childDev = NULL;
     if (!recordQuery.DeviceID.empty())
     {
-        childDev = DeviceMng::Instance().findChildDevice(recordQuery.DeviceID);
+        childDev = DeviceMng::Instance().findChildDeviceByGBID(recordQuery.DeviceID);
         if (childDev)
         {
             parentDev = childDev->getParentDev();
@@ -483,18 +511,27 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
                                     devNum = devNum.substr(0, sPos);
                                 }
                                 JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
-                                if (pChild && devNum == pChild->getName())
+                                int online = json_check_int32(body[i], "online_status");
+                                int child = json_check_int32(body[i], "chid");
+#ifdef YIXIN_HUAWEI
+                                if(pChild->getChannel() == child + 1)
+                                {
+                                    chl = child;
+                                    pChild->setStatus(online == 1 ? 1 : 0);
+                                    break;
+                                }
+#endif
+#ifdef QINGDONG_CCTV
+                                if(pChild && devNum == pChild->getName())
                                 {
                                     int enable_flag = json_check_int32(body[i], "enable_flag");
                                     if (enable_flag == 2)
                                     {
-                                        int child = json_check_int32(body[i], "chid");
-                                        int online = json_check_int32(body[i], "online_status");
                                         chl = child;
                                         chlName = devNum;
-                                        if(pChild->getChannel() != child)
+                                        if(pChild->getChannel() != chl)
                                         {
-                                            pChild->setChannel(child);
+                                            pChild->setChannel(chl);
                                         }
                                         if (online == 1)
                                         {
@@ -513,6 +550,7 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
                                     }
                                     break;
                                 }
+#endif
                             }
                         }
                     }

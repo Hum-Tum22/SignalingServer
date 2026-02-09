@@ -1778,6 +1778,7 @@ void getJsonNvrChannelList(BaseDevice::Ptr dev, std::list<JsonChildDevic> &chann
             Nvr->Dev_ListIPC(Buffer, msgSize, err);
             if(err == 0)
             {
+                // LogOut(BLL, L_ERROR, "get nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
                 rapidjson_sip::Document document;
                 document.Parse(Buffer);
                 if(!document.HasParseError())
@@ -1798,7 +1799,7 @@ void getJsonNvrChannelList(BaseDevice::Ptr dev, std::list<JsonChildDevic> &chann
                             //     CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, channelNo, &channelInfo);
                             // }
                             JsonChildDevic childDev("");
-                            childDev.setStatus(online);
+                            childDev.setStatus(online == 1? 1:0);
                             childDev.setName(channelName);
                             childDev.setParentId(dev->deviceId);
                             childDev.setChildIp("");
