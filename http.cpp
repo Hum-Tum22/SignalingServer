@@ -9,9 +9,11 @@
 #include "tools/m_Time.h"
 #include "media/mediaIn/JsonStream.h"
 #include "deviceMng/JsonDevice.h"
+#include "dbManager.h"
+#include "TypeConversion.h"
+#include "IDManager.h"
 
 using namespace std;
-
 
 
 #define HTTP_TIMEOUT 10
@@ -237,6 +239,21 @@ struct thread_data {
 	struct mg_queue queue;  // Worker -> Connection queue
 	struct mg_str body;     // Copy of message body
 };
+int httpResponseParamToJson(const char* cmd, int msid, int errorCode, const char* describe, rapidjson_sip::StringBuffer& outStr)
+{
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(outStr);
+    writer.StartObject();
+    writer.Key("cmd"); writer.String(cmd);
+    if(msid != -1)
+    {
+        writer.Key("msid"); writer.Int(msid);
+    }
+    writer.Key("errorcode"); writer.Int(errorCode);
+    if(describe)
+        writer.Key("msg");writer.String(describe);
+    writer.EndObject();
+    return 0;
+}
 
 static void start_thread(void* (*f)(void*), void* p)
 {
@@ -413,8 +430,100 @@ void HttpServer::HandleDefault(struct mg_connection* c, int ev, void* ev_data, v
 		{
 			mg_ws_upgrade(c, hm, NULL);
 			return;
-		}
-		if (mg_http_match_uri(hm, "/device/channels"))
+        }
+        std::cout << "http body:" << std::string(hm->body.ptr, hm->body.len) << std::endl;
+        if(mg_http_match_uri(hm, "/login"))
+        {
+            std::string strOut;
+            logIn(hm->body, strOut);
+            // mg_http_reply(c, 200,
+            //       "Access-Control-Allow-Origin: *\r\n"
+            //       "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n"
+            //     "Access-Control-Allow-Headers: Content-Type\r\n"
+            //     "Content-Type: application/json;charset=utf-8\r\n",
+            //     "%s", strOut.c_str());
+            mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+        }
+        else if(mg_http_match_uri(hm, "/deviceMng"))
+        {
+            rapidjson_sip::Document document;
+            document.Parse(hm->body.ptr, hm->body.len);
+            if(!document.IsObject() || document.HasParseError())
+            {
+                rapidjson_sip::StringBuffer response;
+                httpResponseParamToJson("CommonError", -1, 6, "json parse failed", response);
+                std::string strOut = std::string(response.GetString(), response.GetSize());
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+                return;
+            }
+            std::string method = json_check_string(document, "method");
+            LogOut(HTTP, L_INFO, "method: %s", method.c_str());
+            if(method == "getDevices")
+            {
+                std::string strOut;
+                getDeviceList(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "addDevice")
+            {
+                std::string strOut;
+                AddDevice(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "deleteDevice")
+            {
+                
+                std::string strOut;
+                delDevice(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "updateDevice")
+            {
+                std::string strOut;
+                updateDevice(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+        }
+        else if(mg_http_match_uri(hm, "/channelMng"))
+        {
+            rapidjson_sip::Document document;
+            document.Parse(hm->body.ptr, hm->body.len);
+            if(!document.IsObject() || document.HasParseError())
+            {
+                rapidjson_sip::StringBuffer response;
+                httpResponseParamToJson("CommonError", -1, 6, "json parse failed", response);
+                std::string strOut = std::string(response.GetString(), response.GetSize());
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+                return;
+            }
+            std::string method = json_check_string(document, "method");
+            LogOut(HTTP, L_INFO, "method: %s", method.c_str());
+            if(method == "getChannels")
+            {
+                std::string strOut;
+                getChannelList(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "refreshChannels")
+            {
+                std::string strOut;
+                refreshChannels(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "updateChannel")
+            {
+                std::string strOut;
+                updateChannel(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+        }
+        else if(mg_http_match_uri(hm, "/devices/addNvr"))
+        {
+            std::string strOut;
+            AddDevice(hm->body, strOut);
+            mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+        }
+        else if(mg_http_match_uri(hm, "/deviceMng/channels"))
 		{
 			// Attempt to fetch parameters from the body, hm->body
 			std::string strOut;
@@ -547,6 +656,10 @@ void HttpServer::HandleDefault(struct mg_connection* c, int ev, void* ev_data, v
 		}
 		std::cout << "ws ctl:" << c << std::endl;
 	}
+    else
+    {
+        
+    }
 }
 void HttpServer::DeviceOnLineState(const struct mg_str& body, std::string& strOut)
 {
@@ -561,6 +674,454 @@ void HttpServer::DeviceOnLineState(const struct mg_str& body, std::string& strOu
 
 	std::string cmd = json_check_string(document, "cmd");
 	rapidjson_sip::StringBuffer response;
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::logIn(const struct mg_str & body, std::string &strOut)
+{
+    rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    writer.StartObject();
+		writer.Key("code"); writer.Int(200);
+		writer.Key("msg"); writer.String("Success");
+		writer.Key("data");
+        writer.StartObject();
+        writer.Key("user");
+        writer.StartObject();
+        writer.Key("id");writer.Int(1);
+        writer.Key("username");writer.String("admin");
+        writer.Key("role");writer.String("admin");
+        writer.Key("name");writer.String("管理员");
+        writer.EndObject();
+        writer.Key("token"); writer.String("MToxNzcyMTg0NDM1NjY0");
+        writer.EndObject();
+    writer.EndObject();
+    strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::getDeviceList(const struct mg_str & body, std::string &strOut)
+{
+    std::list<std::shared_ptr<JsonNvrDevic>> devList;
+    CDbManager::Instance().QueryDeviceInfoList(devList);
+    rapidjson_sip::StringBuffer response;
+	rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    writer.StartObject();
+		writer.Key("code"); writer.Int(200);
+		writer.Key("msg"); writer.String("Success");
+        writer.Key("message"); writer.String("获取成功");
+        writer.Key("total"); writer.Int(devList.size());
+		writer.Key("data");
+            writer.StartArray();
+            for(auto &it : devList)
+            {
+                writer.StartObject();
+                writer.Key("deviceId");writer.Int(String2Int(it->deviceId));
+                writer.Key("ip");writer.String(it->getIp().c_str());
+                writer.Key("lastUpdate");writer.String(it->getLastUpdate().c_str());
+                writer.Key("location");writer.String("");
+                writer.Key("name");writer.String(it->getName().c_str());
+                writer.Key("port");writer.Int(it->getPort());
+                writer.Key("protocol");writer.String(it->getProtocol().c_str());
+                writer.Key("status");writer.String(it->getStatus() == 1? "在线":"离线");
+                writer.Key("deviceType");writer.String(it->getDevType().c_str());
+                writer.Key("username");writer.String(it->getUser().c_str());
+                writer.Key("gbId");writer.String(it->getGBID().c_str());
+                writer.EndObject();
+            }
+            writer.EndArray();
+    writer.EndObject();
+    strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::AddDevice(const struct mg_str& body, std::string& strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        rapidjson_sip::Value& msbody = document["params"];
+        std::string devIp = json_check_string(msbody, "ip");
+        int devPort = json_check_int32(msbody, "port");
+        std::string devtype = json_check_string(msbody, "deviceType");
+        std::string devName = json_check_string(msbody, "name");
+        std::string protocol = json_check_string(msbody, "protocol");
+        std::string username = json_check_string(msbody, "username");
+        std::string password = json_check_string(msbody, "password");
+        auto jsonNvr = std::make_shared<JsonNvrDevic>("", devIp.c_str(), devPort, username.c_str(), password.c_str());
+        jsonNvr->setStatus(0);
+        jsonNvr->setDevType(devtype);
+        jsonNvr->setProtocol(protocol);
+        jsonNvr->setName(devName);
+        std::string gbid = CDevCodeMng::Instance().CreateDevCode(NVR_CODE);
+        jsonNvr->setGBID(gbid);
+        writer.StartObject();
+        if(CDbManager::Instance().AddDeviceInfo(jsonNvr) == 0)
+        {
+            DeviceMng::Instance().addDevice(jsonNvr);
+            writer.Key("code"); writer.Int(201);
+            writer.Key("message"); writer.String("获取成功");
+            writer.Key("data");
+            writer.StartObject();
+                // writer.Key("deviceId");writer.Int(String2Int(jsonNvr->deviceId));
+                // writer.Key("ip");writer.String(jsonNvr->getIp().c_str());
+                // writer.Key("lastUpdate");writer.String(jsonNvr->getLastUpdate().c_str());
+                // writer.Key("location");writer.String("");
+                // writer.Key("name");writer.String(jsonNvr->getName().c_str());
+                // writer.Key("port");writer.Int(jsonNvr->getPort());
+                // writer.Key("protocol");writer.String(jsonNvr->getProtocol().c_str());
+                // writer.Key("status");writer.String(jsonNvr->getStatus() == 1? "在线":"离线");
+                // writer.Key("deviceType");writer.String(jsonNvr->getDevType().c_str());
+                // writer.Key("username");writer.String(jsonNvr->getUser().c_str());
+            writer.EndObject();
+        }
+        else
+        {
+            writer.Key("code"); writer.Int(10001);
+            writer.Key("message"); writer.String("添加失败");
+            writer.Key("data");
+            writer.StartObject();
+            writer.EndObject();
+        }
+        writer.EndObject();
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartObject();
+        writer.EndObject();
+        writer.EndObject();
+    }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::delDevice(const struct mg_str & body, std::string &strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        rapidjson_sip::Value& msbody = document["params"];
+        uint32_t deviceId = json_check_int32(msbody, "deviceId");
+        writer.StartObject();
+        if(CDbManager::Instance().delDeviceInfo(deviceId) == 0)
+        {
+            std::vector<std::shared_ptr<BaseChildDevice>> vcList;
+            DeviceMng::Instance().getChildDevice(std::to_string(deviceId), vcList);
+            for(auto &it : vcList)
+            {
+                if(!it)
+                {
+                    DeviceMng::Instance().removeChildDevice(it->getDeviceId());
+                }
+            }
+            DeviceMng::Instance().removeDevice(std::to_string(deviceId));
+            writer.Key("code"); writer.Int(200);
+            writer.Key("message"); writer.String("删除成功");
+            writer.Key("data");
+            writer.StartObject();
+            writer.EndObject();
+        }
+        else
+        {
+            writer.Key("code"); writer.Int(10001);
+            writer.Key("message"); writer.String("删除失败");
+            writer.Key("data");
+            writer.StartObject();
+            writer.EndObject();
+        }
+        writer.EndObject();
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartObject();
+        writer.EndObject();
+        writer.EndObject();
+    }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::updateDevice(const struct mg_str & body, std::string &strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        rapidjson_sip::Value& msbody = document["params"];
+        uint32_t deviceId = json_check_int32(msbody, "deviceId");
+        std::string devName = json_check_string(msbody, "name");
+        std::string devtype = json_check_string(msbody, "deviceType");
+        std::string protocol = json_check_string(msbody, "protocol");
+        std::string devIp = json_check_string(msbody, "ip");
+        int devPort = json_check_int32(msbody, "port");
+        std::string username = json_check_string(msbody, "username");
+        std::string password = json_check_string(msbody, "password");
+        BaseDevice::Ptr nvr = DeviceMng::Instance().findDevice(std::to_string(deviceId));
+        if(!nvr)
+        {
+            writer.StartObject();
+            writer.Key("code"); writer.Int(10002);
+            writer.Key("message"); writer.String("设备未找到");
+            writer.Key("data");
+            writer.StartObject();
+            writer.Key("deviceId"); writer.Uint(deviceId);
+            writer.Key("ip"); writer.String(devIp.c_str());
+            writer.EndObject();
+            writer.EndObject();
+        }
+        else
+        {
+            JsonNvrDevic newNvr(std::to_string(deviceId).c_str(), devIp.c_str(), devPort, username.c_str(), password.c_str());
+            newNvr.setDevType(devtype);
+            newNvr.setProtocol(protocol);
+            newNvr.setName(devName);
+            writer.StartObject();
+            auto oldNvr = std::dynamic_pointer_cast<JsonNvrDevic>(nvr);
+            if(CDbManager::Instance().updateDeviceInfo(oldNvr, newNvr) == 0)
+            {
+                oldNvr->updateDeviceInfo(&newNvr);
+                writer.Key("code"); writer.Int(200);
+                writer.Key("message"); writer.String("更新成功");
+                writer.Key("data");
+                writer.StartObject();
+                writer.EndObject();
+            }
+            else
+            {
+                writer.Key("code"); writer.Int(10001);
+                writer.Key("message"); writer.String("更新失败");
+                writer.Key("data");
+                writer.StartObject();
+                writer.EndObject();
+            }
+            writer.EndObject();
+        }
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartObject();
+        writer.EndObject();
+        writer.EndObject();
+    }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::getChannelList(const struct mg_str & body, std::string &strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        rapidjson_sip::Value& msbody = document["params"];
+        uint32_t deviceId = json_check_uint32(msbody, "deviceId");
+        std::vector<std::shared_ptr<BaseChildDevice>> vcList;
+        DeviceMng::Instance().getChildDevice(std::to_string(deviceId), vcList);
+
+        writer.StartObject();
+        writer.Key("code"); writer.Int(200);
+        writer.Key("msg"); writer.String("Success");
+        writer.Key("message"); writer.String("获取成功");
+        writer.Key("total"); writer.Int(vcList.size());
+        writer.Key("data");
+            writer.StartArray();
+            for(auto &it : vcList)
+            {
+                writer.StartObject();
+                writer.Key("deviceId");writer.Int(String2Int(it->getDeviceId()));
+                writer.Key("channelName");writer.String(it->getName().c_str());
+                writer.Key("channelNo");writer.Int(it->getChannel());
+                writer.Key("deviceName");writer.String(it->getParentDev()->getName().c_str());
+                writer.Key("status");writer.String(it->getStatus() == 1? "在线":"离线");
+                writer.Key("lastUpdate");writer.String(it->getLastUpdate().c_str());
+                writer.Key("gbId");writer.String(it->getGBID().c_str());
+                writer.EndObject();
+            }
+            writer.EndArray();
+        writer.EndObject();
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartArray();
+        writer.EndArray();
+        writer.EndObject();
+    }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::refreshChannels(const struct mg_str & body, std::string &strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        rapidjson_sip::Value& msbody = document["params"];
+        uint32_t deviceId = json_check_uint32(msbody, "deviceId");
+        std::vector<std::shared_ptr<BaseChildDevice>> vcList;
+        DeviceMng::Instance().getChildDevice(std::to_string(deviceId), vcList);
+
+        writer.StartObject();
+        writer.Key("code"); writer.Int(200);
+        writer.Key("msg"); writer.String("Success");
+        writer.Key("message"); writer.String("获取成功");
+        writer.Key("total"); writer.Int(vcList.size());
+        writer.Key("data");
+            writer.StartObject();
+            writer.Key("channels");
+                writer.StartArray();
+                    for(auto &it : vcList)
+                    {
+                        writer.StartObject();
+                        writer.Key("deviceId");writer.Int(String2Int(it->getDeviceId()));
+                        writer.Key("channelName");writer.String(it->getName().c_str());
+                        writer.Key("channelNo");writer.Int(it->getChannel());
+                        writer.Key("deviceName");writer.String(it->getParentDev()->getName().c_str());
+                        writer.Key("status");writer.String(it->getStatus() == 1? "在线":"离线");
+                        writer.Key("lastUpdate");writer.String(it->getLastUpdate().c_str());
+                        writer.EndObject();
+                    }
+                writer.EndArray();
+            writer.EndObject();
+        writer.EndObject();
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartArray();
+        writer.EndArray();
+        writer.EndObject();
+    }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::updateChannel(const struct mg_str & body, std::string &strOut)
+{
+    std::string jsonStr(body.ptr, body.len);
+	rapidjson_sip::Document document;
+	document.Parse((char*)body.ptr, body.len);
+	if (document.HasParseError())
+	{
+		strOut = g_msg200jsonerror;
+		return;
+    }
+    
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    if(document.HasMember("params") && document["params"].IsObject())
+    {
+        // {"class":"channelMng","method":"updateChannel","params":{"deviceId":41,"channelName":"MTk4-dddd"}}
+        rapidjson_sip::Value& msbody = document["params"];
+        uint32_t deviceId = json_check_int32(msbody, "deviceId");
+        std::string channelName = json_check_string(msbody, "channelName");
+        auto channel = DeviceMng::Instance().findChildDevice(std::to_string(deviceId));
+        if(!channel)
+        {
+            writer.StartObject();
+            writer.Key("code"); writer.Int(10002);
+            writer.Key("message"); writer.String("设备未找到");
+            writer.Key("data");
+            writer.StartObject();
+            writer.Key("deviceId"); writer.Uint(deviceId);
+            writer.EndObject();
+            writer.EndObject();
+        }
+        else
+        {
+            JsonChildDevic newChannel(std::to_string(deviceId).c_str());
+            newChannel.setName(channelName);
+            writer.StartObject();
+            auto oldChannel = std::dynamic_pointer_cast<JsonChildDevic>(channel);
+            if(CDbManager::Instance().updateChannelInfo(oldChannel, newChannel) == 0)
+            {
+                oldChannel->setName(channelName);
+                writer.Key("code"); writer.Int(200);
+                writer.Key("message"); writer.String("更新成功");
+                writer.Key("data");
+                writer.StartObject();
+                writer.EndObject();
+            }
+            else
+            {
+                writer.Key("code"); writer.Int(10001);
+                writer.Key("message"); writer.String("更新失败");
+                writer.Key("data");
+                writer.StartObject();
+                writer.EndObject();
+            }
+            writer.EndObject();
+        }
+    }
+    else
+    {
+        writer.StartObject();
+        writer.Key("code"); writer.Int(10000);
+        writer.Key("message"); writer.String("参数错误");
+        writer.Key("data");
+        writer.StartObject();
+        writer.EndObject();
+        writer.EndObject();
+    }
 	strOut = std::string(response.GetString(), response.GetSize());
 	return;
 }

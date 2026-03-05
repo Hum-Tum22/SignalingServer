@@ -1,6 +1,9 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include <iostream>
+
+#include "../uainfo.h"
 
 using ULHandle = unsigned long;
 class BaseDevice
@@ -20,23 +23,52 @@ public:
     BaseDevice(const char*Id, DEVTYPE_X type) :devType(type), deviceId(Id){};
     virtual ~BaseDevice() {};
     DEVTYPE_X devType;
-    const std::string deviceId;
+    std::string deviceId;
+    ULHandle mLoginId;
 
-    /*virtual bool DevConnect() = 0;
-    virtual bool DevDisConnect() = 0;
+    virtual void setStatus(int statu);
+    virtual const int getStatus();
 
-    virtual ULHandle Dev_Preview(int channelId, int streamType, void* fun, void* pUser, int& err) = 0;
-    virtual void Dev_StopPreview(ULHandle, int& err) = 0;
+    virtual void setIp(const std::string ip);
+    virtual const std::string& getIp() const;
 
-    virtual ULHandle Dev_PlayBack(int channelId, long start, long end, void* VideoTranCallBack, void* fun, void* pUser, int& err) = 0;
-    virtual void Dev_StopPlayBack(ULHandle, int& err) = 0;
+    virtual void setPort(const short port);
+    virtual const short getPort() const;
 
-    virtual ULHandle Dev_Download(int channelId, long start, long end, DownloadData VideoTranCallBack, DownloadEnd fun, void* pUser, int& err) = 0;
-    virtual void Dev_StopDownload(ULHandle, int& err) = 0;
+    virtual void setUser(const std::string user);
+    virtual const std::string& getUser() const;
 
-    virtual void Dev_PTZCtrl(int channelId, uint32_t PTZCommand, uint32_t Argument, int& err) = 0;
+    virtual void setPswd(const std::string pswd);
+    virtual const std::string& getPswd() const;
 
-    virtual void Dev_ListIPC(char*Buffer, uint32_t &BufSize, int& err) = 0;*/
+    virtual void setName(const std::string name);
+    virtual const std::string& getName() const;
+
+    virtual void setGBID(const std::string gbid);
+    virtual const std::string& getGBID() const;
+
+    virtual void setLastUpdate(const std::string updateTime);
+    virtual const std::string& getLastUpdate() const;
+
+    virtual void setDevType(const std::string type);
+    virtual const std::string& getDevType() const;
+
+    virtual void setProtocol(const std::string protocol);
+    virtual const std::string& getProtocol() const;
+
+    virtual void updateDeviceInfo(const BaseDevice* info);
+
+protected:
+    std::string mIP;
+    short mPort;
+    std::string mName;
+    std::string mUser;
+    std::string mPswd;
+    std::string mGBID;
+    std::string mUpdateTime;
+    std::string mProtocol;
+    std::string mDevType;
+    int status;
 };
 
 
@@ -51,7 +83,40 @@ public:
     void setParentDev(BaseDevice::Ptr dev) { mParentDev = dev; };
     const BaseDevice::Ptr getParentDev() { return mParentDev; };
 
+    virtual void setName(std::string nm);
+    virtual const std::string getName();
+
+    virtual void setStatus(int statu);
+    virtual const int getStatus();
+
+    virtual void setParentId(std::string nm);
+    virtual const std::string getParentId();
+
+    virtual void setChildIp(std::string Ip);
+    virtual const std::string getChildIp();
+
+    virtual void setGBID(std::string gbid);
+    virtual const std::string getGBID();
+
+    virtual void setChannel(int chl);
+    virtual const int getChannel();
+    virtual void setLastPtzCmd(int chl);
+    virtual const int getLastPtzCmd();
+
+    virtual void setLastUpdate(const std::string updateTime);
+    virtual const std::string& getLastUpdate() const;
+
+    virtual CatalogItem GetCatalogItem(std::string myId);
 private:
     std::string deviceId;
     BaseDevice::Ptr mParentDev;
+
+    std::string name;
+    int status;
+    std::string parentId;
+    std::string ChildIp;
+    std::string mGBID;
+    std::string mUpdateTime;
+    int channel;
+    int ptzCmd;
 };

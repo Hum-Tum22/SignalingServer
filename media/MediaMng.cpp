@@ -78,7 +78,7 @@ void MediaMng::checkStreamStatus()
             {
                 if (time(0) - it.second->LastFrameTime() >= 10)
                 {
-                    BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(it.second->getDeviceId());
+                    auto childDev = DeviceMng::Instance().findChildDevice(it.second->getDeviceId());
                     if (childDev)
                     {
                         BaseDevice::Ptr parentDev = childDev->getParentDev();
@@ -105,7 +105,7 @@ void MediaMng::checkStreamStatus()
 MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
 {
     BaseDevice::Ptr parentDev = NULL;
-    BaseChildDevice* childDev = NULL;
+    std::shared_ptr<BaseChildDevice> childDev = nullptr;
     if (!deviceId.empty())
     {
         childDev = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
@@ -154,7 +154,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
                                 {
                                     devNum = devNum.substr(0, sPos);
                                 }
-                                JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
+                                auto pChild = std::dynamic_pointer_cast<JsonChildDevic>(childDev);
                                 int child = json_check_int32(body[i], "chid");
                                 int online = json_check_int32(body[i], "online_status");
 #ifdef YIXIN_HUAWEI
@@ -261,7 +261,7 @@ MediaStream::Ptr MediaMng::createLiveStream(std::string deviceId, int streamNo)
 MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, time_t end)
 {
     BaseDevice::Ptr parentDev = NULL;
-    BaseChildDevice* childDev = NULL;
+    std::shared_ptr<BaseChildDevice> childDev = NULL;
     if (!deviceId.empty())
     {
         childDev = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
@@ -310,7 +310,7 @@ MediaStream::Ptr MediaMng::createVodStream(std::string deviceId, time_t start, t
                                 {
                                     devNum = devNum.substr(0, sPos);
                                 }
-                                JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
+                                auto pChild = std::dynamic_pointer_cast<JsonChildDevic>(childDev);
                                 const char* devName = devNum.c_str();
                                 const char* chidName = pChild->getName().c_str();
                                 int child = json_check_int32(body[i], "chid");
@@ -417,7 +417,7 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
         LogOut(BLL, L_ERROR, "xxxxxxxxxxxxxxxxx close stream:%s ref:%d", ms->getStreamId().c_str(), ms->refNum());
         if (ms->refNum() == 0)
         {
-            BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
+            auto childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
             if (childDev)
             {
                 BaseDevice::Ptr parentDev = childDev->getParentDev();
@@ -461,7 +461,7 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
 bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<RecordInfoResponseItem> &recordlist)
 {
     BaseDevice::Ptr parentDev = NULL;
-    BaseChildDevice* childDev = NULL;
+    std::shared_ptr<BaseChildDevice> childDev = NULL;
     if (!recordQuery.DeviceID.empty())
     {
         childDev = DeviceMng::Instance().findChildDeviceByGBID(recordQuery.DeviceID);
@@ -510,7 +510,7 @@ bool MediaMng::GB28181QueryRecordInfo(RecordInfoQueryMsg recordQuery, std::list<
                                 {
                                     devNum = devNum.substr(0, sPos);
                                 }
-                                JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(childDev);
+                                auto pChild = std::dynamic_pointer_cast<JsonChildDevic>(childDev);
                                 int online = json_check_int32(body[i], "online_status");
                                 int child = json_check_int32(body[i], "chid");
 #ifdef YIXIN_HUAWEI

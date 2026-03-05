@@ -43,8 +43,16 @@ class HttpServer
 private:
     static void HandleDefault(struct mg_connection* c, int ev, void* ev_data, void* fn_data);
 
-    static void DeviceOnLineState(const struct mg_str & body, std::string &strOut);
+    static void logIn(const struct mg_str & body, std::string &strOut);
+    static void getDeviceList(const struct mg_str & body, std::string &strOut);
+    static void DeviceOnLineState(const struct mg_str& body, std::string& strOut);
     static void DeviceChannelList(const struct mg_str& body, std::string& strOut);
+    static void AddDevice(const struct mg_str & body, std::string &strOut);
+    static void delDevice(const struct mg_str & body, std::string &strOut);
+    static void updateDevice(const struct mg_str & body, std::string &strOut);
+    static void getChannelList(const struct mg_str& body, std::string& strOut);
+    static void refreshChannels(const struct mg_str& body, std::string& strOut);
+    static void updateChannel(const struct mg_str & body, std::string &strOut);
     static void StartLive(const struct mg_str& body, std::string& strOut);
     static void StopLive(const struct mg_str& body, std::string& strOut);
     static void StartVod(const struct mg_str& body, std::string& strOut);

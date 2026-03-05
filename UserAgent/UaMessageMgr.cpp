@@ -515,7 +515,7 @@ void CUserMessageMrg::GetAndReFormateRecordRoute(const SipMessage& outgoing, Nam
 void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType PtzCmd, int ControlPriority)
 {
     LogOut(CTRL, L_DEBUG, "ptz ctrl device:%s, cmd:%s, ControlPriority:%d", deviceId.c_str(), PtzCmd.mptzcmd, ControlPriority);
-    BaseChildDevice* child = DeviceMng::Instance().findChildDevice(deviceId);
+    auto child = DeviceMng::Instance().findChildDevice(deviceId);
     if (child)
     {
         auto parentDev = child->getParentDev();
@@ -524,7 +524,7 @@ void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType Pt
             auto JsonNvr = std::dynamic_pointer_cast<JsonNvrDevic>(parentDev);
             if (JsonNvr)
             {
-                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                 if (jsonChild)
                 {
                     int channel = jsonChild->getChannel();
@@ -575,7 +575,7 @@ void CUserMessageMrg::PtzControlResponseTask(std::string deviceId, PTZCMDType Pt
 void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::string user, const uint32_t sn, const NameAddrs Routlist)
 {
     std::vector<VirtualOrganization> vcList;
-    std::vector<BaseChildDevice*> vChildList;
+    std::vector<std::shared_ptr<BaseChildDevice>> vChildList;
 
     DeviceMng::Instance().getVirtualOrganization(user, vcList);
     DeviceMng::Instance().getChildDevice(user, vChildList);
@@ -627,7 +627,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
             BaseDevice::Ptr baseDev = vChildList[i]->getParentDev();
             if (baseDev && vChildList[i] && baseDev->devType == BaseDevice::JSON_NVR)
             {
-                JsonChildDevic* pChildDev = dynamic_cast<JsonChildDevic*>(vChildList[i]);
+                auto pChildDev = std::dynamic_pointer_cast<JsonChildDevic>(vChildList[i]);
                 if (pChildDev)
                 {
                     CatalogItem item;

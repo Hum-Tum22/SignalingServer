@@ -1,0 +1,16 @@
+[Unit]
+Description=Nginx HTTP server
+After=network.target nvrapp.target
+
+[Service]
+Type=forking
+ExecStartPre=/opt/nginx/sbin/nginx -t -q -g 'daemon on; master_process on;' -c /opt/nginx/conf/nginx.conf -p /opt/nginx/
+ExecStart=/opt/nginx/sbin/nginx -g 'daemon on; master_process on;' -c /opt/nginx/conf/nginx.conf -p /opt/nginx/
+ExecReload=/opt/nginx/sbin/nginx -g 'daemon on; master_process on;' -s reload -c /opt/nginx/conf/nginx.conf -p /opt/nginx/
+ExecStop=/opt/nginx/sbin/nginx -g 'daemon on; master_process on;' -s stop -c /opt/nginx/conf/nginx.conf -p /opt/nginx/
+PrivateTmp=true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

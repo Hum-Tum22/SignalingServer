@@ -293,7 +293,7 @@ int WsServer::RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& d
         std::string deviceId = json_check_string(msbody, "deviceId");
 
         std::string streamdId;
-        BaseChildDevice* child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
+        auto child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
         if(child == NULL)
         {
             errcode = 3;
@@ -324,7 +324,7 @@ int WsServer::RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& d
         }
         else
         {
-            s = MediaMng::GetInstance().createLiveStream("37028806251320111520", streamtype);
+            s = MediaMng::GetInstance().createLiveStream(deviceId, streamtype);
             if(s)
             {
                 s->increasing();
@@ -387,7 +387,7 @@ int WsServer::PlayBackAction(WsStreamInfo* sinfo, rapidjson_sip::Document& docum
         if(pointtime == 0)
             pointtime = starttime;
 
-        BaseChildDevice* child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
+        auto child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
         if(child == NULL)
         {
             errcode = 3;
@@ -481,7 +481,7 @@ int WsServer::PlayBackControlAction(WsStreamInfo* sinfo, rapidjson_sip::Document
                 writer.EndObject();
                 return errcode;
             }
-            BaseChildDevice* child = DeviceMng::Instance().findChildDevice(sinfo->ms->getDeviceId());
+            auto child = DeviceMng::Instance().findChildDevice(sinfo->ms->getDeviceId());
             if(child == NULL)
             {
                 errcode = 3;

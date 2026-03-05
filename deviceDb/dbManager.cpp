@@ -2,6 +2,7 @@
 #include "SelfLog.h"
 #include "TypeConversion.h"
 #include "SipServerConfig.h"
+#include "deviceMng.h"
 #include <string.h>
 #include <unistd.h>
 #include <sstream>
@@ -10,13 +11,15 @@
 const static char *gpDeviceInfoSql = "CREATE TABLE IF NOT EXISTS `device_info` (" \
 "  `id` INT NOT NULL AUTO_INCREMENT,"  \
 "  `GBID` VARCHAR(20) NOT NULL,"  \
+"  `devType` VARCHAR(20) NOT NULL DEFAULT '',"  \
+"  `protocol` VARCHAR(20) NOT NULL DEFAULT '',"  \
 "  `deviceIp` VARCHAR(45) NULL,"  \
 "  `devicePort` INT NULL,"  \
 "  `deviceUser` VARCHAR(45) NULL,"  \
 "  `devicePswd` VARCHAR(45) NULL,"  \
 "  `deviceName` VARCHAR(255) NULL,"  \
-"  `createTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,"  \
-"  `updateTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
+"  `createTime` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,"  \
+"  `updateTime` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
 "  PRIMARY KEY(`id`),"  \
 "      UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE,"  \
 "      UNIQUE INDEX `GBID_UNIQUE` (`GBID` ASC) VISIBLE)"  \
@@ -30,8 +33,8 @@ const static char *gpDeviceChannelInfoSql = "CREATE TABLE IF NOT EXISTS `sub_dev
 "  `GBID` VARCHAR(20) NOT NULL,"  \
 "  `channelNo` INT NOT NULL DEFAULT 0,"  \
 "  `channelName` VARCHAR(255) NULL,"  \
-"  `createTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,"  \
-"  `updateTime` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
+"  `createTime` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,"  \
+"  `updateTime` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"  \
 "  PRIMARY KEY(`id`),"  \
 "      UNIQUE INDEX `id_UNIQUE` (`id` ASC),"  \
 "      UNIQUE INDEX `GBID_UNIQUE` (`GBID`),"  \
@@ -132,7 +135,7 @@ int CDbManager::InitTableData()
 int CDbManager::QueryDeviceInfoList(std::list<std::shared_ptr<JsonNvrDevic>> &devList)
 {
     std::ostringstream oss;
-    oss << "select id,GBID,deviceIp,devicePort,deviceUser,devicePswd,deviceName from device_info";
+    oss << "select id,GBID,devType,protocol,deviceIp,devicePort,deviceUser,devicePswd,deviceName,updateTime from device_info";
     oss.flush();
     std::string strSql = oss.str();
     std::list< std::vector<std::string> >  xResult;
@@ -144,31 +147,89 @@ int CDbManager::QueryDeviceInfoList(std::list<std::shared_ptr<JsonNvrDevic>> &de
     //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
     for(auto & it: xResult)
     {
-        if(it.size() < 7)
+        if(it.size() < 10)
         {
             continue;
         }
         
         int nIndex = 0;
-        std::string nvrId = it[nIndex++];
-        std::string GBID = it[nIndex++];
-        std::string devIp = it[nIndex++];
+        std::string& nvrId = it[nIndex++];
+        std::string& GBID = it[nIndex++];
+        std::string& devType = it[nIndex++];
+        std::string& protocol = it[nIndex++];
+        std::string& devIp = it[nIndex++];
         int devPort = String2Int(it[nIndex++]);
-        std::string devUser = it[nIndex++];
-        std::string devPswd = it[nIndex++];
-        std::string devName = it[nIndex++];
-        auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), devIp.c_str(), devPort, devUser.c_str(), devPswd.c_str());
-        jsonNvr->setStatus(0);
-        jsonNvr->setName(devName);
-        jsonNvr->setGBID(GBID);
-        devList.emplace_back(jsonNvr);
+        std::string& devUser = it[nIndex++];
+        std::string& devPswd = it[nIndex++];
+        std::string& devName = it[nIndex++];
+        std::string& updateTime = it[nIndex++];
+        BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(nvrId);
+        if(!dev)
+        {
+            auto jsonNvr = std::make_shared<JsonNvrDevic>(nvrId.c_str(), devIp.c_str(), devPort, devUser.c_str(), devPswd.c_str());
+            jsonNvr->setStatus(0);
+            jsonNvr->setDevType(devType);
+            jsonNvr->setProtocol(protocol);
+            jsonNvr->setName(devName);
+            jsonNvr->setGBID(GBID);
+            jsonNvr->setLastUpdate(updateTime);
+            devList.emplace_back(jsonNvr);
+            DeviceMng::Instance().addDevice(jsonNvr);
+        }
+        else
+        {
+            if(dev->devType == BaseDevice::JSON_NVR)
+            {
+                auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
+                if(Nvr)
+                {
+                    if(Nvr->getDevType() != devType)
+                    {
+                        Nvr->setDevType(devType);
+                    }
+                    if(Nvr->getProtocol() != protocol)
+                    {
+                        Nvr->setProtocol(protocol);
+                    }
+                    if(Nvr->getIp() != devIp)
+                    {
+                        Nvr->setIp(devIp);
+                    }
+                    if(Nvr->getPort() != devPort)
+                    {
+                        Nvr->setPort(devPort);
+                    }
+                    if(Nvr->getUser() != devUser)
+                    {
+                        Nvr->setUser(devUser);
+                    }
+                    if(Nvr->getPswd() != devPswd)
+                    {
+                        Nvr->setPswd(devPswd);
+                    }
+                    if(Nvr->getName() != devName)
+                    {
+                        Nvr->setName(devName);
+                    }
+                    if(Nvr->getGBID() != GBID)
+                    {
+                        Nvr->setGBID(GBID);
+                    }
+                    if(Nvr->getLastUpdate() != updateTime)
+                    {
+                        Nvr->setLastUpdate(updateTime);
+                    }
+                    devList.emplace_back(Nvr);
+                }
+            }
+        }
     }
     return 0;
 }
-int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList)
+int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> &channelList)
 {
     std::ostringstream oss;
-    oss << "select id,parentId,GBID,channelNo,channelName from sub_device_info";
+    oss << "select id,parentId,GBID,channelNo,channelName,updateTime from sub_device_info";
     oss.flush();
     std::string strSql = oss.str();
     std::list< std::vector<std::string> >  xResult;
@@ -180,7 +241,7 @@ int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList)
     //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
     for(auto & it: xResult)
     {
-        if(it.size() < 5)
+        if(it.size() < 6)
         {
             continue;
         }
@@ -191,12 +252,14 @@ int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList)
         std::string GBID = it[nIndex++];
         int channelNo = String2Int(it[nIndex++]);
         std::string name = it[nIndex++];
+        std::string updateTime = it[nIndex++];
         JsonChildDevic channelInfo(dbId.c_str());
         channelInfo.setStatus(0);
         channelInfo.setParentId(parentId);
         channelInfo.setName(name);
         channelInfo.setGBID(GBID);
         channelInfo.setChannel(channelNo);
+        channelInfo.setLastUpdate(updateTime);
         channelList.emplace_back(channelInfo);
     }
     return 0;
@@ -204,7 +267,7 @@ int CDbManager::QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList)
 int CDbManager::QuerySubDeviceInfo(const std::string parentId, const int chlNo, JsonChildDevic &channelInfo)
 {
     std::ostringstream oss;
-    oss << "select id,parentId,GBID,channelNo,channelName from sub_device_info where parentId='" << parentId << "' and channelNo='" << chlNo << "';";
+    oss << "select id,parentId,GBID,channelNo,channelName,updateTime from sub_device_info where parentId='" << parentId << "' and channelNo='" << chlNo << "';";
     oss.flush();
     std::string strSql = oss.str();
     std::vector<std::string>  xResult;
@@ -215,7 +278,7 @@ int CDbManager::QuerySubDeviceInfo(const std::string parentId, const int chlNo, 
     }
     //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
 
-    if(xResult.size() < 5)
+    if(xResult.size() < 6)
     {
         return -2;
     }
@@ -226,12 +289,52 @@ int CDbManager::QuerySubDeviceInfo(const std::string parentId, const int chlNo, 
     std::string GBID = xResult[nIndex++];
     int channelNo = String2Int(xResult[nIndex++]);
     std::string name = xResult[nIndex++];
+    std::string updateTime = xResult[nIndex++];
     channelInfo.setId(dbId);
     channelInfo.setStatus(0);
     channelInfo.setParentId(nvrId);
     channelInfo.setName(name);
     channelInfo.setGBID(GBID);
     channelInfo.setChannel(channelNo);
+    channelInfo.setLastUpdate(updateTime);
+    return 0;
+}
+int CDbManager::QuerySubDeviceInfo(const std::string parentId, std::list<JsonChildDevic> &channelList)
+{
+    std::ostringstream oss;
+    oss << "select id,parentId,GBID,channelNo,channelName,updateTime from sub_device_info where parentId='" << parentId << "';";
+    oss.flush();
+    std::string strSql = oss.str();
+    std::list< std::vector<std::string> >  xResult;
+    if(!ExecSelect(strSql.c_str(), xResult))
+    {
+        LogOut(DB, L_INFO, "QueryDeviceNodeInfo ExecSelect failed 0");
+        return -1;
+    }
+    //LogOut(DB, L_INFO, "Query node info num:%d,query msg;%s", xResult.size(), xReqMsg.ShortDebugString().c_str());
+    for(auto & it: xResult)
+    {
+        if(it.size() < 6)
+        {
+            continue;
+        }
+        
+        int nIndex = 0;
+        std::string dbId = it[nIndex++];
+        std::string parentId = it[nIndex++];
+        std::string GBID = it[nIndex++];
+        int channelNo = String2Int(it[nIndex++]);
+        std::string name = it[nIndex++];
+        std::string updateTime = it[nIndex++];
+        JsonChildDevic channelInfo(dbId.c_str());
+        channelInfo.setStatus(0);
+        channelInfo.setParentId(parentId);
+        channelInfo.setName(name);
+        channelInfo.setGBID(GBID);
+        channelInfo.setChannel(channelNo);
+        channelInfo.setLastUpdate(updateTime);
+        channelList.emplace_back(channelInfo);
+    }
     return 0;
 }
 int CDbManager::IsExistSubDeviceInfo(const std::string parentId, const int chlNo)
@@ -271,6 +374,134 @@ int CDbManager::IsExistSubDeviceInfo(const std::string parentId, const int chlNo
     // }
     return 0;
 }
+
+int CDbManager::AddDeviceInfo(std::shared_ptr<JsonNvrDevic> nvr)
+{
+    if(!nvr)
+    {
+        return -2;
+    }
+    std::ostringstream oss;
+    oss << "insert into device_info (id, GBID, devType, protocol, deviceIp, devicePort, deviceUser,devicePswd, deviceName)";
+    oss << " values (";
+    oss << "NULL,";
+    oss << "'" << nvr->getGBID();
+    oss << "', '" << nvr->getDevType();
+    oss << "', '" << nvr->getProtocol();
+    oss << "', '" << nvr->getIp();
+    oss << "', '" << nvr->getPort();
+    oss << "', '" << nvr->getUser();
+    oss << "', '" << nvr->getPswd();
+    oss << "', '" << nvr->getName() << "'";
+    // oss << "', DEFAULT";
+    // oss << ", DEFAULT";
+    oss << ");";
+    oss.flush();
+    std::string strSql = oss.str();
+    uint32_t nDataID = 0;
+    if(!ExecInsert(strSql.c_str(), nDataID))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    nvr->deviceId = std::to_string((unsigned int)nDataID);
+    return 0;
+}
+int CDbManager::delDeviceInfo(uint32_t deviceId)
+{
+    std::ostringstream oss;
+    oss << "DELETE FROM device_info WHERE `id` = '" << deviceId << "';";
+    oss.flush();
+    std::string strSql = oss.str();
+    if(!ExecDelete(strSql.c_str()))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    return 0;
+}
+int CDbManager::updateDeviceInfo(std::shared_ptr<JsonNvrDevic> nvr, const JsonNvrDevic &newNvr)
+{
+    if(!nvr)
+    {
+        return -2;
+    }
+    bool hasUpdate = false;
+    std::ostringstream oss;
+    oss << "UPDATE `yixin`.`device_info` SET ";
+    if(!newNvr.getDevType().empty() && nvr->getDevType() != newNvr.getDevType())
+    {
+       oss << " `devType` = '" << newNvr.getDevType() << "'";
+       hasUpdate = true;
+    }
+    if(!newNvr.getProtocol().empty() && nvr->getProtocol() != newNvr.getProtocol())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `protocol` = '" << newNvr.getProtocol() << "'";
+        hasUpdate = true;
+    }
+    if(!newNvr.getIp().empty() && nvr->getIp() != newNvr.getIp())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `deviceIp` = '" << newNvr.getIp() << "'";
+        hasUpdate = true;
+    }
+    if(newNvr.getPort() > 0 && nvr->getPort() != newNvr.getPort())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `devicePort` = '" << newNvr.getPort() << "'";
+        hasUpdate = true;
+    }
+    if(!newNvr.getUser().empty() && nvr->getUser() != newNvr.getUser())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `deviceUser` = '" << newNvr.getUser() << "'";
+        hasUpdate = true;
+    }
+    if(!newNvr.getPswd().empty() && nvr->getPswd() != newNvr.getPswd())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `devicePswd` = '" << newNvr.getPswd() << "'";
+        hasUpdate = true;
+    }
+    if(!newNvr.getName().empty() && nvr->getName() != newNvr.getName())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `deviceName` = '" << newNvr.getName() << "'";
+        hasUpdate = true;
+    }
+    oss << " WHERE (`id` = '" << nvr->deviceId << "');";
+    oss.flush();
+    if(!hasUpdate)
+    {
+        return 0;
+    }
+    std::string strSql = oss.str();
+    if(!ExecUpdate(strSql.c_str()))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    return 0;
+}
 int CDbManager::AddSubDeviceInfo(const std::string parentId, const std::string gbid, const int chlNo, const std::string name)
 {
     std::ostringstream oss;
@@ -288,6 +519,67 @@ int CDbManager::AddSubDeviceInfo(const std::string parentId, const std::string g
     std::string strSql = oss.str();
     uint32_t nDataID = 0;
     if(!ExecInsert(strSql.c_str(), nDataID))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    return 0;
+}
+int CDbManager::AddSubDeviceInfo(std::shared_ptr<JsonChildDevic> childDev)
+{
+    if(!childDev)
+    {
+        return 0;
+    }
+    std::ostringstream oss;
+    oss << "insert into sub_device_info (id, parentId, GBID, channelNo, channelName )";
+    oss << " values (";
+    oss << "NULL,";
+    oss << "'" << childDev->getParentId();
+    oss << "', '" << childDev->getGBID();
+    oss << "', '" << childDev->getChannel();
+    oss << "', '" << childDev->getName() << "'";
+    // oss << "', DEFAULT";
+    // oss << ", DEFAULT";
+    oss << ");";
+    oss.flush();
+    std::string strSql = oss.str();
+    uint32_t nDataID = 0;
+    if(!ExecInsert(strSql.c_str(), nDataID))
+    {
+        // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
+        return -1;
+    }
+    childDev->setId(std::to_string(nDataID));
+    return 0;
+}
+
+int CDbManager::updateChannelInfo(std::shared_ptr<JsonChildDevic> channel, JsonChildDevic &newChannel)
+{
+    if(!channel)
+    {
+        return -2;
+    }
+    bool hasUpdate = false;
+    std::ostringstream oss;
+    oss << "UPDATE `yixin`.`sub_device_info` SET ";
+    if(!newChannel.getName().empty() && channel->getName() != newChannel.getName())
+    {
+        if(hasUpdate)
+        {
+           oss << ","; 
+        }
+        oss << " `channelName` = '" << newChannel.getName() << "'";
+        hasUpdate = true;
+    }
+    oss << " WHERE (`id` = '" << channel->getDeviceId() << "');";
+    oss.flush();
+    if(!hasUpdate)
+    {
+        return 0;
+    }
+    std::string strSql = oss.str();
+    if(!ExecUpdate(strSql.c_str()))
     {
         // LogOut(DB, L_ERROR, "ExecInsert failed: %s", strSql.c_str());
         return -1;
@@ -468,6 +760,34 @@ bool CDbManager::ExecInsert(const char* sql, uint64_t& nDbID)
 		return false;
 	}
 
+	return false;
+}
+bool CDbManager::ExecDelete(const char* sql)
+{
+    std::unique_lock<std::mutex> lock(dbMtx);
+    if(!mIsConnect || !mysql)
+    {
+        return false;
+    }
+	bool bOk = ExecDbSQL(sql);
+	if (bOk)
+	{
+		return true;
+	}
+	return false;
+}
+bool CDbManager::ExecUpdate(const char* sql)
+{
+    std::unique_lock<std::mutex> lock(dbMtx);
+    if(!mIsConnect || !mysql)
+    {
+        return false;
+    }
+	bool bOk = ExecDbSQL(sql);
+	if (bOk)
+	{
+		return true;
+	}
 	return false;
 }
 

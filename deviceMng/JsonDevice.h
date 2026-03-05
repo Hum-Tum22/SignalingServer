@@ -9,10 +9,7 @@
 class JsonNvrDevic : public BaseDevice
 {
 public:
-    JsonNvrDevic(const char* Id, const char* Ip, int port, const char* user, const char* pswd) :BaseDevice(Id, JSON_NVR),
-        mIP(Ip), mPort(port), mUser(user), mPswd(pswd), status(0), mLoginId(0)
-    {
-    };
+    JsonNvrDevic(const char* Id, const char* Ip, int port, const char* user, const char* pswd);
     ~JsonNvrDevic();
 
     bool DevConnect();
@@ -68,27 +65,7 @@ public:
 
     static PTZCONTROL_COMMAND switchFromGB28181(PTZCMDType::GB28181PtzCmd cmd);
 
-    void setStatus(int statu);
-    const int getStatus();
-
-    void setIp(const std::string ip);
-    const std::string& getIp() const;
-
-    void setPort(const short port);
-    const short getPort() const;
-
-    void setUser(const std::string user);
-    const std::string& getUser() const;
-
-    void setPswd(const std::string pswd);
-    const std::string& getPswd() const;
-
-    void setName(const std::string name);
-    const std::string& getName() const;
-
-    void setGBID(const std::string gbid);
-    const std::string& getGBID() const;
-
+    
     enum JsonPbCtrlCode
     {
         JsonPbCtrl_Play = 0,	// 继续播放
@@ -112,14 +89,6 @@ private:
     void JsonNvrLogIn(int& err);
     void JsonNvrLogOut(int& err);
 
-    std::string mIP;
-    short mPort;
-    std::string mName;
-    std::string mUser;
-    std::string mPswd;
-    std::string mGBID;
-    int status;
-    ULHandle mLoginId;
 };
 
 class JsonChildDevic : public BaseChildDevice
@@ -127,34 +96,5 @@ class JsonChildDevic : public BaseChildDevice
 public:
     JsonChildDevic(const char* Id);
     ~JsonChildDevic();
-
-    void setName(std::string nm);
-    const std::string getName();
-
-    void setStatus(int statu);
-    const int getStatus();
-
-    void setParentId(std::string nm);
-    const std::string getParentId();
-
-    void setChildIp(std::string Ip);
-    const std::string getChildIp();
-
-    void setGBID(std::string gbid);
-    const std::string getGBID();
-
-    void setChannel(int chl);
-    const int getChannel();
-    void setLastPtzCmd(int chl);
-    const int getLastPtzCmd();
-
-    CatalogItem GetCatalogItem(std::string myId);
-private:
-    std::string name;
-    int status;
-    std::string parentId;
-    std::string ChildIp;
-    std::string mGBID;
-    int channel;
-    int ptzCmd;
+ 
 };

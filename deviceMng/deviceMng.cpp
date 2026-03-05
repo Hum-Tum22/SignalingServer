@@ -1,6 +1,7 @@
 #include "deviceMng.h"
 #include "JsonDevice.h"
 #include "SelfLog.h"
+#include "IDManager.h"
 
 DeviceMng& DeviceMng::Instance()
 {
@@ -11,11 +12,6 @@ DeviceMng::~DeviceMng()
 {
     {
         GMUTEX lock(childMtx);
-        for (auto& iter : mChildMap)
-        {
-            delete iter.second;
-            iter.second = NULL;
-        }
         mChildMap.clear();
     }
     {
@@ -39,12 +35,15 @@ const std::string DeviceMng::getSelfId()
 }
 void DeviceMng::addDevice(BaseDevice::Ptr dev)
 {
+    LogOut(BLL, L_DEBUG, "addDevice id:%s", dev->deviceId.c_str());
     GMUTEX lock(devMtx);
     mDeviceMap[dev->deviceId] = dev;
 }
 void DeviceMng::removeDevice(std::string Id)
 {
     GMUTEX lock(devMtx);
+    LogOut(BLL, L_DEBUG, "addDevice id:%s", Id.c_str());
+    CDevCodeMng::Instance().DelDevCodeID(mDeviceMap[Id]->getGBID(), 1);
     mDeviceMap.erase(Id);
 }
 BaseDevice::Ptr DeviceMng::findDevice(const std::string Id)
@@ -58,7 +57,7 @@ BaseDevice::Ptr DeviceMng::findDevice(const std::string Id)
     return NULL;
 }
 
-void DeviceMng::addChildDevice(BaseChildDevice* child)
+void DeviceMng::addChildDevice(std::shared_ptr<BaseChildDevice> child)
 {
     GMUTEX lock(childMtx);
     mChildMap[child->getDeviceId()] = child;
@@ -66,10 +65,10 @@ void DeviceMng::addChildDevice(BaseChildDevice* child)
 void DeviceMng::removeChildDevice(std::string Id)
 {
     GMUTEX lock(childMtx);
-    delete mChildMap[Id];
+    CDevCodeMng::Instance().DelDevCodeID(mChildMap[Id]->getGBID(), 2);
     mChildMap.erase(Id);
 }
-BaseChildDevice* DeviceMng::findChildDevice(const std::string Id)
+std::shared_ptr<BaseChildDevice> DeviceMng::findChildDevice(const std::string Id)
 {
     GMUTEX lock(childMtx);
     auto it = mChildMap.find(Id);
@@ -77,9 +76,21 @@ BaseChildDevice* DeviceMng::findChildDevice(const std::string Id)
     {
         return it->second;
     }
-    return NULL;
+    return nullptr;
 }
-void DeviceMng::getChildDevice(const std::string& Id, std::vector<BaseChildDevice*>& vcList)
+std::shared_ptr<BaseChildDevice> DeviceMng::findChildDeviceByGBID(const std::string gbId)
+{
+    GMUTEX lock(childMtx);
+    for(auto& it : mChildMap)
+    {
+        if (it.second && it.second->getGBID() == gbId)
+        {
+            return it.second;
+        }
+    }
+    return nullptr;
+}
+void DeviceMng::getChildDevice(const std::string& Id, std::vector<std::shared_ptr<BaseChildDevice>>& vcList)
 {
     if (Id.empty())
     {
@@ -97,7 +108,7 @@ void DeviceMng::getChildDevice(const std::string& Id, std::vector<BaseChildDevic
         }
         else
         {
-            std::map<std::string, BaseChildDevice*> ChildMap;
+            std::map<std::string, std::shared_ptr<BaseChildDevice>> ChildMap;
             {
                 GMUTEX lock(childMtx);
                 ChildMap = mChildMap;
@@ -113,7 +124,7 @@ void DeviceMng::getChildDevice(const std::string& Id, std::vector<BaseChildDevic
         }
     }
 }
-BaseChildDevice* DeviceMng::findChildDeviceByCCTVDeviceId(const std::string Id)
+std::shared_ptr<BaseChildDevice> DeviceMng::findChildDeviceByCCTVDeviceId(const std::string Id)
 {
     if (!Id.empty())
     {
@@ -121,17 +132,13 @@ BaseChildDevice* DeviceMng::findChildDeviceByCCTVDeviceId(const std::string Id)
         GMUTEX lock(childMtx);
         for (auto& it : mChildMap)
         {
-            if (it.second->getParentDev() && it.second->getParentDev()->devType == BaseDevice::JSON_NVR)
+            if (it.second && it.second->getGBID() == Id)
             {
-                JsonChildDevic* pChild = dynamic_cast<JsonChildDevic*>(it.second);
-                if (pChild && pChild->getName() == Id)
-                {
-                    return it.second;
-                }
+                return it.second;
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 void DeviceMng::addVirtualOrganization(VirtualOrganization vo)
 {

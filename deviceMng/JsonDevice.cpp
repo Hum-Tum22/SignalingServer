@@ -3,6 +3,15 @@
 #include "../media/mediaIn/JsonStream.h"
 #include "../tools/CodeConversion.h"
 
+JsonNvrDevic::JsonNvrDevic(const char* Id, const char* Ip, int port, const char* user, const char* pswd) :BaseDevice(Id, JSON_NVR)
+{
+    setIp(Ip);
+    setPort(port);
+    setUser(user);
+    setPswd(pswd);
+    setStatus(0);
+    mLoginId = 0;
+};
 JsonNvrDevic::~JsonNvrDevic()
 {
     DevDisConnect();
@@ -104,14 +113,6 @@ JsonNvrDevic::PTZCONTROL_COMMAND JsonNvrDevic::switchFromGB28181(PTZCMDType::GB2
     return JsonNvrDevic::JSON_PTZCOMMAND_UNKNOWN;
 }
 
-void JsonNvrDevic::setStatus(int statu)
-{
-    status = statu;
-}
-const int JsonNvrDevic::getStatus()
-{
-    return status;
-}
 void JsonNvrDevic::JsonNvrLogIn(int& err)
 {
     err = 0;
@@ -399,172 +400,22 @@ void JsonNvrDevic::Dev_ListIPC(char* Buffer, uint32_t& BufSize, int& err)
     }
     return;
 }
-void JsonNvrDevic::setIp(const std::string ip)
+
+
+
+
+
+
+
+
+
+
+JsonChildDevic::JsonChildDevic(const char* Id) :BaseChildDevice(Id)
 {
-    mIP = ip;
-}
-const std::string& JsonNvrDevic::getIp() const
-{
-    return mIP;
-}
-
-void JsonNvrDevic::setPort(const short port)
-{
-    mPort = port;
-}
-const short JsonNvrDevic::getPort() const
-{
-    return mPort;
-}
-
-void JsonNvrDevic::setUser(const std::string user)
-{
-    mUser = user;
-}
-const std::string& JsonNvrDevic::getUser() const
-{
-    return mUser;
-}
-
-void JsonNvrDevic::setPswd(const std::string pswd)
-{
-    mPswd = pswd;
-}
-const std::string& JsonNvrDevic::getPswd() const
-{
-    return mPswd;
-}
-
-void JsonNvrDevic::setName(const std::string name)
-{
-    mName = name;
-}
-const std::string& JsonNvrDevic::getName() const
-{
-    return mName;
-}
-
-void JsonNvrDevic::setGBID(const std::string gbid)
-{
-    mGBID = gbid;
-}
-const std::string& JsonNvrDevic::getGBID() const
-{
-    return mGBID;
-}
-
-
-
-
-
-
-
-
-
-
-JsonChildDevic::JsonChildDevic(const char* Id) :BaseChildDevice(Id), channel(-1), ptzCmd(-1)
-{
+    setChannel(-1);
+    setLastPtzCmd(-1);
+    setStatus(0);
 }
 JsonChildDevic::~JsonChildDevic()
 {
-}
-//void JsonChildDevic::setParentDev(JsonNvrDevic::Ptr pdev)
-//{
-//	mParentDev = pdev;
-//}
-//const JsonNvrDevic::Ptr JsonChildDevic::getParentDev()
-//{
-//	return mParentDev;
-//}
-void JsonChildDevic::setName(std::string nm)
-{
-    name = nm;
-}
-const std::string JsonChildDevic::getName()
-{
-    return name;
-}
-void JsonChildDevic::setStatus(int statu)
-{
-    status = statu;
-}
-const int JsonChildDevic::getStatus()
-{
-    return status;
-}
-void JsonChildDevic::setParentId(std::string pId)
-{
-    parentId = pId;
-}
-const std::string JsonChildDevic::getParentId()
-{
-    return parentId;
-}
-void JsonChildDevic::setChildIp(std::string Ip)
-{
-    ChildIp = Ip;
-}
-const std::string JsonChildDevic::getChildIp()
-{
-    return ChildIp;
-}
-void JsonChildDevic::setGBID(std::string gbid)
-{
-    mGBID = gbid;
-}
-const std::string JsonChildDevic::getGBID()
-{
-    return mGBID;
-}
-void JsonChildDevic::setChannel(int chl)
-{
-    channel = chl;
-}
-const int JsonChildDevic::getChannel()
-{
-    return channel;
-}
-void JsonChildDevic::setLastPtzCmd(int cmd)
-{
-    ptzCmd = cmd;
-}
-const int JsonChildDevic::getLastPtzCmd()
-{
-    return ptzCmd;
-}
-CatalogItem JsonChildDevic::GetCatalogItem(std::string myId)
-{
-    CatalogItem item;
-    item.DeviceID = getDeviceId();
-    if (parentId.empty())
-    {
-        item.ParentID = myId;
-    }
-    else
-    {
-        item.ParentID = parentId;
-    }
-    item.Name = Utf8ToGbk(name);
-
-    item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
-    item.Model = "";//当为设备时,设备型号(必选)
-    item.Owner = "";//当为设备时,设备归属(必选)
-    item.CivilCode = item.DeviceID.substr(0, 6);//行政区域(必选)
-    item.Block = "";//警区(可选)
-    item.Address = "";//当为设备时,安装地址(必选)
-    item.Parental = 0;//当为设备时,是否有子设备(必选)1有,0没有
-    item.SafetyWay = 0;//信令安全模式(可选)缺省为0; 0:不采用;2:S/MIME 签名方式;3:S/MIME加密签名同时采用方式; 4:数字摘要方式
-    item.RegisterWay = 1;//注册方式(必选)缺省为1;1:符合IETFRFC3261标准的认证注册模式; 2:基于口令的双向认证注册模式; 3:基于数字证书的双向认证注册模式
-    item.CertNum = 0;//证书序列号(有证书的设备必选)
-    item.Certifiable = 0;//证书有效标识(有证书的设备必选)缺省为0;证书有效标识:0:无效 1:有效
-    item.ErrCode = 0;//无效原因码(有证书且证书无效的设备必选)
-    item.EndTime = "";//证书终止有效期(有证书的设备必选)
-    item.Secrecy = 0;//保密属性(必选)缺省为0;0:不涉密,1:涉密
-    item.IPAddress = ChildIp;//设备/区域/系统IP地址(可选)
-    item.Port = 0;//设备/区域/系统端口(可选)
-    item.Password = "";
-    item.Status = status ? "ON" : "OFF";
-    item.Longitude = 0;//经度(可选)
-    item.Latitude = 0;//纬度(可选)
-    return item;
 }

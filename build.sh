@@ -12,7 +12,7 @@ compileUbt2204()
     rm -rf install_ubt2204
     mkdir -p build
     cd build
-    rm -rf !(*.pem|*.ini|*.tar.gz|*.so.*|*.config)
+    rm -rf !(*.pem|*.ini|*.tar.gz|*.so*|*.config)
     # Release Debug
     cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$PWD/../install_ubt2204 
     

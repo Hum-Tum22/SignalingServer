@@ -48,6 +48,7 @@
 #include "../media/MediaMng.h"
 #include "../media/mediaIn/JsonStream.h"
 #include "dbManager.h"
+#include "IDManager.h"
 
 #include <memory>
 #include <string.h>
@@ -1772,52 +1773,52 @@ void getJsonNvrChannelList(BaseDevice::Ptr dev, std::list<JsonChildDevic> &chann
         auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
         if(Nvr)
         {
-            int err = 0;
-            uint32_t msgSize = 4 * 1024 * 1024;
-            char* Buffer = new char[msgSize];
-            Nvr->Dev_ListIPC(Buffer, msgSize, err);
-            if(err == 0)
+            if(Nvr->DevConnect())
             {
-                // LogOut(BLL, L_ERROR, "get nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
-                rapidjson_sip::Document document;
-                document.Parse(Buffer);
-                if(!document.HasParseError())
+                Nvr->setStatus(1);
+            }
+            else
+            {
+                Nvr->setStatus(0);
+            }
+            if(Nvr->getStatus())
+            {
+                int err = 0;
+                uint32_t msgSize = 4 * 1024 * 1024;
+                char* Buffer = new char[msgSize];
+                Nvr->Dev_ListIPC(Buffer, msgSize, err);
+                if(err == 0)
                 {
-                    if(document.HasMember("ipc_list") && document["ipc_list"].IsArray())
+                    LogOut(BLL, L_ERROR, "get nvr ipc list:%s,%s", Nvr->getIp().c_str(), Buffer);
+                    rapidjson_sip::Document document;
+                    document.Parse(Buffer);
+                    if(!document.HasParseError())
                     {
-                        rapidjson_sip::Value& body = document["ipc_list"];
-                        for(uint32_t i = 0; i < body.Size(); i++)
+                        if(document.HasMember("ipc_list") && document["ipc_list"].IsArray())
                         {
-                            std::string devNum = json_check_string(body[i], "device_number");
-                            std::string channelName = json_check_string(body[i], "device_name");
-                            int channelNo = json_check_int32(body[i], "chid");
-                            int online = json_check_int32(body[i], "online_status");
-                            // CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, channelNo, &channelInfo);
-                            // if(channelList.getDeviceId().empty())
-                            // {
-                            //     CDbManager::Instance().AddSubDeviceInfo(dev->deviceId, "", channelNo, channelName);
-                            //     CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, channelNo, &channelInfo);
-                            // }
-                            JsonChildDevic childDev("");
-                            childDev.setStatus(online == 1? 1:0);
-                            childDev.setName(channelName);
-                            childDev.setParentId(dev->deviceId);
-                            childDev.setChildIp("");
-                            childDev.setGBID("");
-                            childDev.setChannel(channelNo + 1);
-                            channelList.emplace_back(childDev);
-                            // std::string name;
-                            // int status;
-                            // std::string parentId;
-                            // std::string mGBID;
-                            // int channel;
+                            rapidjson_sip::Value& body = document["ipc_list"];
+                            for(uint32_t i = 0; i < body.Size(); i++)
+                            {
+                                std::string devNum = json_check_string(body[i], "device_number");
+                                std::string channelName = json_check_string(body[i], "device_name");
+                                int channelNo = json_check_int32(body[i], "chid");
+                                int online = json_check_int32(body[i], "online_status");
+                                JsonChildDevic childDev("");
+                                childDev.setStatus(online == 1? 1:0);
+                                childDev.setName(channelName);
+                                childDev.setParentId(dev->deviceId);
+                                childDev.setChildIp("");
+                                childDev.setGBID("");
+                                childDev.setChannel(channelNo + 1);
+                                channelList.emplace_back(childDev);
+                            }
                         }
                     }
                 }
-            }
-            if(Buffer)
-            {
-                delete[] Buffer; Buffer = NULL;
+                if(Buffer)
+                {
+                    delete[] Buffer; Buffer = NULL;
+                }
             }
         }
     }
@@ -1986,12 +1987,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");//1异常，0正常
                                     ipcStatus = ipcStatus ? 0 : 1;
 
-                                    BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                    auto child = DeviceMng::Instance().findChildDevice(childId);
                                     if(child)
                                     {
                                         if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
-                                            JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                            auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                             if(jsonChild)
                                             {
                                                 if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
@@ -2012,7 +2013,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     }
                                     else
                                     {
-                                        auto childDev = new JsonChildDevic(childId.c_str());
+                                        auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                         childDev->setParentDev(dev);
                                         childDev->setName(childName);
                                         childDev->setStatus(ipcStatus);
@@ -2065,12 +2066,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");
                                     ipcStatus = ipcStatus ? 0 : 1;
 
-                                    BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                    auto child = DeviceMng::Instance().findChildDevice(childId);
                                     if(child)
                                     {
                                         if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
-                                            JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                            auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                             if(jsonChild)
                                             {
                                                 if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
@@ -2091,7 +2092,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     }
                                     else
                                     {
-                                        auto childDev = new JsonChildDevic(childId.c_str());
+                                        auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                         childDev->setParentDev(dev);
                                         childDev->setName(childName);
                                         childDev->setStatus(ipcStatus);
@@ -2144,12 +2145,12 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     int ipcStatus = json_check_int32(ipcbody[j], "status");
                                     ipcStatus = ipcStatus ? 0 : 1;
 
-                                    BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                    auto child = DeviceMng::Instance().findChildDevice(childId);
                                     if(child)
                                     {
                                         if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                         {
-                                            JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                            auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                             if(jsonChild)
                                             {
                                                 if(jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
@@ -2173,7 +2174,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
                                     }
                                     else
                                     {
-                                        auto childDev = new JsonChildDevic(childId.c_str());
+                                        auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                         childDev->setParentDev(dev);
                                         childDev->setName(childName);
                                         childDev->setStatus(ipcStatus);
@@ -2231,34 +2232,67 @@ int UaMgr::getYxDeviceInfo(bool notify)
         BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(it->deviceId);
         if(dev)
         {
-            if(dev->devType == BaseDevice::JSON_NVR)
+            if(dev->getIp() != it->getIp())
             {
-                auto Nvr = std::dynamic_pointer_cast<JsonNvrDevic>(dev);
-                if(Nvr)
+                dev->setIp(it->getIp());
+            }
+            if(dev->getPort() != it->getPort())
+            {
+                dev->setPort(it->getPort());
+            }
+            if(dev->getUser() != it->getUser())
+            {
+                dev->setUser(it->getUser());
+            }
+            if(dev->getPswd() != it->getPswd())
+            {
+                dev->setPswd(it->getPswd());
+            }
+            if(dev->getName() != it->getName())
+            {
+                dev->setName(it->getName());
+            }
+            if(dev->getGBID() != it->getGBID())
+            {
+                dev->setGBID(it->getGBID());
+            }
+            std::list<JsonChildDevic> channelList;
+            getJsonNvrChannelList(dev, channelList);
+            for(auto &item : channelList)
+            {
+                JsonChildDevic channelInfo("");
+                CDbManager::Instance().QuerySubDeviceInfo(dev->deviceId, item.getChannel(), channelInfo);
+                LogOut(BLL, L_INFO, "channel info nvrid:%s,nvrGBID:%s channel:%d, channelId:%s channelGBID:%s",
+                dev->deviceId.c_str(), dev->getGBID().c_str(), item.getChannel(), channelInfo.getDeviceId().c_str(), channelInfo.getGBID().c_str());
+                if(channelInfo.getDeviceId().empty())
                 {
-                    if(Nvr->getIp() != it->getIp())
+                    std::string gbid = CDevCodeMng::Instance().CreateDevCode(IPC_CODE);
+                    int nRet = CDbManager::Instance().AddSubDeviceInfo(it->deviceId, gbid, item.getChannel(), item.getName());
+                    if(nRet == 0)
                     {
-                        Nvr->setIp(it->getIp());
                     }
-                    if(Nvr->getPort() != it->getPort())
+                    else
                     {
-                        Nvr->setPort(it->getPort());
+                        CDevCodeMng::Instance().DelDevCodeID(gbid, 3);
                     }
-                    if(Nvr->getUser() != it->getUser())
+                }
+                else
+                {
+                    auto channel = DeviceMng::Instance().findChildDevice(channelInfo.getDeviceId());
+                    if(channel)
                     {
-                        Nvr->setUser(it->getUser());
-                    }
-                    if(Nvr->getPswd() != it->getPswd())
-                    {
-                        Nvr->setPswd(it->getPswd());
-                    }
-                    if(Nvr->getName() != it->getName())
-                    {
-                        Nvr->setName(it->getName());
-                    }
-                    if(Nvr->getGBID() != it->getGBID())
-                    {
-                        Nvr->setGBID(it->getGBID());
+                        if(channel->getName() != item.getName())
+                        {
+                            channel->setName(item.getName());
+                        }
+                        if(channel->getChannel() != item.getChannel())
+                        {
+                            channel->setChannel(item.getChannel());
+                        }
+                        if(channel->getStatus() != item.getStatus())
+                        {
+                            channel->setStatus(item.getStatus());
+                        }
                     }
                 }
             }
@@ -2273,12 +2307,12 @@ int UaMgr::getYxDeviceInfo(bool notify)
     CDbManager::Instance().QuerySubDeviceInfoList(channelList);
     for(auto & it: channelList)
     {
-        BaseChildDevice* child = DeviceMng::Instance().findChildDevice(it.getDeviceId());
+        auto child = DeviceMng::Instance().findChildDevice(it.getDeviceId());
         if(child)
         {
             if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
             {
-                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                 if(jsonChild)
                 {
                     if(jsonChild->getName() != it.getName())
@@ -2297,17 +2331,22 @@ int UaMgr::getYxDeviceInfo(bool notify)
                     {
                         jsonChild->setChannel(it.getChannel());
                     }
+                    if(jsonChild->getLastUpdate() != it.getLastUpdate())
+                    {
+                        jsonChild->setLastUpdate(it.getLastUpdate());
+                    }
                 }
             }
         }
         else
         {
-            auto chidDev = new JsonChildDevic(it.getDeviceId().c_str());
-            chidDev->setStatus(1);
+            auto chidDev = std::make_shared<JsonChildDevic>(it.getDeviceId().c_str());
+            chidDev->setStatus(0);
             chidDev->setParentId(it.getParentId());
             chidDev->setName(it.getName());
             chidDev->setGBID(it.getGBID());
             chidDev->setChannel(it.getChannel());
+            chidDev->setLastUpdate(it.getLastUpdate());
             BaseDevice::Ptr dev = DeviceMng::Instance().findDevice(it.getParentId());
             if(dev)
             {
@@ -2325,7 +2364,11 @@ int UaMgr::getYxDeviceInfo(bool notify)
     target.port() = svrCfgi.getConfigInt("UPPORT", 8080);
     resip::Data passwd = svrCfgi.getConfigData("UPPASSWORD", passwd);
     //Uri target("sip:34021000002000000001@192.168.1.138:5060");
-    std::cout << "yixin config " << upId << " " << uphost << " " << target.port() << " " << passwd << std::endl;
+    auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&t), "%Y年%m月%d日%H时%M分%S秒");
+    std::string str_time = ss.str();
+    LogOut(HTTP, L_DEBUG, "yixin config time:%s %s %s %d %s ", str_time.c_str(), upId.c_str(), uphost.c_str(), target.port(), passwd.c_str());
     // Uri fromUri("sip:34020000002000000001@192.168.1.230:8099");
     if(!(target.user().empty() || target.user().size() < 20))
     {
@@ -2520,12 +2563,12 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                             ipcStatus = it->second;
                                         }
 
-                                        BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                        auto child = DeviceMng::Instance().findChildDevice(childId);
                                         if(child)
                                         {
                                             if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
-                                                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                                auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                                 if(jsonChild)
                                                 {
                                                     if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
@@ -2555,7 +2598,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         }
                                         else
                                         {
-                                            auto childDev = new JsonChildDevic(childId.c_str());
+                                            auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                             childDev->setParentDev(dev);
                                             childDev->setName(childName);
                                             childDev->setStatus(ipcStatus);
@@ -2624,12 +2667,12 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         {
                                             ipcStatus = it->second;
                                         }
-                                        BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                        auto child = DeviceMng::Instance().findChildDevice(childId);
                                         if(child)
                                         {
                                             if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
-                                                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                                auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                                 if(jsonChild)
                                                 {
                                                     if(jsonChild->getName() != childName || jsonChild->getParentId() != subVo.DeviceID)
@@ -2658,7 +2701,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         }
                                         else
                                         {
-                                            auto childDev = new JsonChildDevic(childId.c_str());
+                                            auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                             childDev->setParentDev(dev);
                                             childDev->setName(childName);
                                             childDev->setStatus(ipcStatus);
@@ -2728,12 +2771,12 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                             ipcStatus = it->second;
                                         }
 
-                                        BaseChildDevice* child = DeviceMng::Instance().findChildDevice(childId);
+                                        auto child = DeviceMng::Instance().findChildDevice(childId);
                                         if(child)
                                         {
                                             if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                                             {
-                                                JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                                                auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                                                 if(jsonChild)
                                                 {
                                                     if(jsonChild->getName() != childName || jsonChild->getStatus() != ipcStatus || jsonChild->getParentId() != subVo.DeviceID)
@@ -2765,7 +2808,7 @@ int UaMgr::NotifyQDCCTVNodeInfo(resip::ServerSubscriptionHandle& ssph, bool isAl
                                         }
                                         else
                                         {
-                                            auto childDev = new JsonChildDevic(childId.c_str());
+                                            auto childDev = std::make_shared<JsonChildDevic>(childId.c_str());
                                             childDev->setParentDev(dev);
                                             childDev->setName(childName);
                                             childDev->setStatus(ipcStatus);
@@ -2811,6 +2854,7 @@ int UaMgr::NotifyYixinHwInfo(resip::ServerSubscriptionHandle& ssph, bool isAll)
     std::stringstream ss;
     ss << std::put_time(std::localtime(&t), "%Y年%m月%d日%H时%M分%S秒");
     std::string str_time = ss.str();
+    LogOut(HTTP, L_DEBUG, "update channel status:%s ", str_time.c_str());
 
     MyServerConfig& svrCfgi = GetSipServerConfig();
     resip::Data myId = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
@@ -2822,12 +2866,12 @@ int UaMgr::NotifyYixinHwInfo(resip::ServerSubscriptionHandle& ssph, bool isAll)
         getJsonNvrChannelList(it, channelList);
         for(auto &item : channelList)
         {
-            BaseChildDevice* child = DeviceMng::Instance().findChildDevice(item.getDeviceId());
+            auto child = DeviceMng::Instance().findChildDevice(item.getDeviceId());
             if(child)
             {
                 if(child->getParentDev() && child->getParentDev()->devType == BaseDevice::JSON_NVR)
                 {
-                    JsonChildDevic* jsonChild = dynamic_cast<JsonChildDevic*>(child);
+                    auto jsonChild = std::dynamic_pointer_cast<JsonChildDevic>(child);
                     if(jsonChild)
                     {
                         if(jsonChild->getName() != item.getName() || jsonChild->getParentId() != it->deviceId)

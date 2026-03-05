@@ -334,7 +334,7 @@ SipServer::run(int argc, char** argv)
             daemonize();
         }
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 1 !");
     // Initialize resip logger
     Data loggingType = mProxyConfig->getConfigData("LoggingType", "cout", true);
     /*Log::initialize(
@@ -348,30 +348,30 @@ SipServer::run(int argc, char** argv)
     LogFileNumSet(fileNum);
     int fileSize = mProxyConfig->getConfigInt("LogFileSize", 10);
     LogFileSizeSet(fileSize);
-    int output = mProxyConfig->getConfigInt("LogOutPutType", 3);
-    LogTargetSet(output);
+    // int output = mProxyConfig->getConfigInt("LogOutPutType", 3);
+    // LogTargetSet(output);
     resip::Data logPath = mProxyConfig->getConfigData("LogFilePath", ".", true);
     resip::Data logFileName = mProxyConfig->getConfigData("LogName", "File", true);
-    int level = mProxyConfig->getConfigInt("HTTP", L_DEBUG);
-    LogLevelSet(HTTP, level);
-    level = mProxyConfig->getConfigInt("SIPMSG", L_DEBUG);
-    LogLevelSet(SIPMSG, level);
-    level = mProxyConfig->getConfigInt("CTRL", L_DEBUG);
-    LogLevelSet(CTRL, level);
-    level = mProxyConfig->getConfigInt("SDK", L_DEBUG);
-    LogLevelSet(SDK, level);
-    level = mProxyConfig->getConfigInt("MEDIA", L_DEBUG);
-    LogLevelSet(MEDIA, level);
-    // BLL represents "Business Logic Layer."
-    level = mProxyConfig->getConfigInt("BLL", L_DEBUG);
-    LogLevelSet(BLL, level);
-    level = mProxyConfig->getConfigInt("DB", L_DEBUG);
-    LogLevelSet(DB, level);
-    level = mProxyConfig->getConfigInt("CONFIG", L_DEBUG);
-    LogLevelSet(CONFIG, level);
-    level = mProxyConfig->getConfigInt("THREAD", L_DEBUG);
-    LogLevelSet(CONFIG, level);
-    
+    // int level = mProxyConfig->getConfigInt("HTTP", L_DEBUG);
+    // LogLevelSet(HTTP, level);
+    // level = mProxyConfig->getConfigInt("SIPMSG", L_DEBUG);
+    // LogLevelSet(SIPMSG, level);
+    // level = mProxyConfig->getConfigInt("CTRL", L_DEBUG);
+    // LogLevelSet(CTRL, level);
+    // level = mProxyConfig->getConfigInt("SDK", L_DEBUG);
+    // LogLevelSet(SDK, level);
+    // level = mProxyConfig->getConfigInt("MEDIA", L_DEBUG);
+    // LogLevelSet(MEDIA, level);
+    // // BLL represents "Business Logic Layer."
+    // level = mProxyConfig->getConfigInt("BLL", L_DEBUG);
+    // LogLevelSet(BLL, level);
+    // level = mProxyConfig->getConfigInt("DB", L_DEBUG);
+    // LogLevelSet(DB, level);
+    // level = mProxyConfig->getConfigInt("CONFIG", L_DEBUG);
+    // LogLevelSet(CONFIG, level);
+    // level = mProxyConfig->getConfigInt("THREAD", L_DEBUG);
+    // LogLevelSet(CONFIG, level);
+    LogOut(BLL, L_WARN, "sip server starting 2 !");
 
     //InfoLog(<< "Starting repro version " << VersionUtils::instance().releaseVersion() << "...");
 
@@ -380,13 +380,13 @@ SipServer::run(int argc, char** argv)
     {
         return false;
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 3 !");
     // Load the plugins after creating the stack, as they may need it
     if (!loadPlugins())
     {
         return false;
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 4 !");
     // Drop privileges (can do this now that sockets are bound)
     Data runAsUser = mProxyConfig->getConfigData("RunAsUser", Data::Empty, true);
     Data runAsGroup = mProxyConfig->getConfigData("RunAsGroup", Data::Empty, true);
@@ -395,7 +395,7 @@ SipServer::run(int argc, char** argv)
         InfoLog(<< "Trying to drop privileges, configured uid = " << runAsUser << " gid = " << runAsGroup);
         dropPrivileges(runAsUser, runAsGroup);
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 5 !");
     // Create datastore
     /*if (!createDatastore())
     {
@@ -412,33 +412,35 @@ SipServer::run(int argc, char** argv)
     {
         return false;
     }
+    LogOut(BLL, L_WARN, "sip server starting 6 !");
     if (!mUserAgent)
     {
         int iRtpPortMin = mProxyConfig->getConfigInt("RtpPortRangeMin", 17000);
         int iRtpPortMax = mProxyConfig->getConfigInt("RtpPortRangeMax", 18000);
         mUserAgent = new UaMgr(*mSipStack, iRtpPortMin, iRtpPortMax);
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 7 !");
     // Create the Proxy and associate objects
     if (!createProxy())
     {
         return false;
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 8 !");
     // Create HTTP WebAdmin and Thread
     if (!createWebAdmin())
     {
         return false;
     }
-
+    LogOut(BLL, L_WARN, "sip server starting 9 !");
     // Create reg sync components if required
     createRegSync();
-
+    LogOut(BLL, L_WARN, "sip server starting 10 !");
     // Create command server if required
     if (!mRestarting)
     {
         createCommandServer();
     }
+    LogOut(BLL, L_WARN, "server starting 1 !");
 
     // Make it all go - startup all threads
     mThreadedStack = mProxyConfig->getConfigBool("ThreadedStack", true);
@@ -447,14 +449,19 @@ SipServer::run(int argc, char** argv)
         // If configured, then start the sub-threads within the stack
         mSipStack->run();
     }
+    LogOut(BLL, L_WARN, "server starting 2 !");
     mStackThread->run();
+    LogOut(BLL, L_WARN, "server starting 3 !");
     if (mRegistSv)
         mRegistSv->Setup();
+    LogOut(BLL, L_WARN, "server starting 4 !");
     if (mDumThread)
     {
         mDumThread->run();
     }
+    LogOut(BLL, L_WARN, "server starting 5 !");
     mUserAgent->run();
+    LogOut(BLL, L_WARN, "server starting 6 !");
     /*mProxy->run();
     if (mWebAdminThread)
     {
@@ -506,7 +513,7 @@ SipServer::run(int argc, char** argv)
     //        mUserAgent->DoRegist(target, fromUri, passwd);
     //    }
     mRunning = true;
-
+    LogOut(BLL, L_ERROR, "sip server run end!");
     return true;
 }
 

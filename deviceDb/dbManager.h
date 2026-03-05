@@ -18,10 +18,16 @@ public:
     int CreateTables();
 	int InitTableData();
     int QueryDeviceInfoList(std::list<std::shared_ptr<JsonNvrDevic>> &devList);
-    int QuerySubDeviceInfoList(std::list<JsonChildDevic> channelList);
+    int QuerySubDeviceInfoList(std::list<JsonChildDevic> &channelList);
     int QuerySubDeviceInfo(const std::string parentId, const int chlNo, JsonChildDevic &channelInfo);
+    int QuerySubDeviceInfo(const std::string parentId, std::list<JsonChildDevic> &channelList);
     int IsExistSubDeviceInfo(const std::string parentId, const int chlNo);
+    int AddDeviceInfo(std::shared_ptr<JsonNvrDevic> nvr);
+    int delDeviceInfo(uint32_t deviceId);
+    int updateDeviceInfo(std::shared_ptr<JsonNvrDevic> nvr, const JsonNvrDevic &newNvr);
     int AddSubDeviceInfo(const std::string parentId, const std::string gbid, const int chlNo, const std::string name);
+    int AddSubDeviceInfo(std::shared_ptr<JsonChildDevic> childDev);
+    int updateChannelInfo(std::shared_ptr<JsonChildDevic> channel, JsonChildDevic &newChannel);
 protected:
     bool ConnectDb(const char* pCharSet = "utf8mb4");
 	bool DisConnectDb();//调用int sqlite3_close(sqlite3 *);//CloseSqlite();
@@ -30,6 +36,8 @@ protected:
 	//打开数据库，执行后关闭数据库
 	bool ExecInsert(const char* sql, uint32_t& nDbID);	// nDbID 需要所操作表有自增主机id时才会返回, 否则为0
 	bool ExecInsert(const char* sql, uint64_t& nDbID);
+    bool ExecDelete(const char* sql);
+    bool ExecUpdate(const char* sql);
 	bool ExecSelect(const char* sql, std::list< std::vector<std::string> >& xResult);
 	bool ExecIntValueSelect(const char* sql, uint32_t& nData);
 	bool ExecUint64ValueSelect(const char* sql, uint64_t& nData);

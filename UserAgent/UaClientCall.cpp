@@ -1273,7 +1273,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                     if(mdaStream)
                     {
                         BaseDevice::Ptr parentDev = NULL;
-                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        auto childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
                         if (childDev)
                         {
                             parentDev = childDev->getParentDev();
@@ -1336,7 +1336,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                     if(mdaStream)
                     {
                         BaseDevice::Ptr parentDev = NULL;
-                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        auto childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
                         if (childDev)
                         {
                             parentDev = childDev->getParentDev();
@@ -1388,7 +1388,7 @@ UaClientCall::onInfo(InviteSessionHandle h, const SipMessage& msg)
                     if(mdaStream)
                     {
                         BaseDevice::Ptr parentDev = NULL;
-                        BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
+                        auto childDev = DeviceMng::Instance().findChildDevice(mdaStream->getDeviceId());
                         if (childDev)
                         {
                             parentDev = childDev->getParentDev();

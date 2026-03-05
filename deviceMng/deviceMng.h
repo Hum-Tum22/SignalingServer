@@ -23,11 +23,12 @@ public:
 	void removeDevice(std::string);
 	BaseDevice::Ptr findDevice(const std::string Id);
 
-	void addChildDevice(BaseChildDevice*);
+	void addChildDevice(std::shared_ptr<BaseChildDevice>);
 	void removeChildDevice(std::string);
-	BaseChildDevice* findChildDevice(const std::string Id);
-	void getChildDevice(const std::string &Id, std::vector<BaseChildDevice*> &vcList);
-	BaseChildDevice* findChildDeviceByCCTVDeviceId(const std::string Id);
+    std::shared_ptr<BaseChildDevice> findChildDevice(const std::string Id);
+    std::shared_ptr<BaseChildDevice> findChildDeviceByGBID(const std::string gbId);
+    void getChildDevice(const std::string& Id, std::vector<std::shared_ptr<BaseChildDevice>>& vcList);
+	std::shared_ptr<BaseChildDevice> findChildDeviceByCCTVDeviceId(const std::string Id);
 
 	void addVirtualOrganization(VirtualOrganization);
 	void removeVirtualOrganization(std::string);
@@ -38,7 +39,7 @@ private:
 	std::mutex devMtx;
 	std::map<std::string, BaseDevice::Ptr> mDeviceMap;
 	std::mutex childMtx;
-	std::map<std::string, BaseChildDevice*> mChildMap;
+	std::map<std::string, std::shared_ptr<BaseChildDevice>> mChildMap;
 	std::mutex voMtx;
 	std::map<std::string, VirtualOrganization> mVoMap;
 };
