@@ -1,4 +1,5 @@
 #include "ps-file-source.h"
+#include "videoNalu.hpp"
 //#include "cstringext.h"
 #include "SelfLog.h"
 #include "rtp/lib/rtp/rtp-profile.h"
@@ -11,7 +12,7 @@
 
 
 PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
-    :m_reader(file), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL), m_pos(0), m_seq(0), mGap(0), frameNum(0), nSsrc(ssrc)
+    :m_reader(file), m_h265Reader(file), m_codecType(CodecType::H264), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL), m_pos(0), m_seq(0), mGap(0), frameNum(0), nSsrc(ssrc), m_ps_stream(0), m_ps_stream_inited(false)
 {
     m_speed = 1.0;
     m_status = 0;
@@ -19,19 +20,13 @@ PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
     m_rtp_clock = 0;
     m_rtcp_clock = 0;
 
-    //uint32_t ssrc = rtp_ssrc();
     uint32_t lssrc = ssrc;
-    //if (BYTE_ORDER == LITTLE_ENDIAN)
-    {
-        //lssrc = htonl(ssrc);
-    }
 
     struct ps_muxer_func_t func;
     func.alloc = Alloc;
     func.free = Free;
     func.write = Packet;
     m_ps = ps_muxer_create(&func, this);
-    m_ps_stream = ps_muxer_add_stream(m_ps, PSI_STREAM_H264, NULL, 0);
 
     static struct rtp_payload_t s_psfunc = {
         PSFileSource::RTPAlloc,
@@ -107,9 +102,38 @@ void PSFileSource::Input(int datatype, const uint8_t* data, size_t size)
 {
     if (datatype == 0)
     {
-        //InputH264(data, size);
-        m_reader.Input(data, size);
-        m_reader.GetParameterSets();
+        if (!m_ps_stream_inited && size > 0)
+        {
+            int nal_type = -1;
+            if (data[0] == 0x00 && data[1] == 0x00)
+            {
+                nal_type = h265_nal_type(data);
+                if (nal_type >= 32)
+                {
+                    m_codecType = CodecType::H265;
+                }
+                else
+                {
+                    nal_type = h264_nal_type(data);
+                    m_codecType = CodecType::H264;
+                }
+            }
+            
+            int ps_stream_type = (m_codecType == CodecType::H265) ? PSI_STREAM_H265 : PSI_STREAM_H264;
+            m_ps_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+            m_ps_stream_inited = true;
+        }
+
+        if (m_codecType == CodecType::H265)
+        {
+            m_h265Reader.Input(data, size);
+            m_h265Reader.GetParameterSets();
+        }
+        else
+        {
+            m_reader.Input(data, size);
+            m_reader.GetParameterSets();
+        }
     }
 
 }
@@ -123,7 +147,17 @@ int PSFileSource::PlayEx()
     {
         size_t bytes;
         const uint8_t* ptr;
-        if (0 == m_reader.GetNextFrameEx(m_pos, ptr, bytes))
+        int ret = -1;
+        if (m_codecType == CodecType::H265)
+        {
+            ret = m_h265Reader.GetNextFrameEx(m_pos, ptr, bytes);
+        }
+        else
+        {
+            ret = m_reader.GetNextFrameEx(m_pos, ptr, bytes);
+        }
+        
+        if (ret == 0)
         {
             if (0 == m_ps_clock)
                 m_ps_clock = clock;
@@ -255,6 +289,10 @@ int PSFileSource::Pause()
 int PSFileSource::Seek(int64_t pos)
 {
     m_rtp_clock = 0;
+    if (m_codecType == CodecType::H265)
+    {
+        return m_h265Reader.Seek(pos);
+    }
     return m_reader.Seek(pos);
 }
 
@@ -266,6 +304,10 @@ int PSFileSource::SetSpeed(double speed)
 
 int PSFileSource::GetDuration(int64_t& duration) const
 {
+    if (m_codecType == CodecType::H265)
+    {
+        return m_h265Reader.GetDuration(duration);
+    }
     return m_reader.GetDuration(duration);
 }
 

@@ -1,15 +1,23 @@
 #pragma once
 #include "h264-file-reader.h"
+#include "h265-file-reader.h"
 #include "media-source.h"
 #include "rtp/lib/mpeg/mpeg-ps.h"
 //#include "sys/process.h"
 //#include "time64.h"
 #include "rtp/lib/rtp/rtp.h"
+#include "videoNalu.hpp"
 #include <string>
 #include <thread>
 
 //#include "mediaIn/JsonStream.h"
 #include "MediaStream.h"
+
+enum class CodecType
+{
+    H264,
+    H265
+};
 
 class PSFileSource : public IMediaSource
 {
@@ -53,6 +61,7 @@ private:
 private:
 	ps_muxer_t* m_ps;
 	int m_ps_stream;
+	bool m_ps_stream_inited;
 	void* m_rtp;
 	int m_status;
 	int64_t m_pos;
@@ -66,6 +75,8 @@ private:
 	uint64_t m_rtp_clock;
 	uint64_t m_rtcp_clock;
 	H264FileReader m_reader;
+	H265FileReader m_h265Reader;
+	CodecType m_codecType;
 	MediaStream::Ptr media;
 	std::shared_ptr<IRTPTransport> m_transport;
 	uint32_t readhandle;
