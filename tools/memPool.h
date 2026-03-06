@@ -23,11 +23,17 @@ public:
         {
             bufSize = 1024 * 1024 * 1;
         }
-        buf = new uint8_t[bufSize];
-        bm_ptr = new uint8_t[bufSize];
-        curBuf = buf;
-        rPos = wPos = frPos = fwPos = 0;
-        LogOut(BLL, L_DEBUG, "new avMemPool buf:%p, bm_ptr:%p, curBuf:%p", buf, bm_ptr, curBuf);
+        
+        try {
+            buf = new uint8_t[bufSize];
+            bm_ptr = new uint8_t[bufSize];
+            curBuf = buf;
+            rPos = wPos = frPos = fwPos = 0;
+            LogOut(BLL, L_DEBUG, "new avMemPool buf:%p, bm_ptr:%p, curBuf:%p, bufSize:%lu", buf, bm_ptr, curBuf, bufSize);
+        } catch (std::bad_alloc& e) {
+            LogOut(BLL, L_ERROR, "avMemPool allocation failed: %s, bufSize:%lu", e.what(), bufSize);
+            // 内存分配失败，保持 buf、bm_ptr、curBuf 为 NULL
+        }
     };
     ~avMemPool()
     {
@@ -39,10 +45,26 @@ public:
         {
             delete[] bm_ptr; bm_ptr = NULL;
         }
+        curBuf = NULL;
+        readPtr = NULL;
         LogOut(BLL, L_DEBUG, "delete avMemPool");
     }
     int wirteData(void* data, size_t size)
     {
+        // 检查数据大小是否超过缓冲区容量
+        if(size > bufSize)
+        {
+            LogOut(BLL, L_ERROR, "wirteData error: size(%lu) > bufSize(%lu)", size, bufSize);
+            return -1;
+        }
+
+        // 检查指针有效性
+        if(!curBuf || !data)
+        {
+            LogOut(BLL, L_ERROR, "wirteData error: curBuf=%p, data=%p", curBuf, data);
+            return -1;
+        }
+
         if(bufSize - wPos >= size)
         {
             readPtr = curBuf + wPos;
@@ -70,9 +92,18 @@ public:
             }
             else
             {
-                LogOut(BLL, L_DEBUG, "------- curBuf error");
+                LogOut(BLL, L_ERROR, "------- curBuf error: curBuf=%p, buf=%p, bm_ptr=%p", curBuf, buf, bm_ptr);
+                return -1;
             }
-            wirteData(data, size);
+
+            // 再次检查切换后的缓冲区是否有效
+            if(!curBuf)
+            {
+                LogOut(BLL, L_ERROR, "wirteData error: curBuf is NULL after switch");
+                return -1;
+            }
+
+            return wirteData(data, size);
         }
         return 0;
     };

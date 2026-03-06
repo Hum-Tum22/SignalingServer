@@ -53,6 +53,8 @@ PSFileSource::~PSFileSource()
     if (media)
     {
         media->removeReader(readhandle);
+        media->reduction();
+        LogOut(BLL, L_INFO, "PSFileSource::~PSFileSource: streamId=%s, refNum=%d", media->getStreamId().c_str(), media->refNum());
     }
     if (m_rtp)
         rtp_destroy(m_rtp);
@@ -278,6 +280,8 @@ void PSFileSource::setMediaStream(MediaStream::Ptr p)
 {
     media = p;
     readhandle = p->createReader();
+    p->increasing();
+    LogOut(BLL, L_INFO, "PSFileSource setMediaStream: streamId=%s, refNum=%d", p->getStreamId().c_str(), p->refNum());
 }
 int PSFileSource::Pause()
 {

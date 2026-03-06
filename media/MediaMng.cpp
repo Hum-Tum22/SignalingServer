@@ -42,13 +42,16 @@ void MediaMng::removeStream(std::string Id)
     auto it = mStreamMap.find(Id);
     if (it != mStreamMap.end())
     {
+        // 当引用计数为 1 时，说明只有 mStreamMap 持有这个流
+        // 当引用计数为 2 时，可能是因为在函数调用过程中临时增加了引用
         if (it->second.use_count() <= 2)
         {
+            LogOut(BLL, L_INFO, "remove stream:%s, use_count:%ld", it->second->getStreamId().c_str(), it->second.use_count());
             mStreamMap.erase(Id);
         }
         else
         {
-            LogOut(BLL, L_WARN, "stream:%s, use_count:%ld", it->second->getStreamId().c_str(), it->second.use_count());
+            LogOut(BLL, L_WARN, "stream:%s still in use, use_count:%ld", it->second->getStreamId().c_str(), it->second.use_count());
         }
     }
 }
