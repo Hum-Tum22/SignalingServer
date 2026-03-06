@@ -1036,6 +1036,7 @@ void HttpServer::refreshChannels(const struct mg_str & body, std::string &strOut
                         writer.Key("deviceName");writer.String(it->getParentDev()->getName().c_str());
                         writer.Key("status");writer.String(it->getStatus() == 1? "在线":"离线");
                         writer.Key("lastUpdate");writer.String(it->getLastUpdate().c_str());
+                        writer.Key("gbId");writer.String(it->getGBID().c_str());
                         writer.EndObject();
                     }
                 writer.EndArray();
