@@ -414,18 +414,7 @@ void MediaStream::removeReader(uint32_t handle)
 {
     mReaderMap.erase(handle);
 }
-void MediaStream::increasing()
-{
-    def++;
-}
-void MediaStream::reduction()
-{
-    def--;
-}
-int MediaStream::refNum()
-{
-    return def.load();
-}
+
 int MediaStream::GetReadPos(unsigned int readhandle)
 {
     int readPos = -1;

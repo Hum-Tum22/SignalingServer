@@ -140,15 +140,3 @@ void MediaStream::freeFrameByIndex(ushort fIndex)
         rIndex = (rIndex + 1) % size;
     }
 }
-void MediaStream::inc()
-{
-    def++;
-}
-void MediaStream::reduction()
-{
-    def--;
-}
-int MediaStream::refNum()
-{
-    return def.load();
-}

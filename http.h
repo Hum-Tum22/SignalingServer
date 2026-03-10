@@ -50,6 +50,7 @@ private:
     static void AddDevice(const struct mg_str & body, std::string &strOut);
     static void delDevice(const struct mg_str & body, std::string &strOut);
     static void updateDevice(const struct mg_str & body, std::string &strOut);
+    static void getWsConfig(const struct mg_str & body, const std::string &host, std::string &strOut);
     static void getChannelList(const struct mg_str& body, std::string& strOut);
     static void refreshChannels(const struct mg_str& body, std::string& strOut);
     static void updateChannel(const struct mg_str & body, std::string &strOut);

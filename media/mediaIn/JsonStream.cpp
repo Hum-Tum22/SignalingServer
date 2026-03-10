@@ -192,6 +192,13 @@ void CALLBACK JsonStream::PlayBackEndCb(unsigned int pbhandle, int errorcode, vo
 }
 void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 {
+	// 检查流是否已关闭
+	if (exitCode)
+	{
+		LogOut(BLL, L_DEBUG, "JsonStream::OnVskJsonStream: stream already closed, skipping data");
+		return;
+	}
+
 	curTime = time(0);
 	if (lastTime == 0)
 	{
@@ -348,6 +355,13 @@ void JsonStream::OnVskJsonStream(uint8_t* data, size_t size)
 }
 void JsonStream::OnVskJsonStreamToAvFrame(uint8_t *data, size_t size)
 {
+	// 检查流是否已关闭
+	if (exitCode)
+	{
+		LogOut(BLL, L_DEBUG, "JsonStream::OnVskJsonStreamToAvFrame: stream already closed, skipping data");
+		return;
+	}
+
 	DataHeard xDataHeard;
 	xDataHeard.Clear();
 	// printf("-----OnVskJsonStreamToAvFrame call back-----\n");

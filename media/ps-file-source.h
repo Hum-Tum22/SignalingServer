@@ -60,8 +60,10 @@ private:
 
 private:
 	ps_muxer_t* m_ps;
-	int m_ps_stream;
-	bool m_ps_stream_inited;
+	int m_ps_video_stream;
+    int m_ps_audio_stream;
+	bool m_ps_video_stream_inited;
+    bool m_ps_audio_stream_inited;
 	void* m_rtp;
 	int m_status;
 	int64_t m_pos;

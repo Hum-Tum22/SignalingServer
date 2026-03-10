@@ -179,7 +179,7 @@ public:
             oDataStream str(strMsg);
             str << msg;
             str.flush();
-            strMsg = GbkToUtf8(strMsg.c_str()).c_str();
+            strMsg = strMsg.empty() ? "" : GbkToUtf8(strMsg.c_str()).c_str();
         }
         LogOut(SIPMSG, L_DEBUG, "OUTBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }
@@ -215,7 +215,7 @@ public:
             oDataStream str(strMsg);
             str << msg;
             str.flush();
-            strMsg = GbkToUtf8(strMsg.c_str()).c_str();
+            strMsg = strMsg.empty() ? "" : GbkToUtf8(strMsg.c_str()).c_str();
         }
         LogOut(SIPMSG, L_DEBUG, "INBOUND: Src:%s, Dst:%s\r\n\r\n%s", srcMsg.c_str(), dstMsg.c_str(), strMsg.c_str());
     }

@@ -165,7 +165,8 @@ int main(int argc, char** argv)
         LogOut(BLL, L_ERROR, "server starting 2!");
         HttpServer httpSv(pSipSvr->gbHttpPort);
         LogOut(BLL, L_ERROR, "http server starting!");
-        WsServer s(9899);
+        int wsPort = svrCfgi.getConfigInt("WS_PORT", 9899);
+        WsServer s(wsPort);
         LogOut(BLL, L_ERROR, "ws server starting!");
         // 通知systemd服务已准备好
         sd_notify(0, "READY=1");

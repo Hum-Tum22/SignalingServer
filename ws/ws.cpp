@@ -309,7 +309,6 @@ int WsServer::RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& d
         MediaStream::Ptr s = MediaMng::GetInstance().findStream(streamdId);
         if(s)
         {
-            s->increasing();
             sinfo->ms = s;
             sinfo->readhandle = s->createReader();
 
@@ -327,7 +326,6 @@ int WsServer::RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& d
             s = MediaMng::GetInstance().createLiveStream(deviceId, streamtype);
             if(s)
             {
-                s->increasing();
                 sinfo->ms = s;
                 sinfo->readhandle = s->createReader();
 
@@ -407,7 +405,6 @@ int WsServer::PlayBackAction(WsStreamInfo* sinfo, rapidjson_sip::Document& docum
         if(ms)
         {
             playok = true;
-            ms->increasing();
             sinfo->ms = ms;
             sinfo->speed = 1.0;
             sinfo->ctrlType = 0;

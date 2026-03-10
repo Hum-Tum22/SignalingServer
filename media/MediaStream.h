@@ -34,6 +34,9 @@ typedef enum
     GB_CODEC_UNKNOWN = -1,
     GB_CODEC_H264,
     GB_CODEC_H265,
+    // GB_CODEC_H265,
+    // GB_CODEC_H265,
+    // GB_CODEC_H265,
 }STREAM_CODEC;
 class FrameMemPool : public avMemPool, public unLockQueue<vframe_t>
 {
@@ -102,9 +105,6 @@ public:
 
     uint32_t createReader();
     void removeReader(uint32_t handle);
-    void increasing();
-    void reduction();
-    int refNum();
 protected:
     int     GetReadPos(unsigned int readhandle);
     void    SetReadPos(unsigned int readhandle, unsigned int Pos);

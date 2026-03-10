@@ -208,7 +208,7 @@ CatalogItem BaseChildDevice::GetCatalogItem(std::string myId)
     {
         item.ParentID = parentId;
     }
-    item.Name = Utf8ToGbk(name);
+    item.Name = name.empty() ? "" : Utf8ToGbk(name);
 
     item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
     item.Model = "";//当为设备时,设备型号(必选)

@@ -12,7 +12,7 @@
 
 
 PSFileSource::PSFileSource(const char* file, uint32_t ssrc)
-    :m_reader(file), m_h265Reader(file), m_codecType(CodecType::H264), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL), m_pos(0), m_seq(0), mGap(0), frameNum(0), nSsrc(ssrc), m_ps_stream(0), m_ps_stream_inited(false)
+    :m_reader(file), m_h265Reader(file), m_codecType(CodecType::H264), IsRun(false), playType(1), media(NULL), readhandle(0), m_pspacker(NULL), m_pos(0), m_seq(0), mGap(0), frameNum(0), nSsrc(ssrc), m_ps_video_stream(0), m_ps_video_stream_inited(false)
 {
     m_speed = 1.0;
     m_status = 0;
@@ -53,8 +53,7 @@ PSFileSource::~PSFileSource()
     if (media)
     {
         media->removeReader(readhandle);
-        media->reduction();
-        LogOut(BLL, L_INFO, "PSFileSource::~PSFileSource: streamId=%s, refNum=%d", media->getStreamId().c_str(), media->refNum());
+        LogOut(BLL, L_INFO, "PSFileSource::~PSFileSource: streamId=%s, use_count=%ld", media->getStreamId().c_str(), media.use_count());
     }
     if (m_rtp)
         rtp_destroy(m_rtp);
@@ -102,45 +101,52 @@ int PSFileSource::SetTransport(const char * /*track*/, std::shared_ptr<IRTPTrans
 }
 void PSFileSource::Input(int datatype, const uint8_t* data, size_t size)
 {
+    LogOut(BLL, L_DEBUG, "PSFileSource::Input: datatype=%d, size=%zu", datatype, size);
     if (datatype == 0)
     {
-        if (!m_ps_stream_inited && size > 0)
+        if (!m_ps_video_stream_inited && size > 0)
         {
             int nal_type = -1;
             if (data[0] == 0x00 && data[1] == 0x00)
             {
-                nal_type = h265_nal_type(data);
-                if (nal_type >= 32)
+                nal_type = h264_nal_type(data);
+                if (nal_type >= 0 && nal_type <= 31)
                 {
-                    m_codecType = CodecType::H265;
+                    m_codecType = CodecType::H264;
+                    LogOut(BLL, L_INFO, "PSFileSource::Input: detected H264 codec, nal_type=%d", nal_type);
                 }
                 else
                 {
-                    nal_type = h264_nal_type(data);
-                    m_codecType = CodecType::H264;
+                    nal_type = h265_nal_type(data);
+                    m_codecType = CodecType::H265;
+                    LogOut(BLL, L_INFO, "PSFileSource::Input: detected H265 codec, nal_type=%d", nal_type);
                 }
             }
             
             int ps_stream_type = (m_codecType == CodecType::H265) ? PSI_STREAM_H265 : PSI_STREAM_H264;
-            m_ps_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
-            m_ps_stream_inited = true;
+            m_ps_video_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+            m_ps_video_stream_inited = true;
+            LogOut(BLL, L_INFO, "PSFileSource::Input: initialized PS stream, codecType=%d, stream_type=%d", (int)m_codecType, ps_stream_type);
         }
 
         if (m_codecType == CodecType::H265)
         {
-            m_h265Reader.Input(data, size);
-            m_h265Reader.GetParameterSets();
+            LogOut(BLL, L_DEBUG, "PSFileSource::Input: processing H265 data, size=%zu", size);
+            // m_h265Reader.Input(data, size);
+            // m_h265Reader.GetParameterSets();
         }
         else
         {
-            m_reader.Input(data, size);
-            m_reader.GetParameterSets();
+            LogOut(BLL, L_DEBUG, "PSFileSource::Input: processing H264 data, size=%zu", size);
+            // m_reader.Input(data, size);
+            // m_reader.GetParameterSets();
         }
     }
 
 }
 int PSFileSource::PlayEx()
 {
+    LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: start");
     m_status = 1;
 
     //time64_t clock = time64_now();
@@ -152,22 +158,36 @@ int PSFileSource::PlayEx()
         int ret = -1;
         if (m_codecType == CodecType::H265)
         {
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: getting H265 frame, pos=%zu", m_pos);
             ret = m_h265Reader.GetNextFrameEx(m_pos, ptr, bytes);
         }
         else
         {
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: getting H264 frame, pos=%zu", m_pos);
             ret = m_reader.GetNextFrameEx(m_pos, ptr, bytes);
         }
         
         if (ret == 0)
         {
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: got frame, bytes=%zu, codecType=%d", bytes, (int)m_codecType);
             if (0 == m_ps_clock)
                 m_ps_clock = clock;
-            ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, ptr, bytes);
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: muxing frame, pts=%ju, dts=%ju, bytes=%zu", (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, bytes);
+            if(!m_ps_video_stream_inited)
+            {
+                Input(0, ptr, bytes);
+            }
+            ps_muxer_input(m_ps, m_ps_video_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, ptr, bytes);
             m_rtp_clock += 40;
+            m_pos += bytes;
 
             SendRTCP();
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: sent frame, returning 1");
             return 1;
+        }
+        else
+        {
+            LogOut(BLL, L_DEBUG, "PSFileSource::PlayEx: no frame available, ret=%d", ret);
         }
     }
 
@@ -184,9 +204,12 @@ int PSFileSource::Play()
         vframe_t frame;
         if (media && 0 == media->GetNextFrame(readhandle, frame))
         {
-            //printf("--------------- get frame time:%lld\n", time(0));
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Play: got frame, frameType=%d, bytes=%zu, idr=%d", frame.frameType, frame.bytes, frame.idr);
             if (!frame.nalu)
+            {
+                LogOut(BLL, L_WARN, "PSFileSource::Play: frame nalu is NULL");
                 return 0;
+            }
             if (0 == m_ps_clock)
                 m_ps_clock = clock;
             if (frame.nalu && frame.nalu[0] != 0x00)
@@ -197,16 +220,62 @@ int PSFileSource::Play()
             if (frame.frameType == GB_CODEC_H264 || frame.frameType == GB_CODEC_H265)
             {
                 frameNum++;
+                // LogOut(BLL, L_DEBUG, "PSFileSource::Play: frameNum=%ju, codecType=%d", frameNum, frame.frameType);
+                if(!m_ps_video_stream_inited)
+                {
+                    int ps_stream_type = PSI_STREAM_H264;
+                    if(frame.frameType == GB_CODEC_H264)
+                    {
+                        ps_stream_type = PSI_STREAM_H264;
+                    }
+                    else if(frame.frameType == GB_CODEC_H265)
+                    {
+                        ps_stream_type = PSI_STREAM_H265;
+                    }
+                    m_ps_video_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+                    m_ps_video_stream_inited = true;
+                }
+                ps_muxer_input(m_ps, m_ps_video_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
+                m_rtp_clock += 40; 
+            }
+            else
+            {
+                if(!m_ps_audio_stream_inited)
+                {
+                    int ps_stream_type = PSI_STREAM_AUDIO_G711A;
+                    if(frame.frameType == CODEC_G711A)
+                    {
+                        ps_stream_type = PSI_STREAM_AUDIO_G711A;
+                    }
+                    else if(frame.frameType == CODEC_G711U)
+                    {
+                        ps_stream_type = PSI_STREAM_AUDIO_G711U;
+                    }
+                    else if(frame.frameType == CODEC_AAC)
+                    {
+                        ps_stream_type = PSI_STREAM_AAC;
+                    }
+                    else
+                    {
+                        return 0;
+                    }
+                    m_ps_audio_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+                    m_ps_audio_stream_inited = true;
+                }
+                if(frame.frameType == CODEC_G711A || frame.frameType == CODEC_AAC || frame.frameType == CODEC_G711U)
+                {
+                    ps_muxer_input(m_ps, m_ps_audio_stream, 0, 0, 0, frame.nalu, frame.bytes);
+                }
             }
             if (frame.idr)
             {
                 mGap = frame.gap;
-                //printf("--------------- idr frame time:%ld, gap:%d, frameNum:%ju, ssrc:%u\n", time(0), mGap, frameNum, nSsrc);
+                // LogOut(BLL, L_INFO, "PSFileSource::Play: IDR frame, gap=%d, frameNum=%ju, ssrc=%u", mGap, frameNum, nSsrc);
             }
-            ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.nalu, frame.bytes);
-            m_rtp_clock += 40;
-
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Play: muxing frame, pts=%ju, dts=%ju, bytes=%zu m_ps:%p, m_ps_video_stream:%d", (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.bytes, m_ps, m_ps_video_stream);
+            
             SendRTCP();
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Play: sent frame, returning 1");
             return 1;
         }
     }
@@ -225,13 +294,63 @@ int PSFileSource::Playback()
         ushort index = 0;
         if(media && 0 == media->GetNextFrameEx(readhandle, frame, index))
         {
-            //printf("--------------- get frame time:%lld\n", time(0));
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Playback: got frame, index=%hu, codecType=%d, dataLen=%d, isKeyFrame=%d", index, frame.GetCodecType(), frame.DataLen(), frame.IsKeyFram());
             if (0 == m_ps_clock)
                 m_ps_clock = clock;
-            
+            if(frame.IsVideo())
+            {
+                if(!m_ps_video_stream_inited)
+                {
+                    int ps_stream_type = PSI_STREAM_H264;
+                    if(frame.GetCodecType() == CODEC_H264)
+                    {
+                        ps_stream_type = PSI_STREAM_H264;
+                    }
+                    else if(frame.GetCodecType() == CODEC_H265)
+                    {
+                        ps_stream_type = PSI_STREAM_H265;
+                    }
+                    m_ps_video_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+                    m_ps_video_stream_inited = true;
+                }
+                ps_muxer_input(m_ps, m_ps_video_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.Data(), frame.DataLen());
+                m_rtp_clock += 40;
+            }
+            else
+            {
+                if(!m_ps_audio_stream_inited)
+                {
+                    int ps_stream_type = PSI_STREAM_AUDIO_G711A;
+                    if(frame.GetCodecType() == CODEC_G711A)
+                    {
+                        ps_stream_type = PSI_STREAM_AUDIO_G711A;
+                    }
+                    else if(frame.GetCodecType() == CODEC_G711U)
+                    {
+                        ps_stream_type = PSI_STREAM_AUDIO_G711U;
+                    }
+                    else if(frame.GetCodecType() == CODEC_AAC)
+                    {
+                        ps_stream_type = PSI_STREAM_AAC;
+                    }
+                    else
+                    {
+                        frame.dereference();
+                        media->freeFrameByIndex(index);
+                        return 0;
+                    }
+                    m_ps_audio_stream = ps_muxer_add_stream(m_ps, ps_stream_type, NULL, 0);
+                    m_ps_audio_stream_inited = true;
+                }
+                if(frame.GetCodecType() == CODEC_G711A || frame.GetCodecType() == CODEC_AAC || frame.GetCodecType() == CODEC_G711U)
+                {
+                    ps_muxer_input(m_ps, m_ps_audio_stream, 0, 0, 0, frame.Data(), frame.DataLen());
+                }
+            }
             if (frame.GetCodecType() == CODEC_H264 || frame.GetCodecType() == CODEC_H265)
             {
                 frameNum++;
+                // LogOut(BLL, L_DEBUG, "PSFileSource::Playback: frameNum=%ju, codecType=%d", frameNum, frame.GetCodecType());
             }
             if (frame.IsKeyFram())
             {
@@ -243,14 +362,14 @@ int PSFileSource::Playback()
                 {
                     mGap = 40;
                 }
-                    //printf("--------------- idr frame time:%ld, gap:%d, frameNum:%ju, ssrc:%u\n", time(0), mGap, frameNum, nSsrc);
+                // LogOut(BLL, L_INFO, "PSFileSource::Playback: key frame, gap=%d, frameNum=%ju, ssrc=%u, frameRate=%d", mGap, frameNum, nSsrc, frame.GetFramRate());
             }
-            ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.Data(), frame.DataLen());
-            m_rtp_clock += 40;
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Playback: muxing frame, pts=%ju, dts=%ju, bytes=%d", (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, frame.DataLen());
             frame.dereference();
             media->freeFrameByIndex(index);
 
             SendRTCP();
+            // LogOut(BLL, L_DEBUG, "PSFileSource::Playback: sent frame, returning 1");
             return 1;
         }
     }
@@ -259,6 +378,7 @@ int PSFileSource::Playback()
 }
 int PSFileSource::InputH264(const uint8_t *data, size_t bytes)
 {
+    LogOut(BLL, L_DEBUG, "PSFileSource::InputH264: start, bytes=%zu", bytes);
     m_status = 1;
 
     //time64_t clock = time64_now();
@@ -267,10 +387,12 @@ int PSFileSource::InputH264(const uint8_t *data, size_t bytes)
     {
         if (0 == m_ps_clock)
             m_ps_clock = clock;
-        ps_muxer_input(m_ps, m_ps_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, data, bytes);
+        LogOut(BLL, L_DEBUG, "PSFileSource::InputH264: muxing frame, pts=%ju, dts=%ju, bytes=%zu", (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, bytes);
+        ps_muxer_input(m_ps, m_ps_video_stream, 0, (clock - m_ps_clock) * 90, (clock - m_ps_clock) * 90, data, bytes);
         m_rtp_clock += 40;
 
         SendRTCP();
+        LogOut(BLL, L_DEBUG, "PSFileSource::InputH264: sent frame, returning 1");
         return 1;
     }
 
@@ -280,8 +402,7 @@ void PSFileSource::setMediaStream(MediaStream::Ptr p)
 {
     media = p;
     readhandle = p->createReader();
-    p->increasing();
-    LogOut(BLL, L_INFO, "PSFileSource setMediaStream: streamId=%s, refNum=%d", p->getStreamId().c_str(), p->refNum());
+    LogOut(BLL, L_INFO, "PSFileSource setMediaStream: streamId=%s, use_count=%ld", p->getStreamId().c_str(), p.use_count());
 }
 int PSFileSource::Pause()
 {
@@ -383,6 +504,7 @@ void PSFileSource::Free(void* /*param*/, void* packet)
 }
 int PSFileSource::Packet(void* param, int /*avtype*/, void* pes, size_t bytes)
 {
+    // LogOut(BLL, L_INFO, "PSFileSource Packet: bytes:%zu", bytes);
     PSFileSource* self = (PSFileSource*)param;
     int64_t clock = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     return rtp_payload_encode_input(self->m_pspacker, pes, (int)bytes, (uint32_t)(clock * 90 /*kHz*/));
@@ -403,6 +525,7 @@ void PSFileSource::RTPFree(void* param, void* packet)
 
 int PSFileSource::RTPPacket(void* param, const void* packet, int bytes, uint32_t /*timestamp*/, int /*flags*/)
 {
+    // LogOut(BLL, L_INFO, "PSFileSource RTPPacket: bytes:%d", bytes);
     PSFileSource* self = (PSFileSource*)param;
     assert(self->m_packet == packet);
 

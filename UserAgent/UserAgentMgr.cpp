@@ -2358,11 +2358,12 @@ int UaMgr::getYxDeviceInfo(bool notify)
     MyServerConfig& svrCfgi =GetSipServerConfig();
     resip::Uri target;
     resip::Data upId("34020000002000000002");
-    target.user() = svrCfgi.getConfigData("UPID", upId);
-    resip::Data uphost("192.168.1.223");
-    target.host() = svrCfgi.getConfigData("UPHOST", uphost);
-    target.port() = svrCfgi.getConfigInt("UPPORT", 8080);
-    resip::Data passwd = svrCfgi.getConfigData("UPPASSWORD", passwd);
+	target.user() = svrCfgi.getConfigData("UPID", upId);
+	resip::Data uphost("192.168.1.223");
+	target.host() = svrCfgi.getConfigData("UPHOST", uphost);
+	target.port() = svrCfgi.getConfigInt("UPPORT", 8080);
+	resip::Data passwd("");
+	passwd = svrCfgi.getConfigData("UPPASSWORD", passwd);
     //Uri target("sip:34021000002000000001@192.168.1.138:5060");
     auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::stringstream ss;

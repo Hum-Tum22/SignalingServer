@@ -12,6 +12,7 @@
 #include "dbManager.h"
 #include "TypeConversion.h"
 #include "IDManager.h"
+#include "SipServerConfig.h"
 
 using namespace std;
 
@@ -431,6 +432,13 @@ void HttpServer::HandleDefault(struct mg_connection* c, int ev, void* ev_data, v
 			mg_ws_upgrade(c, hm, NULL);
 			return;
         }
+        std::string strHost;
+        struct mg_str* Host = mg_http_get_header(hm, "Host");
+        if(Host)
+        {
+            strHost = std::string(Host->ptr, Host->len);
+           std::cout << "Host:" << strHost << std::endl; 
+        }
         std::cout << "http body:" << std::string(hm->body.ptr, hm->body.len) << std::endl;
         if(mg_http_match_uri(hm, "/login"))
         {
@@ -481,6 +489,12 @@ void HttpServer::HandleDefault(struct mg_connection* c, int ev, void* ev_data, v
             {
                 std::string strOut;
                 updateDevice(hm->body, strOut);
+                mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
+            }
+            else if(method == "getWsConfig")
+            {
+                std::string strOut;
+                getWsConfig(hm->body, strHost, strOut);
                 mg_http_reply(c, 200, "Content-Type: application/json;charset=utf-8\r\n", "%s\n", strOut.c_str());
             }
         }
@@ -828,10 +842,12 @@ void HttpServer::delDevice(const struct mg_str & body, std::string &strOut)
         {
             std::vector<std::shared_ptr<BaseChildDevice>> vcList;
             DeviceMng::Instance().getChildDevice(std::to_string(deviceId), vcList);
+            LogOut(BLL, L_INFO, "delete device:%u sub device size:%Zu", deviceId, vcList.size());
             for(auto &it : vcList)
             {
-                if(!it)
+                if(it)
                 {
+                    // LogOut(BLL, L_INFO, "delete child device:%s", it->getDeviceId().c_str());
                     DeviceMng::Instance().removeChildDevice(it->getDeviceId());
                 }
             }
@@ -940,6 +956,29 @@ void HttpServer::updateDevice(const struct mg_str & body, std::string &strOut)
         writer.EndObject();
         writer.EndObject();
     }
+	strOut = std::string(response.GetString(), response.GetSize());
+	return;
+}
+void HttpServer::getWsConfig(const struct mg_str & body, const std::string &host, std::string &strOut)
+{
+    rapidjson_sip::StringBuffer response;
+    rapidjson_sip::Writer<rapidjson_sip::StringBuffer> writer(response);
+    MyServerConfig& svrCfgi = GetSipServerConfig();
+    int wsPort = svrCfgi.getConfigInt("WS_PORT", 9899);
+    writer.StartObject();
+    writer.Key("code"); writer.Int(200);
+    writer.Key("message"); writer.String("获取成功");
+    writer.Key("data");
+    writer.StartObject();
+    std::string devIp = host;
+    size_t pos = host.rfind(":");
+    if (pos != std::string::npos) {
+        devIp = host.substr(0, pos);
+    }
+    writer.Key("wsIp"); writer.String(devIp.c_str());
+    writer.Key("wsPort"); writer.Int(wsPort);
+    writer.EndObject();
+    writer.EndObject();
 	strOut = std::string(response.GetString(), response.GetSize());
 	return;
 }
@@ -2064,7 +2103,6 @@ void HttpServer::zlmHookSendRtpStopped(const struct mg_str& body, std::string& s
 //		MediaStream::Ptr s = MediaMng::GetInstance().findStream("37028806251320111520");
 //		if (s)
 //		{
-//			s->increasing();
 //			sinfo->ms = s;
 //			sinfo->readhandle = s->createReader();
 //
@@ -2082,7 +2120,6 @@ void HttpServer::zlmHookSendRtpStopped(const struct mg_str& body, std::string& s
 //			s = StartLiveStream("37028806251320111520", 0);
 //			if (s)
 //			{
-//				s->increasing();
 //				sinfo->ms = s;
 //				sinfo->readhandle = s->createReader();
 //
@@ -2459,35 +2496,4 @@ void HttpServer::zlmHookSendRtpStopped(const struct mg_str& body, std::string& s
 //	}
 //	free(pBuffer);
 //	printf("------------------- Preview exit -------ms info :%p\n", smInfo);
-//}
-//bool HttpServer::CloseStreamByStreamId(MediaStream::Ptr& ms)
-//{
-//	if (ms)
-//	{
-//		ms->reduction();
-//		printf("xxxxxxxxxxxxxxxxx close stream:%s ref:%d\n", ms->getStreamId().c_str(), ms->refNum());
-//		if (ms->refNum() == 0)
-//		{
-//			BaseChildDevice* childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
-//			if (childDev)
-//			{
-//				BaseDevice::Ptr parentDev = childDev->getParentDev();
-//				if (parentDev && parentDev->devType == BaseDevice::JSON_NVR)
-//				{
-//					int err = 0;
-//					parentDev->Dev_StopPreview(ms->getStreamHandle(), err);
-//					if (err == 0)
-//					{
-//						MediaMng::GetInstance().removeStream(ms->getStreamId());
-//						printf("remove stream:%s\n", ms->getStreamId().c_str());
-//					}
-//					else
-//					{
-//						printf("stop stream:%s, failed:%d\n", ms->getStreamId().c_str(), err);
-//					}
-//				}
-//			}
-//		}
-//	}
-//	return true;
 //}

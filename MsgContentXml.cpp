@@ -142,7 +142,8 @@ void AddDeviceItemToCatalog(XMLDocument& doc, XMLElement* DeviceListElement, con
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+        std::string strName = item.Name.empty() ? "" : Utf8ToGbk(item.Name);
+		NameElement->InsertEndChild(doc.NewText(strName.c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
@@ -349,7 +350,8 @@ void AddVirtualOrganizationToCatalog(tinyxml2::XMLDocument& doc, XMLElement* Dev
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+        std::string strName = item.Name.empty() ? "" : Utf8ToGbk(item.Name);
+		NameElement->InsertEndChild(doc.NewText(strName.c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* ParentIDElement = doc.NewElement("ParentID");
@@ -547,7 +549,8 @@ void AddVirtualOrganizationToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElemen
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+        std::string strName = item.Name.empty() ? "" : Utf8ToGbk(item.Name);
+		NameElement->InsertEndChild(doc.NewText(strName.c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* ParentIDElement = doc.NewElement("ParentID");
@@ -627,7 +630,8 @@ void AddDeviceItemToNotifyCatalog(tinyxml2::XMLDocument& doc, XMLElement* Device
 		if (ev == "UPDATE")
 		{
 			XMLElement* NameElement = doc.NewElement("Name");
-			NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+            std::string strName = item.Name.empty() ? "" : Utf8ToGbk(item.Name);
+			NameElement->InsertEndChild(doc.NewText(strName.c_str()));
 			ItemElement->InsertEndChild(NameElement);
 
 			XMLElement* ManufacturerElement = doc.NewElement("Manufacturer");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)
@@ -785,7 +789,8 @@ void insertRecordInfo(tinyxml2::XMLDocument &doc, XMLElement *RecordListElement,
 		ItemElement->InsertEndChild(DeviceIDElement);
 
 		XMLElement* NameElement = doc.NewElement("Name");
-		NameElement->InsertEndChild(doc.NewText(Utf8ToGbk(item.Name).c_str()));
+        std::string strName = item.Name.empty() ? "" : Utf8ToGbk(item.Name);
+		NameElement->InsertEndChild(doc.NewText(strName.c_str()));
 		ItemElement->InsertEndChild(NameElement);
 
 		XMLElement* FilePathElement = doc.NewElement("FilePath");	//目标设备/区域/系统的编码,取值与目录查询请求相同(必选)

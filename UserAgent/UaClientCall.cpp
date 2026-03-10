@@ -444,7 +444,6 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                 {
                     psSource = new PSFileSource("", ssrc.convertInt());
                     psSource->SetTransport("sip", transport);
-                    mdaStream->increasing();
                     psSource->setMediaStream(mdaStream);
                 }
                 std::cout << "found stream :" << channelId << std::endl;
@@ -501,8 +500,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                         {
                             psSource = new PSFileSource("", ssrc.convertInt());
                             psSource->SetTransport("sip", transport);
-                            streamInfo->increasing();
-                            LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
+                            LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%ld", streamId.c_str(), streamInfo.use_count());
                             psSource->setMediaStream(streamInfo);
                         }
                         //streamInfo->setMediaSource(psSource);
@@ -538,6 +536,8 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
             {
                 startTime = offer.session().getTimes().front().getStart();
                 stopTime = offer.session().getTimes().front().getStop();
+                // startTime = 1773125180 -120;
+                // startTime = 1773125180;
             }
             else
             {
@@ -579,8 +579,7 @@ void UaClientCall::ReceiveInviteOffRequest(resip::InviteSessionHandle handle, co
                     {
                         psSource = new PSFileSource("", ssrc.convertInt());
                         psSource->SetTransport("sip", transport);
-                        streamInfo->increasing();
-                        LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%d", streamId.c_str(), streamInfo->refNum());
+                        LogOut(BLL, L_DEBUG, "xxxxxxxxxxxxxxxxx stream:%s ref:%ld", streamId.c_str(), streamInfo.use_count());
                         psSource->setMediaStream(streamInfo);
                     }
                     //streamInfo->setMediaSource(psSource);

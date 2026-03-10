@@ -2,6 +2,8 @@
 #include "JsonDevice.h"
 #include "SelfLog.h"
 #include "IDManager.h"
+#include <queue>
+#include <unordered_set>
 
 DeviceMng& DeviceMng::Instance()
 {
@@ -92,7 +94,8 @@ std::shared_ptr<BaseChildDevice> DeviceMng::findChildDeviceByGBID(const std::str
 }
 void DeviceMng::getChildDevice(const std::string& Id, std::vector<std::shared_ptr<BaseChildDevice>>& vcList)
 {
-    if (Id.empty())
+    // LogOut(BLL, L_DEBUG, "id:%s selfId:%s", Id.c_str(), selfId.c_str());
+    if(Id.empty() || Id == selfId)
     {
         GMUTEX lock(childMtx);
         for (auto& it : mChildMap)
@@ -102,24 +105,18 @@ void DeviceMng::getChildDevice(const std::string& Id, std::vector<std::shared_pt
     }
     else
     {
-        if (selfId == Id)
+
+        std::map<std::string, std::shared_ptr<BaseChildDevice>> ChildMap;
         {
-            getChildDevice("", vcList);
+            GMUTEX lock(childMtx);
+            ChildMap = mChildMap;
         }
-        else
+
+        for (auto& it : ChildMap)
         {
-            std::map<std::string, std::shared_ptr<BaseChildDevice>> ChildMap;
+            if (it.second && it.second->getParentId() == Id)
             {
-                GMUTEX lock(childMtx);
-                ChildMap = mChildMap;
-            }
-            for (auto& it : ChildMap)
-            {
-                if (it.second && it.second->getParentDev()->deviceId == Id)
-                {
-                    vcList.push_back(it.second);
-                    getChildDevice(it.second->getDeviceId(), vcList);
-                }
+                vcList.push_back(it.second);
             }
         }
     }
@@ -172,19 +169,33 @@ void DeviceMng::getVirtualOrganization(const std::string& Id, std::vector<Virtua
     }
     else
     {
-        if (selfId == Id)
-        {
-            getVirtualOrganization("", vcList);
-        }
-        else
+        std::map<std::string, VirtualOrganization> VoMap;
         {
             GMUTEX lock(childMtx);
-            for (auto& it : mVoMap)
+            VoMap = mVoMap;
+        }
+
+        std::queue<std::string> deviceQueue;
+        std::unordered_set<std::string> visited;
+        deviceQueue.push(Id);
+        visited.insert(Id);
+
+        while (!deviceQueue.empty())
+        {
+            std::string currentId = deviceQueue.front();
+            deviceQueue.pop();
+
+            for (auto& it : VoMap)
             {
-                if (it.second.ParentID == Id)
+                if (it.second.ParentID == currentId)
                 {
-                    vcList.push_back(it.second);
-                    getVirtualOrganization(it.second.DeviceID, vcList);
+                    const std::string& childId = it.second.DeviceID;
+                    if (visited.find(childId) == visited.end())
+                    {
+                        vcList.push_back(it.second);
+                        deviceQueue.push(childId);
+                        visited.insert(childId);
+                    }
                 }
             }
         }

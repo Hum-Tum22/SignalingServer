@@ -642,7 +642,7 @@ void CUserMessageMrg::CatalogQueryResponseTask(const Uri target, const std::stri
                         MyServerConfig& svr = GetSipServerConfig();
 					    item.ParentID = svr.getConfigData("GBID", "34020000002000000001", true).c_str();
                     }
-                    item.Name = Utf8ToGbk(pChildDev->getName());
+                    item.Name = pChildDev->getName().empty() ? "" : Utf8ToGbk(pChildDev->getName());
 
                     item.Manufacturer = "VSK";//当为设备时,设备厂商(必选)
                     item.Model = "";//当为设备时,设备型号(必选)

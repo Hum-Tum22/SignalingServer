@@ -24,9 +24,6 @@ public:
     int GetNextFrame(uint32_t readhandle, av_Frame& frame, ushort& fIndex);
     void freeFrameByIndex(ushort fIndex);
 
-    void increasing();
-    void reduction();
-    int refNum();
 private:
     std::string streamId;
     std::atomic<int> def;
