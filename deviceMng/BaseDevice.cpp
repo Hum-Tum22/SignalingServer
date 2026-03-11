@@ -127,7 +127,12 @@ void BaseDevice::updateDeviceInfo(const BaseDevice* devInfo)
 }
 
 
-
+BaseChildDevice::BaseChildDevice(const char* id) :deviceId(id), mParentDev(NULL)
+{
+#ifdef QINGDONG_CCTV
+    setGBID(id);
+#endif
+}
 
 void BaseChildDevice::setName(std::string nm)
 {

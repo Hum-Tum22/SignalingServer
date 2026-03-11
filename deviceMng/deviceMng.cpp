@@ -129,7 +129,7 @@ std::shared_ptr<BaseChildDevice> DeviceMng::findChildDeviceByCCTVDeviceId(const 
         GMUTEX lock(childMtx);
         for (auto& it : mChildMap)
         {
-            if (it.second && it.second->getGBID() == Id)
+            if (it.second && it.second->getName() == Id)
             {
                 return it.second;
             }

@@ -1843,7 +1843,7 @@ int UaMgr::getQDCCTVNodeInfo(std::string& upID, std::string& upHost, int& upPort
     httpUrl += Data("/device/gbInfo");
     Data host = DnsUtil::getLocalIpAddress();
     Data Uid = host.md5().uppercase();
-    // LogOut(HTTP, L_DEBUG, "get local ip:%s, url:%s, uid:%s", host.c_str(), httpUrl.c_str(), Uid.c_str());
+    LogOut(HTTP, L_DEBUG, "get local ip:%s, url:%s, uid:%s", host.c_str(), httpUrl.c_str(), Uid.c_str());
     ////"http://192.168.1.223:20010/device/gbInfo?serverUid="
 
     rapidjson_sip::StringBuffer buffer;

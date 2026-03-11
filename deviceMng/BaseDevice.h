@@ -75,7 +75,7 @@ protected:
 class BaseChildDevice
 {
 public:
-    BaseChildDevice(const char* id) :deviceId(id), mParentDev(NULL){};
+    BaseChildDevice(const char* id);
     virtual ~BaseChildDevice() {};
     const std::string& getDeviceId() { return deviceId; };
 

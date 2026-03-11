@@ -108,6 +108,7 @@ int main(int argc, char** argv)
     repro.mainLoop();
 
     repro.shutdown();*/
+#ifdef YIXIN_HUAWEI
     resip::Data localGBID = svrCfgi.getConfigData("GBID", "34020000002000000001", true);
     CDevCodeMng::Instance().SetLocalGBID(localGBID.c_str());
     if(!CDbManager::Instance().initDb())
@@ -129,29 +130,8 @@ int main(int argc, char** argv)
         {
             CDevCodeMng::Instance().AddDevCodeID(it.getGBID());
         }
-
-        // for(auto &it: devList)
-        // {
-        //     std::list<JsonChildDevic> channelList;
-        //     getJsonNvrChannelList(it, channelList);
-        //     for(auto &item : channelList)
-        //     {
-        //         JsonChildDevic channelInfo("");
-        //         CDbManager::Instance().QuerySubDeviceInfo(it->deviceId, item.getChannel(), channelInfo);
-        //         LogOut(BLL, L_INFO, "channel info nvrid:%s,nvrGBID:%s channel:%d, channelId:%s channelGBID:%s",
-        //         it->deviceId.c_str(), it->getGBID().c_str(), item.getChannel(), channelInfo.getDeviceId().c_str(), channelInfo.getGBID().c_str());
-        //         if(channelInfo.getDeviceId().empty())
-        //         {
-        //             std::string gbid = CDevCodeMng::Instance().CreateDevCode(IPC_CODE);
-        //             int nRet = CDbManager::Instance().AddSubDeviceInfo(it->deviceId, gbid, item.getChannel(), item.getName());
-        //             if(nRet != 0)
-        //             {
-        //                 CDevCodeMng::Instance().DelDevCodeID(gbid, 3);
-        //             }
-        //         }
-        //     }
-        // }
     }
+#endif
     LogOut(BLL, L_ERROR, "start server!");
     SipServer* pSipSvr = GetServer();
     if (pSipSvr)

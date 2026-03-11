@@ -282,6 +282,7 @@ int MediaStream::OnJsonMediaVideoStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
     {
         if (wIndex < vSize)
         {
+            // LogOut(BLL, L_DEBUG, "write video wIndex:%d datalen:%u", wIndex, mFrames[wIndex].DataLen());
             if (mFrames[wIndex].IsIde())
             {
                 //写入
@@ -327,6 +328,7 @@ int MediaStream::OnJsonMediaAudioStream(MEDIA_CODEC_TYPE code, uint8_t* data, si
     {
         if (wIndex < vSize)
         {
+            // LogOut(BLL, L_DEBUG, "write audio wIndex:%d, datalen:%u", wIndex, mFrames[wIndex].DataLen());
             if (mFrames[wIndex].IsIde())
             {
                 //写入
@@ -400,8 +402,9 @@ void MediaStream::freeFrameByIndex(ushort fIndex)
     int size = mFrames.size();
     if (fIndex < size)
     {
-        mFrames[rIndex].ClearData();
-        rIndex = (rIndex + 1) % size;
+        mFrames[fIndex].ClearData();
+        rIndex = (fIndex + 1) % size;
+        // LogOut(BLL, L_DEBUG, "clear data fIndex:%d, rIndex:%d", fIndex, rIndex);
     }
 }
 uint32_t MediaStream::createReader()

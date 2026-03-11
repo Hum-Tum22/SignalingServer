@@ -416,7 +416,7 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
 {
     if (ms)
     {
-        LogOut(BLL, L_ERROR, "xxxxxxxxxxxxxxxxx close stream:%s ref:%d", ms->getStreamId().c_str(), ms.use_count());
+        LogOut(BLL, L_ERROR, "xxxxxxxxxxxxxxxxx close stream:%s ref:%ld", ms->getStreamId().c_str(), ms.use_count());
         if (ms.use_count() <= 2)
         {
             auto childDev = DeviceMng::Instance().findChildDevice(ms->getDeviceId());
@@ -463,7 +463,7 @@ bool MediaMng::CloseStreamByStreamId(MediaStream::Ptr& ms)
         }
         else
         {
-            LogOut(BLL, L_WARN, "stop stream:%s, use_count:%d", ms->getStreamId().c_str(), ms.use_count());
+            LogOut(BLL, L_WARN, "stop stream:%s, use_count:%ld", ms->getStreamId().c_str(), ms.use_count());
         }
     }
     return true;

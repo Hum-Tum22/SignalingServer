@@ -293,7 +293,7 @@ int WsServer::RealTimePlayAction(WsStreamInfo* sinfo, rapidjson_sip::Document& d
         std::string deviceId = json_check_string(msbody, "deviceId");
 
         std::string streamdId;
-        auto child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
+        auto child = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
         if(child == NULL)
         {
             errcode = 3;
@@ -384,8 +384,11 @@ int WsServer::PlayBackAction(WsStreamInfo* sinfo, rapidjson_sip::Document& docum
         std::string deviceId = json_check_string(msbody, "deviceId");
         if(pointtime == 0)
             pointtime = starttime;
-
+#ifdef QINGDONG_CCTV
         auto child = DeviceMng::Instance().findChildDeviceByCCTVDeviceId(deviceId);
+#else
+        auto child = DeviceMng::Instance().findChildDeviceByGBID(deviceId);
+#endif
         if(child == NULL)
         {
             errcode = 3;
@@ -703,6 +706,7 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
             if(smInfo->ms)
             {
                 int ret = smInfo->ms->GetNextFrameEx(smInfo->readhandle, frame, index);
+                // LogOut(BLL, L_INFO, "GetNextFrameEx index:%d, ret:%d", index, ret);
                 if(ret == 0)
                 {
                     // LogOut(BLL, L_DEBUG, "get frame index:%d, buf:%p", index, frame.Data());
@@ -721,7 +725,10 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                         frameNum++;
                         pts = frame.PTS();
                         nfps = frame.GetFramRate();
-                        gap = 1000 / (nfps * smInfo->speed);
+                        if(nfps > 0)
+                        {
+                            gap = 1000 / (nfps * smInfo->speed);
+                        }
                     }
 
                     short auChl = 0, auRate = 0;
@@ -799,6 +806,7 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                     if(m_clock == 0)
                     {
                         m_clock = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                        LogOut(BLL, L_INFO, "ws send first frame m_clock:%ju gap:%d", m_clock, gap);
                     }
                     websocketpp::lib::error_code ec;
                     smInfo->s->send(smInfo->hdl, pBuffer, offset, websocketpp::frame::opcode::binary, ec);
@@ -811,7 +819,7 @@ void WsServer::PlayBackThread(WsStreamInfo* smInfo)
                 }
                 else
                 {
-                    //LogOut(BLL, L_DEBUG, "ws send data read frame error:%d", ret);
+                    LogOut(BLL, L_DEBUG, "ws send data read frame error:%d", ret);
                 }
             }
             else
